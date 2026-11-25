@@ -1,0 +1,1026 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Atomic Orbitals 3D</title>
+<style>
+  :root {
+    --bg:#0b0d12; --panel:#12151c; --panel2:#181c25; --line:#262b36; --fg:#e6e8ec; --muted:#8a90a0;
+    --accent:#ffb347; --pos:#ff8c38; --neg:#3d9eff; --chip:#1e232e; --chipOn:#ffb347;
+  }
+  * { box-sizing:border-box; }
+  html,body { margin:0; height:100%; background:var(--bg); color:var(--fg); font:13px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif; }
+  #app { display:flex; height:100vh; }
+  #view { position:relative; flex:1; min-width:0; overflow:hidden; }
+  #gl { display:block; width:100%; height:100%; touch-action:none; }
+  #panel { width:372px; flex:none; background:var(--panel); border-left:1px solid var(--line); overflow-y:auto; padding:12px 14px 40px; }
+  @media (max-width:900px) {
+    #app { flex-direction:column; height:auto; }
+    #view { height:62vh; flex:none; }
+    #panel { width:100%; border-left:0; border-top:1px solid var(--line); padding:12px 16px 40px; }
+  }
+  h1 { font-size:15px; margin:0 0 2px; letter-spacing:.2px; }
+  .tag { color:var(--muted); font-size:12px; margin-bottom:10px; }
+  section { border-top:1px solid var(--line); padding:12px 0 6px; }
+  section > h2 { font-size:11px; text-transform:uppercase; letter-spacing:1.2px; color:var(--muted); margin:0 0 8px; font-weight:600; }
+  .tabs, .seg { display:flex; gap:4px; flex-wrap:wrap; }
+  .tabs button, .seg button, .chip {
+    background:var(--chip); color:var(--fg); border:1px solid var(--line); border-radius:7px;
+    padding:5px 9px; cursor:pointer; font:inherit; min-width:30px;
+  }
+  .tabs button { flex:1; padding:7px 6px; font-weight:600; }
+  .tabs button.on, .seg button.on, .chip.on { background:var(--chipOn); color:#1a1205; border-color:var(--chipOn); }
+  .tabs button:hover:not(.on), .seg button:hover:not(.on), .chip:hover:not(.on) { background:#262c39; }
+  .chip:disabled { opacity:.35; cursor:default; }
+  .prow { display:flex; align-items:flex-start; gap:8px; margin:5px 0; }
+  .plabel { width:16px; color:var(--muted); font-style:italic; padding-top:6px; flex:none; }
+  .prow .chips { display:flex; flex-wrap:wrap; gap:4px; }
+  .prow .chip { padding:4px 7px; }
+  .ctl { display:grid; grid-template-columns:92px 1fr 46px; align-items:center; gap:8px; margin:7px 0; color:var(--muted); }
+  .ctl output { color:var(--fg); text-align:right; font-variant-numeric:tabular-nums; }
+  input[type=range] { width:100%; accent-color:var(--accent); }
+  .chk { display:flex; align-items:center; gap:7px; color:var(--fg); margin:7px 0; cursor:pointer; }
+  .chk input { accent-color:var(--accent); }
+  .row { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin:7px 0; color:var(--muted); }
+  .sub { color:var(--muted); font-size:11px; text-transform:uppercase; letter-spacing:1px; margin:10px 0 2px; }
+  .presets { display:flex; flex-wrap:wrap; gap:4px; margin-top:8px; }
+  .presets .chip { font-size:12px; padding:3px 8px; }
+  .info { display:grid; grid-template-columns:auto 1fr; gap:3px 12px; }
+  .info dt { color:var(--muted); }
+  .info dd { margin:0; font-variant-numeric:tabular-nums; }
+  .note { color:var(--muted); font-size:12px; margin:8px 0 0; }
+  .note b { color:var(--fg); font-weight:600; }
+  .formula { font-family:"Cambria Math","STIX Two Math",Georgia,serif; font-size:14px; background:var(--panel2); border:1px solid var(--line); border-radius:8px; padding:8px 10px; margin:6px 0; overflow-x:auto; white-space:nowrap; }
+  canvas.plot { width:100%; display:block; background:var(--panel2); border:1px solid var(--line); border-radius:8px; }
+  #slice { aspect-ratio:1/1; image-rendering:auto; }
+  .ok { color:#6fdc8c; } .bad { color:#ff7a7a; }
+  /* HUD */
+  .hud { position:absolute; pointer-events:none; }
+  #hudTitle { left:16px; top:12px; font:600 30px/1.1 "Cambria Math",Georgia,serif; text-shadow:0 2px 12px #000; }
+  #hudTitle sub { font-size:17px; }
+  #hudSub { left:17px; top:50px; color:var(--muted); font-size:12px; text-shadow:0 1px 6px #000; }
+  #legend { left:16px; bottom:14px; display:flex; gap:12px; align-items:center; color:var(--muted); font-size:12px; background:#0b0d12cc; padding:6px 10px; border-radius:8px; border:1px solid var(--line); }
+  #legend i { display:inline-block; width:12px; height:12px; border-radius:50%; vertical-align:-2px; margin-right:5px; }
+  #legend .ring { width:18px; height:18px; border-radius:50%; background:conic-gradient(from 90deg, red, yellow, lime, cyan, blue, magenta, red); -webkit-mask:radial-gradient(circle, transparent 4px, #000 5px); mask:radial-gradient(circle, transparent 4px, #000 5px); display:inline-block; vertical-align:-5px; margin-right:6px; }
+  #viewBtns { position:absolute; right:12px; top:12px; display:flex; gap:6px; }
+  #viewBtns button { background:#12151ccc; color:var(--fg); border:1px solid var(--line); border-radius:8px; padding:6px 10px; cursor:pointer; font:inherit; }
+  #viewBtns button.on { border-color:var(--accent); color:var(--accent); }
+  #timebar { position:absolute; left:50%; transform:translateX(-50%); bottom:14px; width:min(440px, calc(100% - 32px)); background:#0b0d12dd; border:1px solid var(--line); border-radius:10px; padding:8px 12px; display:none; }
+  #timebar .tline { display:flex; justify-content:space-between; color:var(--muted); font-size:12px; font-variant-numeric:tabular-nums; }
+  #timebar input { margin-top:4px; }
+  #busy { position:absolute; inset:0; display:none; align-items:center; justify-content:center; background:#0b0d1288; font-size:14px; color:var(--accent); }
+  #busy.on { display:flex; }
+  #nogl { position:absolute; inset:0; display:none; align-items:center; justify-content:center; padding:24px; text-align:center; color:var(--muted); }
+  .swatch { display:inline-block; width:12px; height:12px; border-radius:3px; vertical-align:-1px; margin-right:4px; border:1px solid #fff3; }
+  .hide { display:none !important; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="view">
+    <canvas id="gl"></canvas>
+    <div class="hud" id="hudTitle"></div>
+    <div class="hud" id="hudSub"></div>
+    <div class="hud" id="legend"></div>
+    <div id="viewBtns">
+      <button id="btnRotate" title="Auto-rotate">⟳ Spin</button>
+      <button id="btnReset" title="Reset camera">⌂ Reset</button>
+      <button id="btnShot" title="Save PNG">⤓ PNG</button>
+    </div>
+    <div id="timebar">
+      <div class="tline"><span id="tNow">t = 0</span><span id="tPeriod"></span></div>
+      <input type="range" id="tScrub" min="0" max="1" step="0.001" value="0">
+    </div>
+    <div id="busy">Solving ψ<sub>nlm</sub> on the grid…</div>
+    <div id="nogl">This page needs WebGL2 (3D textures). Try a recent Chrome, Edge, Firefox or Safari.</div>
+  </div>
+
+  <aside id="panel">
+    <h1>Atomic Orbitals in 3D</h1>
+    <div class="tag">Exact hydrogen-like wavefunctions ψ<sub>nlm</sub> = R<sub>nl</sub>(r)·Y<sub>lm</sub>(θ,φ), ray-marched as a volume.</div>
+
+    <div class="tabs" id="modeTabs">
+      <button data-mode="orbital">Orbital</button>
+      <button data-mode="hybrid">Hybrid</button>
+      <button data-mode="super">Superposition</button>
+    </div>
+
+    <section id="paneOrbital">
+      <h2>Quantum numbers</h2>
+      <div id="pickOrb"></div>
+      <label class="chk"><input type="checkbox" id="complex"> <span>Complex basis e<sup>imφ</sup> (L<sub>z</sub> eigenstates, phase as hue)</span></label>
+      <div class="presets" id="presetsOrb"></div>
+    </section>
+
+    <section id="paneHybrid" class="hide">
+      <h2>Hybridisation</h2>
+      <div class="seg" id="hybType"></div>
+      <div class="row">Orbital <div class="seg" id="hybIdx"></div></div>
+      <label class="chk"><input type="checkbox" id="hybSet"> Show the whole set (switches to electron dots)</label>
+    </section>
+
+    <section id="paneSuper" class="hide">
+      <h2>Two-state superposition</h2>
+      <div class="sub">State A</div><div id="pickA"></div>
+      <div class="sub">State B</div><div id="pickB"></div>
+      <div class="ctl"><span>Weight |b|²</span><input type="range" id="mix" min="0" max="1" step="0.01" value="0.5"><output id="mixOut"></output></div>
+      <div class="ctl"><span>Speed</span><input type="range" id="speed" min="0.1" max="3" step="0.05" value="1"><output id="speedOut"></output></div>
+      <div class="row"><button class="chip" id="play">❚❚ Pause</button></div>
+      <div class="presets" id="presetsSup"></div>
+    </section>
+
+    <section>
+      <h2>Rendering</h2>
+      <div class="seg" id="renderMode">
+        <button data-r="volume">Probability cloud</button>
+        <button data-r="surface">Boundary surface</button>
+        <button data-r="cloud">Electron dots</button>
+      </div>
+      <div data-show="volume">
+        <div class="ctl"><span>Brightness</span><input type="range" id="gain" min="0" max="1" step="0.01" value="0.55"><output id="gainOut"></output></div>
+        <div class="ctl"><span>Contrast γ</span><input type="range" id="gamma" min="0.15" max="1" step="0.01" value="0.5"><output id="gammaOut"></output></div>
+      </div>
+      <div data-show="surface">
+        <div class="ctl"><span>Encloses</span><input type="range" id="prob" min="0.3" max="0.99" step="0.01" value="0.9"><output id="probOut"></output></div>
+        <div class="ctl"><span>Shell opacity</span><input type="range" id="isoAlpha" min="0.15" max="1" step="0.01" value="1"><output id="isoAlphaOut"></output></div>
+      </div>
+      <div data-show="cloud">
+        <div class="ctl"><span>Electrons</span><input type="range" id="count" min="5000" max="200000" step="5000" value="60000"><output id="countOut"></output></div>
+        <div class="ctl"><span>Dot size</span><input type="range" id="psize" min="0.3" max="3" step="0.05" value="1"><output id="psizeOut"></output></div>
+      </div>
+      <label class="chk"><input type="checkbox" id="clip"> Cutaway — slice the atom open to see radial nodes</label>
+      <div id="clipCtl" class="hide">
+        <div class="row">Remove side <div class="seg" id="clipAxis"><button data-a="x">+x</button><button data-a="y">+y</button><button data-a="z">+z</button></div></div>
+        <div class="ctl"><span>Cut at</span><input type="range" id="clipD" min="-1" max="1" step="0.01" value="0"><output id="clipDOut"></output></div>
+      </div>
+      <div class="ctl"><span>Nuclear Z</span><input type="range" id="Z" min="1" max="10" step="1" value="1"><output id="ZOut"></output></div>
+      <div class="row">Grid <div class="seg" id="res"><button data-v="64">64³</button><button data-v="96">96³</button><button data-v="128">128³</button><button data-v="160">160³</button></div></div>
+      <div class="row">Quality <div class="seg" id="quality"><button data-q="0">Fast</button><button data-q="1">Balanced</button><button data-q="2">High</button></div></div>
+      <label class="chk"><input type="checkbox" id="axes" checked> Axes &amp; nucleus</label>
+    </section>
+
+    <section>
+      <h2>Wavefunction</h2>
+      <div id="formula" class="formula"></div>
+      <dl class="info" id="info"></dl>
+      <div class="note" id="note"></div>
+    </section>
+
+    <section>
+      <h2>Radial functions</h2>
+      <div class="seg" id="radMode"><button data-v="P">P(r) = r²R²</button><button data-v="R">R(r)</button></div>
+      <canvas class="plot" id="radial" style="height:170px;margin-top:8px"></canvas>
+      <div class="note">Dashed: radial nodes · ● most probable r · ▲ ⟨r⟩</div>
+    </section>
+
+    <section>
+      <h2>Cross-section</h2>
+      <div class="seg" id="slicePlane"><button data-v="xz">xz-plane</button><button data-v="xy">xy-plane</button><button data-v="yz">yz-plane</button></div>
+      <canvas class="plot" id="slice" style="margin-top:8px"></canvas>
+      <div class="note">Brightness ∝ |ψ|<sup>γ</sup>, colour = phase. White line = boundary surface. Dark seams are nodes.</div>
+    </section>
+  </aside>
+</div>
+
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+/* =====================================================================
+   1. Physics: hydrogen-like wavefunctions (atomic units, a0 = 1)
+   ===================================================================== */
+const FACT = [1]; for (let i = 1; i <= 40; i++) FACT[i] = FACT[i - 1] * i;
+const LET = 'spdfghi';
+const RYD = 13.605693;            // eV
+const H_EVS = 4.135667696e-15;    // Planck constant, eV·s
+const HC = 1239.841984;           // eV·nm
+
+// generalised Laguerre L_k^a(x) by recurrence
+function laguerre(k, a, x) {
+  if (k === 0) return 1;
+  let L0 = 1, L1 = 1 + a - x;
+  for (let j = 1; j < k; j++) { const L2 = ((2 * j + 1 + a - x) * L1 - (j + a) * L0) / (j + 1); L0 = L1; L1 = L2; }
+  return L1;
+}
+const radNorm = (n, l, Z) => Math.sqrt(Math.pow(2 * Z / n, 3) * FACT[n - l - 1] / (2 * n * FACT[n + l]));
+function Rnl(n, l, Z, r, norm = radNorm(n, l, Z)) {
+  const rho = 2 * Z * r / n;
+  return norm * Math.exp(-rho / 2) * Math.pow(rho, l) * laguerre(n - l - 1, 2 * l + 1, rho);
+}
+// associated Legendre P_l^m(x), m >= 0, no Condon–Shortley phase (so p_x points to +x)
+function legendre(l, m, x) {
+  let pmm = 1;
+  if (m > 0) { const s = Math.sqrt(Math.max(0, 1 - x * x)); let f = 1; for (let i = 1; i <= m; i++) { pmm *= f * s; f += 2; } }
+  if (l === m) return pmm;
+  let p1 = x * (2 * m + 1) * pmm;
+  if (l === m + 1) return p1;
+  let pl = 0;
+  for (let ll = m + 2; ll <= l; ll++) { pl = ((2 * ll - 1) * x * p1 - (ll + m - 1) * pmm) / (ll - m); pmm = p1; p1 = pl; }
+  return pl;
+}
+const yNorm = (l, am) => Math.sqrt((2 * l + 1) / (4 * Math.PI) * FACT[l - am] / FACT[l + am]);
+// real spherical harmonic (or |Y| without e^{imφ} in complex mode)
+function angular(l, m, cosT, phi, complex) {
+  const am = Math.abs(m);
+  const b = yNorm(l, am) * legendre(l, am, cosT);
+  if (complex || m === 0) return b;
+  return Math.SQRT2 * b * (m > 0 ? Math.cos(m * phi) : Math.sin(am * phi));
+}
+function psiAt(terms, Z, x, y, z, complex) {
+  const r = Math.hypot(x, y, z);
+  const cosT = r > 1e-12 ? z / r : 1, phi = Math.atan2(y, x);
+  let s = 0;
+  for (const t of terms) s += t.c * Rnl(t.n, t.l, Z, r, t.norm) * angular(t.l, t.m, cosT, phi, complex);
+  return s;
+}
+const energy = (n, Z) => -RYD * Z * Z / (n * n);
+
+// radius enclosing `frac` of the radial probability
+function radiusEnclosing(n, l, Z, frac) {
+  const rmax = (6 * n * n + 30) / Z, N = 6000, h = rmax / N, norm = radNorm(n, l, Z);
+  let cum = 0;
+  for (let i = 0; i < N; i++) { const r = (i + 0.5) * h, R = Rnl(n, l, Z, r, norm); cum += r * r * R * R * h; if (cum >= frac) return r; }
+  return rmax;
+}
+function radialNodes(n, l, Z, rmax) {
+  const out = [], N = 6000, norm = radNorm(n, l, Z);
+  let pr = 1e-6, pv = Rnl(n, l, Z, pr, norm);
+  for (let i = 1; i <= N; i++) {
+    const r = rmax * i / N, v = Rnl(n, l, Z, r, norm);
+    if (pv * v < 0) { let a = pr, b = r; for (let k = 0; k < 40; k++) { const m = (a + b) / 2; if (Rnl(n, l, Z, m, norm) * pv < 0) b = m; else a = m; } out.push((a + b) / 2); }
+    pr = r; pv = v;
+  }
+  return out;
+}
+function coneAngles(l, am) {
+  const out = [], N = 4000;
+  let pt = 1e-4, pv = legendre(l, am, Math.cos(pt));
+  for (let i = 1; i <= N; i++) {
+    const t = 1e-4 + (Math.PI - 2e-4) * i / N, v = legendre(l, am, Math.cos(t));
+    if (pv * v < 0) { let a = pt, b = t; for (let k = 0; k < 40; k++) { const m = (a + b) / 2; if (legendre(l, am, Math.cos(m)) * pv < 0) b = m; else a = m; } out.push((a + b) / 2 * 180 / Math.PI); }
+    pt = t; pv = v;
+  }
+  return out;
+}
+
+/* =====================================================================
+   2. Naming
+   ===================================================================== */
+const SUB = {
+  1: { 0: 'z', 1: 'x', '-1': 'y' },
+  2: { 0: 'z²', 1: 'xz', '-1': 'yz', 2: 'x²−y²', '-2': 'xy' },
+  3: { 0: 'z³', 1: 'xz²', '-1': 'yz²', 2: 'z(x²−y²)', '-2': 'xyz', 3: 'x(x²−3y²)', '-3': 'y(3x²−y²)' },
+};
+const sgn = m => (m > 0 ? '+' : m < 0 ? '−' : '') + Math.abs(m);
+function mLabel(l, m, complex) {
+  if (l === 0) return 's';
+  if (complex) return sgn(m);
+  return SUB[l]?.[m] ?? `m${sgn(m)}`;
+}
+function orbHTML(n, l, m, complex) {
+  if (l === 0) return `${n}s`;
+  return `${n}${LET[l]}<sub>${complex ? 'm=' + sgn(m) : mLabel(l, m, false)}</sub>`;
+}
+const SERIES = ['', 'Lyman', 'Balmer', 'Paschen', 'Brackett', 'Pfund', 'Humphreys'];
+
+/* =====================================================================
+   3. Hybrid orbitals (normalised linear combinations, real basis)
+   ===================================================================== */
+const r2 = Math.SQRT1_2, r3 = 1 / Math.sqrt(3), r6 = 1 / Math.sqrt(6), r12 = 1 / Math.sqrt(12);
+const S = [0, 0], PX = [1, 1], PY = [1, -1], PZ = [1, 0], DZ2 = [2, 0], DX2 = [2, 2];
+const mk = (...pairs) => pairs.map(([[l, m], c]) => ({ l, m, c }));
+const HYB = {
+  sp:    { label: 'sp',   n: 2, geom: 'linear', angle: '180°', s: '50%', ex: 'BeCl₂, CO₂, C₂H₂',
+           members: [mk([S, r2], [PZ, r2]), mk([S, r2], [PZ, -r2])] },
+  sp2:   { label: 'sp²',  n: 2, geom: 'trigonal planar', angle: '120°', s: '33.3%', ex: 'BF₃, C₂H₄, graphite',
+           members: [mk([S, r3], [PX, Math.sqrt(2 / 3)]), mk([S, r3], [PX, -r6], [PY, r2]), mk([S, r3], [PX, -r6], [PY, -r2])] },
+  sp3:   { label: 'sp³',  n: 2, geom: 'tetrahedral', angle: '109.47°', s: '25%', ex: 'CH₄, NH₃, H₂O, diamond',
+           members: [mk([S, .5], [PX, .5], [PY, .5], [PZ, .5]), mk([S, .5], [PX, .5], [PY, -.5], [PZ, -.5]),
+                     mk([S, .5], [PX, -.5], [PY, .5], [PZ, -.5]), mk([S, .5], [PX, -.5], [PY, -.5], [PZ, .5])] },
+  sp3d:  { label: 'sp³d', n: 3, geom: 'trigonal bipyramidal', angle: '90° & 120°', s: '20%', ex: 'PCl₅',
+           members: [mk([S, r3], [PX, Math.sqrt(2 / 3)]), mk([S, r3], [PX, -r6], [PY, r2]), mk([S, r3], [PX, -r6], [PY, -r2]),
+                     mk([PZ, r2], [DZ2, r2]), mk([PZ, -r2], [DZ2, r2])] },
+  sp3d2: { label: 'sp³d²', n: 3, geom: 'octahedral', angle: '90°', s: '16.7%', ex: 'SF₆, [CoF₆]³⁻',
+           members: [mk([S, r6], [PZ, r2], [DZ2, r3]), mk([S, r6], [PZ, -r2], [DZ2, r3]),
+                     mk([S, r6], [PX, r2], [DZ2, -r12], [DX2, .5]), mk([S, r6], [PX, -r2], [DZ2, -r12], [DX2, .5]),
+                     mk([S, r6], [PY, r2], [DZ2, -r12], [DX2, -.5]), mk([S, r6], [PY, -r2], [DZ2, -r12], [DX2, -.5])] },
+};
+const SET_COLORS = [[1, .55, .2], [.25, .65, 1], [.45, .95, .45], [1, .35, .65], [.8, .55, 1], [1, .9, .3]];
+
+/* =====================================================================
+   4. State
+   ===================================================================== */
+const state = {
+  mode: 'orbital',
+  orb: { n: 3, l: 2, m: 0 }, complex: false,
+  hyb: { type: 'sp3', idx: 0, set: false },
+  sup: { A: { n: 1, l: 0, m: 0 }, B: { n: 2, l: 1, m: 0 }, mix: 0.5, speed: 1, playing: true },
+  render: 'volume', gain: 0.55, gamma: 0.5, prob: 0.9, isoAlpha: 1, count: 60000, psize: 1,
+  clip: false, clipAxis: 'x', clipD: 0, Z: 1, res: matchMedia('(max-width:900px)').matches ? 96 : 128,
+  quality: 1, axes: true, rotate: false, radMode: 'P', plane: 'xz',
+};
+let phase = 0;            // ΔE·t/ħ for superposition
+let F = null;             // computed field bundle
+
+/* =====================================================================
+   5. Three.js scene
+   ===================================================================== */
+const canvas = document.getElementById('gl');
+let renderer;
+try {
+  renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: false });
+  if (!renderer.capabilities.isWebGL2) throw new Error('no webgl2');
+} catch (e) { document.getElementById('nogl').style.display = 'flex'; throw e; }
+renderer.setClearColor(0x0b0d12, 1);
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(38, 1, 0.05, 100);
+camera.up.set(0, 0, 1);                       // chemistry convention: z up
+const HOME = new THREE.Vector3(3.3, 2.5, 1.9);
+camera.position.copy(HOME);
+const controls = new OrbitControls(camera, canvas);
+controls.enableDamping = true; controls.dampingFactor = 0.08;
+controls.minDistance = 1.9; controls.maxDistance = 12; controls.autoRotateSpeed = 1.6;
+
+// --- axes, labels, nucleus ---
+const axesGroup = new THREE.Group(); scene.add(axesGroup);
+function axisLine(dir, color) {
+  const g = new THREE.BufferGeometry().setFromPoints([dir.clone().multiplyScalar(-1.15), dir.clone().multiplyScalar(1.15)]);
+  const l = new THREE.Line(g, new THREE.LineBasicMaterial({ color, transparent: true, opacity: .55 }));
+  axesGroup.add(l);
+  const c = document.createElement('canvas'); c.width = c.height = 64;
+  const x = c.getContext('2d'); x.fillStyle = '#' + new THREE.Color(color).getHexString(); x.font = 'italic 600 44px Georgia'; x.textAlign = 'center'; x.textBaseline = 'middle';
+  x.fillText(dir.x ? 'x' : dir.y ? 'y' : 'z', 32, 34);
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), depthTest: false, transparent: true }));
+  sp.position.copy(dir.clone().multiplyScalar(1.25)); sp.scale.setScalar(.13); sp.renderOrder = 10;
+  axesGroup.add(sp);
+}
+axisLine(new THREE.Vector3(1, 0, 0), 0xff6b6b); axisLine(new THREE.Vector3(0, 1, 0), 0x7be08a); axisLine(new THREE.Vector3(0, 0, 1), 0x6fb2ff);
+const nucleus = new THREE.Mesh(new THREE.SphereGeometry(.018, 16, 12), new THREE.MeshBasicMaterial({ color: 0xffffff }));
+axesGroup.add(nucleus);
+const boxEdges = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(2, 2, 2)), new THREE.LineBasicMaterial({ color: 0x2a3040, transparent: true, opacity: .6 }));
+axesGroup.add(boxEdges);
+const dipoleArrow = new THREE.ArrowHelper(new THREE.Vector3(0, 0, 1), new THREE.Vector3(), .3, 0xffffff, .07, .045);
+dipoleArrow.visible = false; dipoleArrow.renderOrder = 11;
+dipoleArrow.line.material.depthTest = false; dipoleArrow.cone.material.depthTest = false;
+scene.add(dipoleArrow);
+
+// --- ray-marched volume ---
+const volMat = new THREE.ShaderMaterial({
+  uniforms: {
+    uTex: { value: null }, uCam: { value: new THREE.Vector3() },
+    uRender: { value: 0 }, uSteps: { value: 180 }, uComplex: { value: 0 }, uClip: { value: 0 },
+    uIso: { value: .01 }, uGain: { value: 10 }, uGamma: { value: .5 }, uIsoAlpha: { value: 1 },
+    uA: { value: 1 }, uB: { value: 0 }, uCross: { value: 0 }, uSa: { value: 1 }, uSb: { value: 0 }, uM: { value: 0 },
+    uClipN: { value: new THREE.Vector3(1, 0, 0) }, uClipD: { value: 0 }, uTexel: { value: 1 / 64 },
+    uPos: { value: new THREE.Color(1.0, .55, .22) }, uNeg: { value: new THREE.Color(.24, .62, 1.0) },
+  },
+  vertexShader: /* glsl */`
+    varying vec3 vLocal;
+    void main(){ vLocal = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+  fragmentShader: /* glsl */`
+    precision highp float;
+    precision highp sampler3D;
+    uniform sampler3D uTex;
+    uniform vec3 uCam, uClipN, uPos, uNeg;
+    uniform int uRender, uSteps, uComplex, uClip;
+    uniform float uIso, uGain, uGamma, uIsoAlpha, uA, uB, uCross, uSa, uSb, uM, uClipD, uTexel;
+    varying vec3 vLocal;
+
+    vec2 S(vec3 p){ return texture(uTex, p * 0.5 + 0.5).rg; }
+    float D(vec2 s){ return uA*s.x*s.x + uB*s.y*s.y + uCross*s.x*s.y; }
+    float Dp(vec3 p){ return D(S(p)); }
+    vec3 hue(float h){ vec3 k = clamp(abs(fract(h + vec3(0.0, 2.0/3.0, 1.0/3.0)) * 6.0 - 3.0) - 1.0, 0.0, 1.0); return mix(vec3(1.0), k, 0.85); }
+    vec3 pcol(vec3 p, vec2 s){
+      float v = uSa*s.x + uSb*s.y;
+      if (uComplex == 1) { float ph = uM * atan(p.y, p.x) + (v < 0.0 ? 3.14159265 : 0.0); return hue(ph / 6.28318531); }
+      return v >= 0.0 ? uPos : uNeg;
+    }
+    bool cut(vec3 p){ return uClip == 1 && dot(p, uClipN) > uClipD; }
+
+    void main(){
+      vec3 ro = uCam, rd = normalize(vLocal - uCam);
+      vec3 inv = 1.0 / rd;
+      vec3 t0 = (-1.0 - ro) * inv, t1 = (1.0 - ro) * inv;
+      vec3 tn = min(t0, t1), tf = max(t0, t1);
+      float tN = max(max(max(tn.x, tn.y), tn.z), 0.0), tF = min(min(tf.x, tf.y), tf.z);
+      if (tF <= tN) discard;
+      float dt = (tF - tN) / float(uSteps);
+      float t = tN + dt * fract(sin(dot(gl_FragCoord.xy, vec2(12.9898, 78.233))) * 43758.5453);
+      vec4 acc = vec4(0.0);
+      bool pin = false, pcut = false;
+      vec3 L = normalize(-rd + vec3(0.35, 0.25, 0.6));
+      for (int i = 0; i < 640; i++) {
+        if (i >= uSteps) break;
+        vec3 p = ro + rd * t;
+        bool c = cut(p);
+        if (!c) {
+          vec2 s = S(p); float d = D(s);
+          if (uRender == 0) {
+            float a = 1.0 - exp(-pow(max(d, 0.0), uGamma) * uGain * dt);
+            vec3 col = pcol(p, s);
+            acc.rgb += (1.0 - acc.a) * a * col; acc.a += (1.0 - acc.a) * a;
+          } else {
+            bool inside = d > uIso;
+            if (inside != pin) {
+              vec3 col; float al = uIsoAlpha;
+              if (inside && pcut) {
+                col = pcol(p, s) * 0.62;                   // flat cap on the cut plane
+              } else {
+                float ta = t - dt, tb = t;
+                for (int k = 0; k < 6; k++) { float tm = 0.5*(ta+tb); if ((Dp(ro + rd*tm) > uIso) == inside) tb = tm; else ta = tm; }
+                vec3 h = ro + rd * tb; vec2 sh = S(h); float e = uTexel;
+                vec3 g = vec3(Dp(h + vec3(e,0,0)) - Dp(h - vec3(e,0,0)),
+                              Dp(h + vec3(0,e,0)) - Dp(h - vec3(0,e,0)),
+                              Dp(h + vec3(0,0,e)) - Dp(h - vec3(0,0,e)));
+                vec3 nrm = normalize(-g + vec3(1e-9));
+                if (!inside) nrm = -nrm;
+                float df = max(dot(nrm, L), 0.0);
+                float sp = pow(max(dot(nrm, normalize(L - rd)), 0.0), 48.0);
+                float rim = pow(1.0 - max(dot(nrm, -rd), 0.0), 2.5);
+                vec3 base = pcol(h, sh);
+                col = base * (0.2 + 0.8 * df) + vec3(0.55) * sp + base * rim * 0.35;
+                if (!inside) { col *= 0.5; al *= 0.6; }
+              }
+              if (inside || uIsoAlpha < 0.999) { acc.rgb += (1.0 - acc.a) * al * col; acc.a += (1.0 - acc.a) * al; }
+            }
+            pin = inside;
+          }
+        } else pin = false;
+        pcut = c;
+        if (acc.a > 0.985) break;
+        t += dt;
+      }
+      gl_FragColor = acc;
+    }`,
+  side: THREE.BackSide, transparent: true, depthWrite: false, depthTest: false,
+  blending: THREE.CustomBlending, blendSrc: THREE.OneFactor, blendDst: THREE.OneMinusSrcAlphaFactor,
+});
+const volume = new THREE.Mesh(new THREE.BoxGeometry(2, 2, 2), volMat);
+volume.renderOrder = 5; scene.add(volume);
+
+// --- electron-dot cloud ---
+const MAXP = 200000;
+const pGeo = new THREE.BufferGeometry();
+pGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(MAXP * 3), 3));
+pGeo.setAttribute('color', new THREE.BufferAttribute(new Float32Array(MAXP * 3), 3));
+const dotTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d');
+  const g = x.createRadialGradient(32, 32, 0, 32, 32, 32); g.addColorStop(0, '#fff'); g.addColorStop(.35, 'rgba(255,255,255,.75)'); g.addColorStop(1, 'rgba(255,255,255,0)');
+  x.fillStyle = g; x.fillRect(0, 0, 64, 64); return new THREE.CanvasTexture(c); })();
+const pMat = new THREE.PointsMaterial({ size: .016, map: dotTex, vertexColors: true, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, sizeAttenuation: true });
+const points = new THREE.Points(pGeo, pMat); points.frustumCulled = false; points.renderOrder = 6;
+scene.add(points);
+
+/* =====================================================================
+   6. Grid evaluation
+   ===================================================================== */
+function prepTerms(terms, Z) { return terms.map(t => ({ ...t, norm: radNorm(t.n, t.l, Z) })); }
+function computeField(terms, Z, N, L, complex) {
+  const out = new Float32Array(N * N * N);
+  const nl = [], tIdx = [];
+  for (const t of terms) { let k = nl.findIndex(u => u.n === t.n && u.l === t.l); if (k < 0) { nl.push({ n: t.n, l: t.l, norm: radNorm(t.n, t.l, Z) }); k = nl.length - 1; } tIdx.push(k); }
+  const Rv = new Float64Array(nl.length);
+  const step = 2 * L / N;
+  let idx = 0;
+  for (let k = 0; k < N; k++) {
+    const z = (k + .5) * step - L;
+    for (let j = 0; j < N; j++) {
+      const y = (j + .5) * step - L;
+      for (let i = 0; i < N; i++, idx++) {
+        const x = (i + .5) * step - L;
+        const r = Math.sqrt(x * x + y * y + z * z), cosT = z / r, phi = Math.atan2(y, x);
+        for (let u = 0; u < nl.length; u++) Rv[u] = Rnl(nl[u].n, nl[u].l, Z, r, nl[u].norm);
+        let s = 0;
+        for (let q = 0; q < terms.length; q++) { const t = terms[q]; s += t.c * Rv[tIdx[q]] * angular(t.l, t.m, cosT, phi, complex); }
+        out[idx] = s;
+      }
+    }
+  }
+  return out;
+}
+function isoForProb(dens, P) {
+  const B = 4000, LO = -10; const hist = new Float64Array(B); let tot = 0;
+  for (let v = 0; v < dens.length; v++) {
+    const d = dens[v]; if (d <= 0) continue; tot += d;
+    let b = Math.floor((Math.log10(d) - LO) / -LO * B); if (b < 0) continue; if (b >= B) b = B - 1; hist[b] += d;
+  }
+  let cum = 0;
+  for (let b = B - 1; b >= 0; b--) { cum += hist[b]; if (cum >= P * tot) return Math.pow(10, LO + (b / B) * -LO); }
+  return Math.pow(10, LO);
+}
+
+function currentSpec() {
+  const Z = state.Z;
+  if (state.mode === 'orbital') {
+    const o = state.orb;
+    return { A: [{ ...o, c: 1 }], B: null, complex: state.complex && o.m !== 0, m: o.m };
+  }
+  if (state.mode === 'hybrid') {
+    const h = HYB[state.hyb.type];
+    return { A: h.members[state.hyb.idx].map(t => ({ ...t, n: h.n })), B: null, complex: false, m: 0 };
+  }
+  return { A: [{ ...state.sup.A, c: 1 }], B: [{ ...state.sup.B, c: 1 }], complex: false, m: 0 };
+}
+function extentFor(spec, Z) {
+  let L = 0;
+  for (const t of [...spec.A, ...(spec.B || [])]) L = Math.max(L, radiusEnclosing(t.n, t.l, Z, 0.997));
+  return L * 1.04;
+}
+const coefAB = () => state.mode === 'super' ? [Math.sqrt(1 - state.sup.mix), Math.sqrt(state.sup.mix)] : [1, 0];
+
+let buildToken = 0;
+const busyEl = document.getElementById('busy');
+const nextFrame = () => new Promise(r => requestAnimationFrame(() => setTimeout(r, 0)));
+
+async function rebuild() {
+  const token = ++buildToken;
+  busyEl.classList.add('on');
+  await nextFrame();
+  if (token !== buildToken) return;
+  const spec = currentSpec(), Z = state.Z, N = state.res, L = extentFor(spec, Z);
+  const A = computeField(spec.A, Z, N, L, spec.complex);
+  const B = spec.B ? computeField(spec.B, Z, N, L, false) : null;
+  let mx = 0;
+  for (let v = 0; v < A.length; v++) { const a = Math.abs(A[v]); if (a > mx) mx = a; if (B) { const b = Math.abs(B[v]); if (b > mx) mx = b; } }
+  const s = 1 / mx;
+  // dipole cross term  D = ∫ ψA ψB r dV  (atomic units)
+  let dip = null;
+  if (B) {
+    const step = 2 * L / N, dV = step ** 3; let dx = 0, dy = 0, dz = 0, idx = 0;
+    for (let k = 0; k < N; k++) { const z = (k + .5) * step - L; for (let j = 0; j < N; j++) { const y = (j + .5) * step - L; for (let i = 0; i < N; i++, idx++) {
+      const x = (i + .5) * step - L, w = A[idx] * B[idx] * dV; dx += w * x; dy += w * y; dz += w * z; } } }
+    dip = new THREE.Vector3(dx, dy, dz);
+  }
+  // upload RG half-float 3D texture
+  const data = new Uint16Array(N * N * N * 2), toH = THREE.DataUtils.toHalfFloat;
+  for (let v = 0; v < A.length; v++) { data[2 * v] = toH(A[v] * s); data[2 * v + 1] = B ? toH(B[v] * s) : 0; }
+  const tex = new THREE.Data3DTexture(data, N, N, N);
+  tex.format = THREE.RGFormat; tex.type = THREE.HalfFloatType;
+  tex.minFilter = tex.magFilter = THREE.LinearFilter; tex.unpackAlignment = 1;
+  tex.wrapS = tex.wrapT = tex.wrapR = THREE.ClampToEdgeWrapping; tex.needsUpdate = true;
+  if (volMat.uniforms.uTex.value) volMat.uniforms.uTex.value.dispose();
+  volMat.uniforms.uTex.value = tex;
+  volMat.uniforms.uTexel.value = 1.5 / N;
+  F = { spec, Z, N, L, A, B, s, dip, terms: prepTerms(spec.A, Z), termsB: spec.B ? prepTerms(spec.B, Z) : null, setFields: null };
+  derive();
+  busyEl.classList.remove('on');
+  updateHUD(); drawInfo(); drawRadial(); drawSlice(true);
+  if (state.render === 'cloud') buildCloud();
+}
+
+// recompute things that depend on mixing / probability, not on the grid itself
+function derive() {
+  if (!F) return;
+  const [a, b] = coefAB(), { A, B, s } = F, n = A.length;
+  let dmax = 0;
+  for (let v = 0; v < n; v++) { const t = Math.abs(a * A[v] * s) + (B ? Math.abs(b * B[v] * s) : 0); if (t * t > dmax) dmax = t * t; }
+  const dens = F.dens && F.dens.length === n ? F.dens : new Float32Array(n);
+  for (let v = 0; v < n; v++) { const x = A[v] * s, y = B ? B[v] * s : 0; dens[v] = (a * a * x * x + b * b * y * y) / dmax; }
+  F.dens = dens; F.dmax = dmax; F.a = a; F.b = b;
+  F.iso = isoForProb(dens, state.prob);
+  volMat.uniforms.uIso.value = F.iso;
+  volMat.uniforms.uComplex.value = F.spec.complex ? 1 : 0;
+  volMat.uniforms.uM.value = F.spec.m;
+}
+
+/* =====================================================================
+   7. Electron-dot sampling (inverse-CDF over voxels)
+   ===================================================================== */
+const hsv = h => { h = ((h % 1) + 1) % 1; const k = [0, 2 / 3, 1 / 3].map(o => Math.min(Math.max(Math.abs(((h + o) % 1) * 6 - 3) - 1, 0), 1)); return k.map(v => .15 + .85 * v); };
+function sampleInto(weights, N, count, offset, colorFn) {
+  const n = weights.length, cdf = new Float64Array(n); let tot = 0;
+  for (let i = 0; i < n; i++) { tot += weights[i]; cdf[i] = tot; }
+  const pos = pGeo.attributes.position.array, col = pGeo.attributes.color.array;
+  for (let c = 0; c < count; c++) {
+    const u = Math.random() * tot; let lo = 0, hi = n - 1;
+    while (lo < hi) { const mid = (lo + hi) >> 1; if (cdf[mid] < u) lo = mid + 1; else hi = mid; }
+    const i = lo % N, j = ((lo / N) | 0) % N, k = (lo / (N * N)) | 0;
+    const x = (i + Math.random()) / N * 2 - 1, y = (j + Math.random()) / N * 2 - 1, z = (k + Math.random()) / N * 2 - 1;
+    const o = (offset + c) * 3; pos[o] = x; pos[o + 1] = y; pos[o + 2] = z;
+    const rgb = colorFn(lo, x, y, z); col[o] = rgb[0]; col[o + 1] = rgb[1]; col[o + 2] = rgb[2];
+  }
+}
+const POS = [1, .55, .22], NEG = [.24, .62, 1];
+let cloudBusy = false;
+function buildCloud() {
+  if (!F || cloudBusy) return;
+  cloudBusy = true;
+  const count = state.count, { N, A, B, s } = F;
+  if (state.mode === 'hybrid' && state.hyb.set) {
+    const h = HYB[state.hyb.type], Nc = Math.min(N, 96);
+    if (!F.setFields) F.setFields = h.members.map(m => computeField(m.map(t => ({ ...t, n: h.n })), F.Z, Nc, F.L, false));
+    const per = Math.floor(count / h.members.length);
+    F.setFields.forEach((fld, q) => {
+      const w = new Float32Array(fld.length); for (let v = 0; v < fld.length; v++) w[v] = fld[v] * fld[v];
+      sampleInto(w, Nc, per, q * per, () => SET_COLORS[q]);
+    });
+    pGeo.setDrawRange(0, per * h.members.length);
+    pMat.blending = THREE.NormalBlending; pMat.opacity = .55;
+  } else {
+    pMat.blending = THREE.AdditiveBlending; pMat.opacity = 1;
+    const [a, b] = coefAB(), c = Math.cos(phase);
+    let w = F.dens;
+    if (B) { w = F.wbuf || (F.wbuf = new Float32Array(A.length)); for (let v = 0; v < A.length; v++) { const x = a * A[v] * s, y = b * c * B[v] * s, yb = b * B[v] * s; w[v] = x * x + yb * yb + 2 * x * y; if (w[v] < 0) w[v] = 0; } }
+    const complex = F.spec.complex, m = F.spec.m;
+    sampleInto(w, N, count, 0, (idx, x, y) => {
+      const v = a * A[idx] + (B ? b * c * B[idx] : 0);
+      if (complex) return hsv((m * Math.atan2(y, x) + (v < 0 ? Math.PI : 0)) / (2 * Math.PI));
+      return v >= 0 ? POS : NEG;
+    });
+    pGeo.setDrawRange(0, count);
+  }
+  pMat.needsUpdate = true;
+  pGeo.attributes.position.needsUpdate = true; pGeo.attributes.color.needsUpdate = true;
+  cloudBusy = false;
+}
+
+/* =====================================================================
+   8. Side panel: info, radial plot, cross-section
+   ===================================================================== */
+const $ = id => document.getElementById(id);
+const fmt = (x, d = 2) => (Math.abs(x) >= 1e4 || (Math.abs(x) < 1e-3 && x !== 0)) ? x.toExponential(2) : x.toFixed(d);
+
+function nodeDescription(l, m, complex) {
+  const am = Math.abs(m), parts = [];
+  if (l === 0) return 'none (spherical)';
+  if (!complex && am > 0) {
+    const phis = [];
+    for (let k = 0; k < am; k++) phis.push(m > 0 ? (2 * k + 1) * 90 / am : k * 180 / am);
+    const names = phis.map(p => { p = ((p % 180) + 180) % 180; return Math.abs(p) < .01 ? 'xz' : Math.abs(p - 90) < .01 ? 'yz' : `φ=${+p.toFixed(1)}°`; });
+    parts.push(`${am} vertical plane${am > 1 ? 's' : ''} (${names.join(', ')})`);
+  }
+  const cones = coneAngles(l, am);
+  const flat = cones.filter(c => Math.abs(c - 90) < .01).length, real = cones.filter(c => c < 90 - .01);
+  if (flat) parts.push('xy plane');
+  if (real.length) parts.push(`${real.length} double cone${real.length > 1 ? 's' : ''} at θ = ${real.map(c => c.toFixed(1) + '°').join(', ')}`);
+  if (complex && am > 0) parts.push('z-axis (line node)');
+  return parts.join(' + ');
+}
+
+function drawInfo() {
+  const Z = state.Z, info = [], fe = $('formula');
+  let note = '';
+  const ext = F.L;
+  if (state.mode === 'orbital') {
+    const { n, l, m } = state.orb, cx = F.spec.complex;
+    const nodes = radialNodes(n, l, Z, ext);
+    const rmean = (3 * n * n - l * (l + 1)) / (2 * Z);
+    const rmp = mostProbable(n, l, Z, ext);
+    fe.innerHTML = `ψ<sub>${n}${l}${m}</sub> = R<sub>${n}${l}</sub>(r) · ${cx ? `Y<sub>${l}</sub><sup>${m}</sup>(θ,φ) ∝ e<sup>${m === 1 ? '' : m === -1 ? '−' : sgn(m)}iφ</sup>` : `Y<sub>${l}${m}</sub>(θ,φ)`}`;
+    info.push(['Orbital', orbHTML(n, l, m, cx)], ['n, l, m', `${n}, ${l}, ${cx ? m : m + ' (real)'}`],
+      ['Energy', `${fmt(energy(n, Z), 3)} eV`], ['Degeneracy', `${n * n} (×2 with spin)`],
+      ['Radial nodes', `${n - l - 1}${nodes.length ? ' at r = ' + nodes.map(r => r.toFixed(2)).join(', ') + ' a₀' : ''}`],
+      ['Angular nodes', `${l}: ${nodeDescription(l, m, cx)}`], ['Total nodes', `${n - 1}`],
+      ['⟨r⟩', `${fmt(rmean)} a₀ = ${fmt(rmean * 52.9177, 1)} pm`], ['Most probable r', `${fmt(rmp)} a₀`],
+      ['|L|', l ? `√${l * (l + 1)} ħ = ${fmt(Math.sqrt(l * (l + 1)), 3)} ħ` : '0'],
+      ['L<sub>z</sub>', cx || m === 0 ? `${m}ħ` : 'not sharp (cos/sin mix of ±m)'], ['Parity', l % 2 ? 'odd (−1)' : 'even (+1)']);
+    note = l > 0 && !cx && m !== 0 ? 'Real orbitals are standing waves: ψ = (Y<sub>l,m</sub> ± Y<sub>l,−m</sub>)/√2. Tick <b>Complex basis</b> to see the travelling-wave form whose density is a ring around z.' :
+           cx ? `|ψ|² is independent of φ — the electron circulates with L<sub>z</sub> = ${m}ħ. The colour wheel turns ${Math.abs(m)}× around z.` :
+           n > 4 ? 'High-n orbitals have most of their probability far from the nucleus; inner ripples are smaller than a grid cell at 64³.' :
+           'Raise the grid to 160³ for crisp inner nodes. Use Cutaway to see radial nodes inside s orbitals.';
+  } else if (state.mode === 'hybrid') {
+    const h = HYB[state.hyb.type], mem = h.members[state.hyb.idx];
+    const name = (t) => t.l === 0 ? `${h.n}s` : `${h.n}${LET[t.l]}<sub>${mLabel(t.l, t.m)}</sub>`;
+    fe.innerHTML = `h<sub>${state.hyb.idx + 1}</sub> = ` + mem.map((t, i) => `${i ? (t.c < 0 ? ' − ' : ' + ') : (t.c < 0 ? '−' : '')}${fmtCoef(Math.abs(t.c))}·ψ<sub>${name(t).replace(/<\/?sub>/g, '')}</sub>`).join('');
+    info.push(['Type', h.label], ['Geometry', h.geom], ['Bond angle', h.angle], ['Orbitals in set', h.members.length], ['s-character', h.s], ['Examples', h.ex]);
+    note = 'Each hybrid is a normalised, orthogonal mix of atomic orbitals on one atom. Constructive interference on one side makes a big lobe that points at a bonding partner; the small back lobe has the opposite phase.';
+  } else {
+    const A = state.sup.A, B = state.sup.B, [a, b] = coefAB();
+    const dE = Math.abs(energy(B.n, Z) - energy(A.n, Z));
+    fe.innerHTML = `Ψ(t) = ${fmtCoef(a)}·ψ<sub>A</sub>e<sup>−iE<sub>A</sub>t/ħ</sup> + ${fmtCoef(b)}·ψ<sub>B</sub>e<sup>−iE<sub>B</sub>t/ħ</sup>`;
+    info.push(['A', `${orbHTML(A.n, A.l, A.m)} · E = ${fmt(energy(A.n, Z), 3)} eV`], ['B', `${orbHTML(B.n, B.l, B.m)} · E = ${fmt(energy(B.n, Z), 3)} eV`]);
+    if (dE > 1e-9) {
+      const T = H_EVS / dE, lam = HC / dE, lo = Math.min(A.n, B.n);
+      const region = lam < 380 ? 'ultraviolet' : lam <= 750 ? 'visible' : 'infrared';
+      info.push(['ΔE', `${fmt(dE, 3)} eV`], ['Beat period', `${fmt(T * 1e15, 3)} fs`],
+        ['Photon λ', `${lam < 380 || lam > 750 ? '' : `<span class="swatch" style="background:${nmToRGB(lam)}"></span>`}${fmt(lam, 1)} nm (${region})`],
+        ['Series', SERIES[lo] ? `${SERIES[lo]} (n=${Math.max(A.n, B.n)}→${lo})` : '—']);
+    } else info.push(['ΔE', '0 — degenerate: Ψ is stationary']);
+    const d = F.dip ? F.dip.length() : 0, allowed = Math.abs(A.l - B.l) === 1;
+    info.push(['Δl', `${B.l - A.l} ${allowed ? '<span class="ok">(Δl = ±1 ✓)</span>' : '<span class="bad">(needs ±1 ✗)</span>'}`],
+      ['⟨ψA|r|ψB⟩', `${fmt(d, 3)} e·a₀ ${d > 1e-3 ? '<span class="ok">dipole-allowed</span>' : '<span class="bad">forbidden</span>'}`]);
+    note = d > 1e-3 && dE > 1e-9 ? 'The cloud sloshes back and forth at the Bohr frequency ν = ΔE/h. That oscillating charge is a tiny antenna — this is exactly how an atom emits or absorbs a photon of wavelength λ. The white arrow tracks the (exaggerated) electron centroid ⟨r⟩(t).' :
+           dE > 1e-9 ? 'The density breathes but its centre never moves — the transition dipole integral is zero, so this pair cannot exchange a photon (selection rule).' :
+           'Degenerate states share one energy, so the mixture never changes in time — this is how hybrid orbitals are built.';
+  }
+  $('info').innerHTML = info.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('');
+  $('note').innerHTML = note + ` <span style="opacity:.7">Grid box: ±${fmt(F.L, 1)} a₀${state.Z > 1 ? ` (Z = ${state.Z} shrinks everything by 1/Z)` : ''}.</span>`;
+}
+function fmtCoef(c) {
+  const known = [[1, '1'], [Math.SQRT1_2, '1/√2'], [1 / Math.sqrt(3), '1/√3'], [1 / Math.sqrt(6), '1/√6'], [Math.sqrt(2 / 3), '√(2/3)'], [.5, '½'], [1 / Math.sqrt(12), '1/√12']];
+  for (const [v, s] of known) if (Math.abs(c - v) < 1e-6) return s;
+  return c.toFixed(2);
+}
+function mostProbable(n, l, Z, rmax) {
+  let best = 0, br = 0; const norm = radNorm(n, l, Z);
+  for (let i = 1; i <= 4000; i++) { const r = rmax * i / 4000, R = Rnl(n, l, Z, r, norm), p = r * r * R * R; if (p > best) { best = p; br = r; } }
+  return br;
+}
+function nmToRGB(w) {
+  let r = 0, g = 0, b = 0;
+  if (w < 440) { r = (440 - w) / 60; b = 1; } else if (w < 490) { g = (w - 440) / 50; b = 1; } else if (w < 510) { g = 1; b = (510 - w) / 20; }
+  else if (w < 580) { r = (w - 510) / 70; g = 1; } else if (w < 645) { r = 1; g = (645 - w) / 65; } else r = 1;
+  return `rgb(${r * 255 | 0},${g * 255 | 0},${b * 255 | 0})`;
+}
+
+function fitCanvas(c) {
+  const dpr = Math.min(devicePixelRatio || 1, 2), w = c.clientWidth, h = c.clientHeight;
+  if (c.width !== Math.round(w * dpr) || c.height !== Math.round(h * dpr)) { c.width = Math.round(w * dpr); c.height = Math.round(h * dpr); }
+  const x = c.getContext('2d'); x.setTransform(dpr, 0, 0, dpr, 0, 0); return [x, w, h];
+}
+const CURVE = ['#ffb347', '#5ec8ff', '#9be27a', '#ff7eb6'];
+function drawRadial() {
+  if (!F) return;
+  const c = $('radial'), [x, W, H] = fitCanvas(c), Z = state.Z;
+  x.clearRect(0, 0, W, H);
+  const pad = { l: 30, r: 10, t: 10, b: 22 }, pw = W - pad.l - pad.r, ph = H - pad.t - pad.b;
+  const nls = []; for (const t of [...F.spec.A, ...(F.spec.B || [])]) if (!nls.some(u => u.n === t.n && u.l === t.l)) nls.push({ n: t.n, l: t.l });
+  const rmax = F.L, Ns = 500, isP = state.radMode === 'P';
+  const curves = nls.map(({ n, l }) => { const norm = radNorm(n, l, Z), ys = []; for (let i = 0; i <= Ns; i++) { const r = rmax * i / Ns, R = Rnl(n, l, Z, r, norm); ys.push(isP ? r * r * R * R : R); } return ys; });
+  let ymax = 0, ymin = 0; curves.forEach(ys => ys.forEach(v => { ymax = Math.max(ymax, v); ymin = Math.min(ymin, v); }));
+  if (!isP) { const m = Math.max(ymax, -ymin); ymax = m; ymin = -m * .35 > ymin ? ymin : ymin; }
+  ymax *= 1.08; if (ymin < 0) ymin *= 1.08;
+  const X = r => pad.l + r / rmax * pw, Y = v => pad.t + (ymax - v) / (ymax - ymin) * ph;
+  // grid
+  x.strokeStyle = '#262b36'; x.lineWidth = 1; x.fillStyle = '#8a90a0'; x.font = '10px system-ui'; x.textAlign = 'center';
+  const stepR = niceStep(rmax / 5);
+  for (let r = 0; r <= rmax + 1e-9; r += stepR) { x.beginPath(); x.moveTo(X(r), pad.t); x.lineTo(X(r), pad.t + ph); x.stroke(); x.fillText(+r.toFixed(2), X(r), H - 8); }
+  x.textAlign = 'right'; x.fillText('r/a₀', W - 4, H - 8 - 11);
+  x.strokeStyle = '#3a4150'; x.beginPath(); x.moveTo(pad.l, Y(0)); x.lineTo(pad.l + pw, Y(0)); x.stroke();
+  x.save(); x.translate(10, pad.t + ph / 2); x.rotate(-Math.PI / 2); x.textAlign = 'center'; x.fillText(isP ? 'r²R²' : 'R(r)', 0, 0); x.restore();
+  curves.forEach((ys, q) => {
+    const { n, l } = nls[q], col = CURVE[q % CURVE.length];
+    x.beginPath(); ys.forEach((v, i) => { const px = X(rmax * i / Ns), py = Y(v); i ? x.lineTo(px, py) : x.moveTo(px, py); });
+    if (isP) { x.save(); x.lineTo(X(rmax), Y(0)); x.lineTo(X(0), Y(0)); x.closePath(); x.globalAlpha = .14; x.fillStyle = col; x.fill(); x.restore(); x.beginPath(); ys.forEach((v, i) => { const px = X(rmax * i / Ns), py = Y(v); i ? x.lineTo(px, py) : x.moveTo(px, py); }); }
+    x.strokeStyle = col; x.lineWidth = 1.8; x.stroke();
+    // nodes
+    x.setLineDash([3, 3]); x.strokeStyle = col; x.lineWidth = 1; x.globalAlpha = .7;
+    for (const r of radialNodes(n, l, Z, rmax)) { x.beginPath(); x.moveTo(X(r), pad.t); x.lineTo(X(r), pad.t + ph); x.stroke(); }
+    x.setLineDash([]); x.globalAlpha = 1;
+    if (isP) {
+      const rmp = mostProbable(n, l, Z, rmax), norm = radNorm(n, l, Z), R = Rnl(n, l, Z, rmp, norm);
+      x.fillStyle = col; x.beginPath(); x.arc(X(rmp), Y(rmp * rmp * R * R), 3.5, 0, 7); x.fill();
+      const rm = (3 * n * n - l * (l + 1)) / (2 * Z);
+      if (rm < rmax) { x.beginPath(); x.moveTo(X(rm), Y(0) - 1); x.lineTo(X(rm) - 4, Y(0) + 6); x.lineTo(X(rm) + 4, Y(0) + 6); x.closePath(); x.fill(); }
+    }
+    x.fillStyle = col; x.textAlign = 'right'; x.font = '600 11px system-ui';
+    x.fillText(`${n}${LET[l]}`, W - pad.r - 2, pad.t + 12 + q * 14);
+  });
+}
+function niceStep(v) { const p = Math.pow(10, Math.floor(Math.log10(v))), f = v / p; return (f < 1.5 ? 1 : f < 3.5 ? 2 : f < 7.5 ? 5 : 10) * p; }
+
+// cross-section: analytic, so it is sharper than the 3D grid
+const SL = 180;
+let sliceImg = null, sliceVals = null, sliceKey = '';
+function drawSlice(force) {
+  if (!F) return;
+  const c = $('slice'), [x, W, H] = fitCanvas(c);
+  const key = [state.plane, F.L, F.Z, JSON.stringify(F.spec)].join('|');
+  if (force || key !== sliceKey) {        // cache ψA, ψB on the plane
+    sliceKey = key; sliceVals = [new Float32Array(SL * SL), F.termsB ? new Float32Array(SL * SL) : null];
+    for (let j = 0; j < SL; j++) for (let i = 0; i < SL; i++) {
+      const u = ((i + .5) / SL * 2 - 1) * F.L, v = ((1 - (j + .5) / SL) * 2 - 1) * F.L;
+      const [px, py, pz] = state.plane === 'xz' ? [u, 0, v] : state.plane === 'xy' ? [u, v, 0] : [0, u, v];
+      sliceVals[0][j * SL + i] = psiAt(F.terms, F.Z, px, py, pz, F.spec.complex);
+      if (F.termsB) sliceVals[1][j * SL + i] = psiAt(F.termsB, F.Z, px, py, pz, false);
+    }
+  }
+  if (!sliceImg) sliceImg = new ImageData(SL, SL);
+  const [a, b] = coefAB(), cph = Math.cos(phase), s = F.s, inv = 1 / F.dmax, g = state.gamma, iso = F.iso;
+  const d = sliceImg.data, VA = sliceVals[0], VB = sliceVals[1];
+  const dens = new Float32Array(SL * SL);
+  for (let q = 0; q < SL * SL; q++) {
+    const A = VA[q] * s, B = VB ? VB[q] * s : 0;
+    dens[q] = (a * a * A * A + b * b * B * B + 2 * a * b * cph * A * B) * inv;
+  }
+  const complex = F.spec.complex, m = F.spec.m;
+  for (let j = 0; j < SL; j++) for (let i = 0; i < SL; i++) {
+    const q = j * SL + i, br = Math.min(1, Math.pow(Math.max(dens[q], 0), g) * 1.15);
+    const val = a * VA[q] + (VB ? b * cph * VB[q] : 0);
+    let rgb;
+    if (complex) { const [uu, vv] = state.plane === 'xy' ? [i - SL / 2, SL / 2 - j] : state.plane === 'xz' ? [i - SL / 2, 0] : [0, i - SL / 2]; rgb = hsv((m * Math.atan2(vv, uu) + (val < 0 ? Math.PI : 0)) / (2 * Math.PI)); }
+    else rgb = val >= 0 ? POS : NEG;
+    let r = rgb[0] * br, gg = rgb[1] * br, bb = rgb[2] * br;
+    // boundary contour
+    if (i > 0 && j > 0 && ((dens[q] > iso) !== (dens[q - 1] > iso) || (dens[q] > iso) !== (dens[q - SL] > iso))) { r = gg = bb = .95; }
+    d[4 * q] = r * 255; d[4 * q + 1] = gg * 255; d[4 * q + 2] = bb * 255; d[4 * q + 3] = 255;
+  }
+  const off = drawSlice.off || (drawSlice.off = Object.assign(document.createElement('canvas'), { width: SL, height: SL }));
+  off.getContext('2d').putImageData(sliceImg, 0, 0);
+  x.imageSmoothingEnabled = true; x.drawImage(off, 0, 0, W, H);
+  // axes + scale
+  const [hx, vy] = state.plane === 'xz' ? ['x', 'z'] : state.plane === 'xy' ? ['x', 'y'] : ['y', 'z'];
+  x.strokeStyle = 'rgba(255,255,255,.18)'; x.lineWidth = 1;
+  x.beginPath(); x.moveTo(0, H / 2); x.lineTo(W, H / 2); x.moveTo(W / 2, 0); x.lineTo(W / 2, H); x.stroke();
+  x.fillStyle = '#c9ced8'; x.font = 'italic 13px Georgia'; x.fillText(hx, W - 14, H / 2 - 6); x.fillText(vy, W / 2 + 6, 14);
+  const sb = niceStep(F.L / 2.5), px = sb / (2 * F.L) * W;
+  x.fillStyle = '#c9ced8'; x.fillRect(10, H - 14, px, 2); x.font = '11px system-ui'; x.fillText(`${+sb.toFixed(2)} a₀`, 10, H - 20);
+}
+
+/* =====================================================================
+   9. HUD
+   ===================================================================== */
+function updateHUD() {
+  let t = '', sub = '';
+  if (state.mode === 'orbital') { const o = state.orb; t = orbHTML(o.n, o.l, o.m, F?.spec.complex); sub = `n = ${o.n}, l = ${o.l}, m = ${o.m} · E = ${fmt(energy(o.n, state.Z), 3)} eV`; }
+  else if (state.mode === 'hybrid') { const h = HYB[state.hyb.type]; t = `${h.label} <span style="font-size:18px;opacity:.7">${state.hyb.set ? 'set' : '#' + (state.hyb.idx + 1)}</span>`; sub = `${h.geom} · ${h.angle}`; }
+  else { const { A, B } = state.sup; t = `${orbHTML(A.n, A.l, A.m)} + ${orbHTML(B.n, B.l, B.m)}`; sub = 'time-dependent superposition'; }
+  if (state.Z > 1) sub += ` · Z = ${state.Z}`;
+  $('hudTitle').innerHTML = t; $('hudSub').innerHTML = sub;
+  const lg = $('legend');
+  if (state.mode === 'hybrid' && state.hyb.set && state.render === 'cloud') lg.innerHTML = HYB[state.hyb.type].members.map((_, i) => `<span><i style="background:rgb(${SET_COLORS[i].map(v => v * 255 | 0)})"></i>h${i + 1}</span>`).join('');
+  else if (F?.spec.complex) lg.innerHTML = `<span><span class="ring"></span>phase arg ψ</span>`;
+  else lg.innerHTML = `<span><i style="background:var(--pos)"></i>ψ &gt; 0</span><span><i style="background:var(--neg)"></i>ψ &lt; 0</span>`;
+  $('timebar').style.display = state.mode === 'super' ? 'block' : 'none';
+}
+
+/* =====================================================================
+   10. UI wiring
+   ===================================================================== */
+function seg(el, attr, get, set) {
+  const btns = [...el.querySelectorAll('button')];
+  const paint = () => btns.forEach(b => b.classList.toggle('on', String(get()) === b.dataset[attr]));
+  btns.forEach(b => b.onclick = () => { set(b.dataset[attr]); paint(); });
+  paint(); return paint;
+}
+function slider(id, fmtFn, onInput) {
+  const el = $(id), out = $(id + 'Out');
+  const show = () => out && (out.textContent = fmtFn(+el.value));
+  el.addEventListener('input', () => { show(); onInput(+el.value); }); show();
+  return el;
+}
+function statePicker(el, st, onChange, getComplex = () => false) {
+  function chipRow(label, items, cur, pick) {
+    const row = document.createElement('div'); row.className = 'prow';
+    row.innerHTML = `<span class="plabel">${label}</span>`;
+    const box = document.createElement('div'); box.className = 'chips';
+    for (const it of items) {
+      const b = document.createElement('button'); b.className = 'chip' + (it.v === cur ? ' on' : ''); b.innerHTML = it.t;
+      b.onclick = () => { pick(it.v); render(); onChange(); }; box.appendChild(b);
+    }
+    row.appendChild(box); el.appendChild(row);
+  }
+  function render() {
+    el.innerHTML = '';
+    chipRow('n', [1, 2, 3, 4, 5, 6, 7].map(v => ({ v, t: v })), st.n, v => { st.n = v; if (st.l > v - 1) st.l = v - 1; if (Math.abs(st.m) > st.l) st.m = 0; });
+    chipRow('l', [...Array(st.n).keys()].map(v => ({ v, t: LET[v] })), st.l, v => { st.l = v; if (Math.abs(st.m) > v) st.m = 0; });
+    const cx = getComplex(), ms = [0];
+    for (let k = 1; k <= st.l; k++) cx ? ms.push(k, -k) : ms.push(k, -k);
+    if (cx) ms.sort((p, q) => p - q);
+    chipRow('m', ms.map(v => ({ v, t: mLabel(st.l, v, cx) })), st.m, v => { st.m = v; });
+  }
+  render(); return render;
+}
+
+const renderOrbPicker = statePicker($('pickOrb'), state.orb, rebuild, () => state.complex);
+const renderA = statePicker($('pickA'), state.sup.A, () => { phase = 0; rebuild(); });
+const renderB = statePicker($('pickB'), state.sup.B, () => { phase = 0; rebuild(); });
+$('complex').onchange = e => { state.complex = e.target.checked; renderOrbPicker(); rebuild(); };
+
+const ORB_PRESETS = [[1, 0, 0], [2, 0, 0], [2, 1, 0], [3, 0, 0], [3, 2, 0], [3, 2, 2], [4, 3, -2], [4, 3, 0], [5, 4, 4], [6, 5, 0], [7, 6, 3]];
+$('presetsOrb').innerHTML = ORB_PRESETS.map(([n, l, m], i) => `<button class="chip" data-i="${i}">${orbHTML(n, l, m)}</button>`).join('');
+$('presetsOrb').onclick = e => { const b = e.target.closest('button'); if (!b) return; const [n, l, m] = ORB_PRESETS[b.dataset.i]; Object.assign(state.orb, { n, l, m }); state.complex = false; $('complex').checked = false; renderOrbPicker(); rebuild(); };
+
+const SUP_PRESETS = [
+  ['Lyman-α 1s↔2p', { n: 1, l: 0, m: 0 }, { n: 2, l: 1, m: 0 }],
+  ['Balmer-α 2p↔3d', { n: 2, l: 1, m: 0 }, { n: 3, l: 2, m: 0 }],
+  ['1s↔2p<sub>x</sub>', { n: 1, l: 0, m: 0 }, { n: 2, l: 1, m: 1 }],
+  ['Forbidden 1s↔2s', { n: 1, l: 0, m: 0 }, { n: 2, l: 0, m: 0 }],
+  ['Forbidden 1s↔3d', { n: 1, l: 0, m: 0 }, { n: 3, l: 2, m: 0 }],
+  ['Degenerate 2s+2p', { n: 2, l: 0, m: 0 }, { n: 2, l: 1, m: 0 }],
+];
+$('presetsSup').innerHTML = SUP_PRESETS.map((p, i) => `<button class="chip" data-i="${i}">${p[0]}</button>`).join('');
+$('presetsSup').onclick = e => { const b = e.target.closest('button'); if (!b) return; const [, A, B] = SUP_PRESETS[b.dataset.i]; Object.assign(state.sup.A, A); Object.assign(state.sup.B, B); phase = 0; renderA(); renderB(); rebuild(); };
+
+function setMode(m) {
+  state.mode = m;
+  $('paneOrbital').classList.toggle('hide', m !== 'orbital');
+  $('paneHybrid').classList.toggle('hide', m !== 'hybrid');
+  $('paneSuper').classList.toggle('hide', m !== 'super');
+  phase = 0; rebuild();
+}
+seg($('modeTabs'), 'mode', () => state.mode, setMode);
+
+$('hybType').innerHTML = Object.entries(HYB).map(([k, h]) => `<button data-t="${k}">${h.label}</button>`).join('');
+function renderHybIdx() {
+  const h = HYB[state.hyb.type];
+  $('hybIdx').innerHTML = h.members.map((_, i) => `<button data-i="${i}">h${i + 1}</button>`).join('');
+  seg($('hybIdx'), 'i', () => state.hyb.idx, v => { state.hyb.idx = +v; rebuild(); });
+}
+seg($('hybType'), 't', () => state.hyb.type, v => { state.hyb.type = v; state.hyb.idx = 0; renderHybIdx(); rebuild(); });
+renderHybIdx();
+let paintRender;
+$('hybSet').onchange = e => { state.hyb.set = e.target.checked; if (F) F.setFields = null; if (state.hyb.set) { state.render = 'cloud'; paintRender(); applyRender(); } else { buildCloud(); updateHUD(); } };
+
+function applyRender() {
+  document.querySelectorAll('[data-show]').forEach(el => el.classList.toggle('hide', el.dataset.show !== state.render));
+  volume.visible = state.render !== 'cloud';
+  points.visible = state.render === 'cloud';
+  volMat.uniforms.uRender.value = state.render === 'surface' ? 1 : 0;
+  if (state.render === 'cloud') buildCloud();
+  updateHUD();
+}
+paintRender = seg($('renderMode'), 'r', () => state.render, v => { state.render = v; applyRender(); });
+
+const gainVal = v => 0.5 * Math.pow(400, v);    // log slider
+slider('gain', v => gainVal(v).toFixed(1), v => { state.gain = v; });
+slider('gamma', v => v.toFixed(2), v => { state.gamma = v; drawSlice(); });
+let probTimer;
+slider('prob', v => Math.round(v * 100) + '%', v => { state.prob = v; clearTimeout(probTimer); probTimer = setTimeout(() => { if (F) { F.iso = isoForProb(F.dens, v); volMat.uniforms.uIso.value = F.iso; drawSlice(); } }, 30); });
+slider('isoAlpha', v => v.toFixed(2), v => { state.isoAlpha = v; });
+let countTimer;
+slider('count', v => (v / 1000) + 'k', v => { state.count = v; clearTimeout(countTimer); countTimer = setTimeout(buildCloud, 60); });
+slider('psize', v => v.toFixed(2), v => { state.psize = v; });
+slider('clipD', v => v.toFixed(2), v => { state.clipD = v; });
+let zTimer;
+slider('Z', v => v, v => { state.Z = v; clearTimeout(zTimer); zTimer = setTimeout(rebuild, 120); });
+let mixTimer;
+slider('mix', v => v.toFixed(2), v => { state.sup.mix = v; clearTimeout(mixTimer); mixTimer = setTimeout(() => { derive(); drawInfo(); drawSlice(); if (state.render === 'cloud') buildCloud(); }, 40); });
+slider('speed', v => v.toFixed(2) + '×', v => { state.sup.speed = v; });
+$('clip').onchange = e => { state.clip = e.target.checked; $('clipCtl').classList.toggle('hide', !state.clip); };
+seg($('clipAxis'), 'a', () => state.clipAxis, v => { state.clipAxis = v; });
+seg($('res'), 'v', () => state.res, v => { state.res = +v; rebuild(); });
+const QUAL = [{ steps: 110, pr: .75 }, { steps: 190, pr: 1.25 }, { steps: 320, pr: 2 }];
+seg($('quality'), 'q', () => state.quality, v => { state.quality = +v; resize(); });
+$('axes').onchange = e => { state.axes = e.target.checked; axesGroup.visible = state.axes; };
+seg($('radMode'), 'v', () => state.radMode, v => { state.radMode = v; drawRadial(); });
+seg($('slicePlane'), 'v', () => state.plane, v => { state.plane = v; drawSlice(true); });
+$('play').onclick = () => { state.sup.playing = !state.sup.playing; $('play').textContent = state.sup.playing ? '❚❚ Pause' : '▶ Play'; };
+$('tScrub').addEventListener('input', e => { phase = +e.target.value * 2 * Math.PI; state.sup.playing = false; $('play').textContent = '▶ Play'; });
+$('btnRotate').onclick = () => { state.rotate = !state.rotate; controls.autoRotate = state.rotate; $('btnRotate').classList.toggle('on', state.rotate); };
+$('btnReset').onclick = () => { camera.position.copy(HOME); controls.target.set(0, 0, 0); controls.update(); };
+$('btnShot').onclick = () => {
+  renderer.render(scene, camera);
+  const a = document.createElement('a'); a.download = 'orbital.png'; a.href = canvas.toDataURL('image/png'); a.click();
+};
+
+/* =====================================================================
+   11. Render loop
+   ===================================================================== */
+function resize() {
+  const v = $('view'), w = v.clientWidth, h = v.clientHeight;
+  const q = QUAL[state.quality];
+  renderer.setPixelRatio(Math.min(devicePixelRatio || 1, q.pr));
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h;
+  camera.fov = w < h ? Math.min(70, 2 * Math.atan(Math.tan(19 * Math.PI / 180) / camera.aspect) * 180 / Math.PI) : 38;
+  camera.updateProjectionMatrix();
+  volMat.uniforms.uSteps.value = q.steps;
+  pMat.size = .016 * state.psize;
+}
+new ResizeObserver(() => { resize(); drawRadial(); drawSlice(); }).observe($('view'));
+addEventListener('resize', () => { drawRadial(); drawSlice(); });
+
+let last = performance.now(), frame = 0;
+function loop(now) {
+  requestAnimationFrame(loop);
+  const dt = Math.min(.05, (now - last) / 1000); last = now; frame++;
+  controls.update();
+  const u = volMat.uniforms;
+  u.uCam.value.copy(camera.position);
+  u.uGain.value = gainVal(state.gain); u.uGamma.value = state.gamma; u.uIsoAlpha.value = state.isoAlpha;
+  u.uClip.value = state.clip ? 1 : 0;
+  u.uClipN.value.set(state.clipAxis === 'x' ? 1 : 0, state.clipAxis === 'y' ? 1 : 0, state.clipAxis === 'z' ? 1 : 0);
+  u.uClipD.value = state.clipD;
+  pMat.size = .016 * state.psize;
+  if (F) {
+    const [a, b] = coefAB(), inv = 1 / F.dmax;
+    const superOn = state.mode === 'super' && F.B;
+    const dE = superOn ? Math.abs(energy(state.sup.B.n, state.Z) - energy(state.sup.A.n, state.Z)) : 0;
+    if (superOn && state.sup.playing && dE > 1e-9) {
+      phase = (phase + dt * state.sup.speed * 2 * Math.PI / 2.5) % (2 * Math.PI);
+      $('tScrub').value = phase / (2 * Math.PI);
+    }
+    const c = superOn ? Math.cos(phase) : 0;
+    u.uA.value = a * a * inv; u.uB.value = b * b * inv; u.uCross.value = 2 * a * b * c * inv;
+    u.uSa.value = a; u.uSb.value = b * c;
+    if (superOn) {
+      const T = dE > 1e-9 ? H_EVS / dE * 1e15 : 0;
+      $('tNow').textContent = T ? `t = ${(phase / (2 * Math.PI) * T).toFixed(3)} fs` : 't — (stationary)';
+      $('tPeriod').textContent = T ? `period ${T.toFixed(3)} fs · slowed ~10¹⁵×` : 'ΔE = 0';
+      // electron centroid ⟨r⟩(t) = 2ab·cos(ΔEt/ħ)·⟨ψA|r|ψB⟩
+      const dv = F.dip.clone().multiplyScalar(2 * a * b * c);
+      const len = dv.length(), maxLen = 2 * a * b * F.dip.length();
+      dipoleArrow.visible = maxLen > 1e-3 && len > 1e-4;
+      if (dipoleArrow.visible) { const L = .65 * len / maxLen; dipoleArrow.setDirection(dv.normalize()); dipoleArrow.setLength(L, Math.min(.08, L * .4), Math.min(.05, L * .3)); }
+      if (state.sup.playing || frame % 2 === 0) { if (frame % 3 === 0) drawSlice(); }
+      if (state.render === 'cloud' && frame % 5 === 0 && dE > 1e-9) buildCloud();
+    } else dipoleArrow.visible = false;
+  }
+  renderer.render(scene, camera);
+}
+
+// initial
+resize();
+applyRender();
+setMode('orbital');
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

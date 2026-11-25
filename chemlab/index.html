@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ChemLab · Virtual Chemistry Lab</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <script type="importmap">
+    { "imports": { "three": "./vendor/three/three.module.js", "three/addons/": "./vendor/three/addons/" } }
+  </script>
+</head>
+<body>
+  <header class="top">
+    <div class="brand"><span class="logo">⚗</span><div><b>ChemLab</b><small>Virtual chemistry lab · 100+ real reactions</small></div></div>
+    <div class="top-r">
+      <span class="hint-k">Keys: <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> select · <kbd>H</kbd> heat</span>
+      <button id="molBtn" class="primary">🧬 3D Molecules</button>
+      <button id="resetBtn" class="ghost">Reset lab</button>
+    </div>
+  </header>
+
+  <main class="app">
+    <aside class="shelf">
+      <div class="shelf-top">
+        <div class="lbl">Pour amount</div>
+        <div id="amount" class="seg">
+          <button data-ml="1">1 mL</button><button data-ml="5">5</button><button data-ml="10" class="on">10</button><button data-ml="25">25</button>
+        </div>
+        <div class="pour-into">Pouring into <b>Beaker <span id="selName">A</span></b></div>
+      </div>
+      <div id="shelf"></div>
+    </aside>
+
+    <section class="center">
+      <div class="canvas-wrap"><canvas id="bench"></canvas></div>
+      <div class="toolbar">
+        <div id="beakerSel" class="seg"><button class="on">A</button><button>B</button><button>C</button></div>
+        <button id="heatBtn" class="tool">🔥 <span>Heat</span></button>
+        <button id="iceBtn" class="tool">❄ Ice bath</button>
+        <select id="tubeSel" class="tool"></select>
+        <button id="emptyBtn" class="tool">🗑 Empty</button>
+        <span class="sep"></span>
+        <button class="tool test" data-test="burning" title="Hold a burning splint at the mouth of the beaker">🔥 Burning splint</button>
+        <button class="tool test" data-test="glowing" title="Insert a glowing splint">✨ Glowing splint</button>
+        <button class="tool test" data-test="litmus" title="Hold damp litmus paper over the beaker">🧻 Damp litmus</button>
+        <button class="tool test" data-test="ph" title="Dip pH paper into the solution">🌈 pH paper</button>
+        <button class="tool test" data-test="smell" title="Waft the vapours">👃 Smell</button>
+      </div>
+      <div class="readout">
+        <div><small>Volume</small><b><span id="rVol">0</span> mL</b></div>
+        <div><small>Temperature</small><b><span id="rTemp">25.0</span> °C</b></div>
+        <div><small>pH</small><b><i id="rPHdot"></i><span id="rPH">—</span></b></div>
+        <div class="wide"><small>Gas coming off</small><b id="rGas">none</b></div>
+      </div>
+    </section>
+
+    <aside class="panel">
+      <div class="tabs">
+        <button data-tab="log" class="on">Notebook <span id="unread" class="unread" hidden>0</span></button>
+        <button data-tab="contents">Contents</button>
+        <button data-tab="exp">Experiments</button>
+      </div>
+      <div id="tab-log" class="tabpane on"><div id="logList"></div></div>
+      <div id="tab-contents" class="tabpane"><div id="contents"></div></div>
+      <div id="tab-exp" class="tabpane"><p class="muted pad">Classic demonstrations and JEE practicals, run step by step in the selected beaker.</p><div id="expList"></div></div>
+    </aside>
+  </main>
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,379 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Photo Fourier Drawing</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin:0; background:#0f1115; color:#e8e8e8; font:14px system-ui, sans-serif; display:flex; flex-direction:column; height:100vh; }
+  header { padding:8px 16px; display:flex; flex-wrap:wrap; gap:8px 16px; align-items:center; border-bottom:1px solid #222; }
+  header h1 { font-size:16px; margin:0; }
+  button, .file { background:#252a33; color:#e8e8e8; border:1px solid #3a404c; border-radius:6px; padding:6px 12px; cursor:pointer; font:inherit; }
+  button:hover, .file:hover { background:#2f3541; }
+  .file input { display:none; }
+  label { color:#8a8f98; display:flex; gap:6px; align-items:center; }
+  label span { color:#e8e8e8; min-width:2.5em; }
+  #status { color:#ffcc33; }
+  #stage { flex:1; position:relative; min-height:0; }
+  canvas { position:absolute; inset:0; width:100%; height:100%; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Photo → Fourier circles</h1>
+  <label class="file">📷 Upload photo<input id="file" type="file" accept="image/*"></label>
+  <button id="sample">Sample face</button>
+  <button id="rebuild">Rebuild ↻</button>
+  <button id="replay">Replay</button>
+  <span id="status"></span>
+</header>
+<header>
+  <label title="Lower = more lines">Detail <input id="thresh" type="range" min="1" max="38" value="25"><span id="threshVal"></span></label>
+  <label title="Blur before finding edges. More = ignores skin/hair texture">Smoothing <input id="smooth" type="range" min="0" max="5" value="2"><span id="smoothVal"></span></label>
+  <label title="Lines shorter than this (in pixels) are thrown away">Remove specks <input id="minLen" type="range" min="0" max="80" value="20"><span id="minLenVal"></span></label>
+  <label title="Size the photo is processed at">Resolution <input id="res" type="range" min="300" max="900" step="50" value="600"><span id="resVal"></span></label>
+  <label title="More points = sharper, slower">Points <input id="maxPts" type="range" min="1000" max="12000" step="500" value="6000"><span id="maxPtsVal"></span></label>
+  <label>Circles <input id="count" type="range" min="1" max="6000" value="6000"><span id="countVal"></span></label>
+  <label>Speed <input id="speed" type="range" min="1" max="100" value="30"></label>
+  <label>Line <input id="lw" type="range" min="5" max="40" value="14"></label>
+  <label><input id="showPhoto" type="checkbox"> Photo</label>
+  <label><input id="showEdges" type="checkbox"> Edges</label>
+</header>
+<div id="stage"><canvas id="c"></canvas></div>
+
+<script>
+const $ = id => document.getElementById(id);
+const canvas = $('c'), ctx = canvas.getContext('2d');
+const traceCanvas = document.createElement('canvas'), tctx = traceCanvas.getContext('2d');
+let W = 0, H = 0, dpr = 1;
+
+let srcImage = null;    // original image (for "Photo" overlay)
+let imgW = 0, imgH = 0; // size the image was processed at
+let edgeCanvas = null;  // preview of detected lines
+let coeffs = [];        // [{freq, re, im, amp}] biggest first
+let jumps = [];         // jumps[n] = true → pen lifts before point n (start of a new line)
+let N = 0, step = 0, lastPen = null;
+let scale = 1, offX = 0, offY = 0;
+
+// =====================================================================
+// STEP 1 — Edge detection (Canny): gray → contrast → blur → Sobel →
+//          thin (non-max suppression) → hysteresis
+// =====================================================================
+function detectEdges(img) {
+  const MAX_SIDE = +$('res').value;
+  const s = Math.min(1, MAX_SIDE / Math.max(img.width, img.height));
+  imgW = Math.round(img.width * s); imgH = Math.round(img.height * s);
+  const c = document.createElement('canvas'); c.width = imgW; c.height = imgH;
+  const cx = c.getContext('2d');
+  cx.fillStyle = '#fff'; cx.fillRect(0, 0, imgW, imgH);
+  cx.drawImage(img, 0, 0, imgW, imgH);
+  const data = cx.getImageData(0, 0, imgW, imgH).data;
+  const P = imgW * imgH;
+
+  // grayscale
+  let g = new Float32Array(P);
+  for (let i = 0; i < P; i++) g[i] = 0.299*data[i*4] + 0.587*data[i*4+1] + 0.114*data[i*4+2];
+
+  // contrast stretch: map the 1st..99th percentile to 0..255 (helps dull / dark photos)
+  const hist = new Uint32Array(256);
+  for (let i = 0; i < P; i++) hist[g[i] | 0]++;
+  let lo = 0, hi = 255, acc = 0;
+  for (let v = 0; v < 256; v++) { acc += hist[v]; if (acc > P * 0.01) { lo = v; break; } }
+  acc = 0;
+  for (let v = 255; v >= 0; v--) { acc += hist[v]; if (acc > P * 0.01) { hi = v; break; } }
+  const range = Math.max(1, hi - lo);
+  for (let i = 0; i < P; i++) g[i] = Math.min(255, Math.max(0, (g[i] - lo) * 255 / range));
+
+  // gaussian blur [1 4 6 4 1], repeated "Smoothing" times
+  const k = [1, 4, 6, 4, 1];
+  const blur = (src, dx, dy) => {
+    const out = new Float32Array(P);
+    for (let y = 0; y < imgH; y++) for (let x = 0; x < imgW; x++) {
+      let sum = 0, ws = 0;
+      for (let j = -2; j <= 2; j++) {
+        const xx = x + j*dx, yy = y + j*dy;
+        if (xx < 0 || yy < 0 || xx >= imgW || yy >= imgH) continue;
+        sum += src[yy*imgW + xx] * k[j+2]; ws += k[j+2];
+      }
+      out[y*imgW + x] = sum / ws;
+    }
+    return out;
+  };
+  g = blur(blur(g, 1, 0), 0, 1);                       // always a little
+  for (let i = 0; i < +$('smooth').value; i++) g = blur(blur(g, 1, 0), 0, 1);
+
+  // Sobel gradient
+  const mag = new Float32Array(P), dir = new Uint8Array(P);
+  for (let y = 1; y < imgH-1; y++) for (let x = 1; x < imgW-1; x++) {
+    const i = y*imgW + x;
+    const gx = -g[i-imgW-1] - 2*g[i-1] - g[i+imgW-1] + g[i-imgW+1] + 2*g[i+1] + g[i+imgW+1];
+    const gy = -g[i-imgW-1] - 2*g[i-imgW] - g[i-imgW+1] + g[i+imgW-1] + 2*g[i+imgW] + g[i+imgW+1];
+    mag[i] = Math.hypot(gx, gy);
+    let a = Math.atan2(gy, gx) * 180 / Math.PI; if (a < 0) a += 180;
+    dir[i] = a < 22.5 || a >= 157.5 ? 0 : a < 67.5 ? 1 : a < 112.5 ? 2 : 3;
+  }
+
+  // non-maximum suppression → 1-pixel-thin ridges
+  const offs = [1, imgW + 1, imgW, imgW - 1];
+  const thin = new Float32Array(P);
+  const vals = [];
+  for (let y = 1; y < imgH-1; y++) for (let x = 1; x < imgW-1; x++) {
+    const i = y*imgW + x, m = mag[i], o = offs[dir[i]];
+    if (m > 0 && m >= mag[i+o] && m >= mag[i-o]) { thin[i] = m; vals.push(m); }
+  }
+
+  // hysteresis thresholds, relative to the strongest edges in the photo (99th percentile,
+  // so one very bright spot doesn't skew it). Detail ↑ → threshold ↓ → more lines.
+  vals.sort((a, b) => a - b);
+  const strong = vals[Math.floor(vals.length * 0.99)] || 1;
+  const high = strong * Math.max(0.05, 0.62 - +$('thresh').value * 0.015);
+  const low = high * 0.4;
+  const edge = new Uint8Array(P);
+  const stack = [];
+  for (let i = 0; i < P; i++) if (thin[i] >= high) { edge[i] = 1; stack.push(i); }
+  const nb8 = [-imgW-1, -imgW, -imgW+1, -1, 1, imgW-1, imgW, imgW+1];
+  while (stack.length) {                       // grow strong edges into connected weak ones
+    const i = stack.pop();
+    for (const d of nb8) {
+      const j = i + d;
+      if (j > 0 && j < P && !edge[j] && thin[j] >= low) { edge[j] = 1; stack.push(j); }
+    }
+  }
+  // clear the 1px border
+  for (let x = 0; x < imgW; x++) { edge[x] = 0; edge[P - 1 - x] = 0; }
+  for (let y = 0; y < imgH; y++) { edge[y*imgW] = 0; edge[y*imgW + imgW - 1] = 0; }
+  return edge;
+}
+
+// =====================================================================
+// STEP 2 — Trace edges into continuous lines ("chains"), then join the
+//          lines into ONE path. The pen lifts when jumping between lines.
+// =====================================================================
+function traceChains(edge) {
+  const P = imgW * imgH;
+  const nb = [1, imgW, -1, -imgW, imgW+1, imgW-1, -imgW-1, -imgW+1]; // straight first, then diagonal
+  const visited = new Uint8Array(P);
+  const neighbours = i => { let n = 0; for (const d of nb) if (edge[i+d]) n++; return n; };
+  const chains = [];
+  const follow = start => {
+    const chain = [start]; visited[start] = 1;
+    let cur = start;
+    for (;;) {
+      let next = -1;
+      for (const d of nb) { const j = cur + d; if (edge[j] && !visited[j]) { next = j; break; } }
+      if (next < 0) break;
+      visited[next] = 1; chain.push(next); cur = next;
+    }
+    return chain;
+  };
+  // start from line ends first (so lines are traced end-to-end), then closed loops
+  for (let i = 0; i < P; i++) if (edge[i] && !visited[i] && neighbours(i) === 1) chains.push(follow(i));
+  for (let i = 0; i < P; i++) if (edge[i] && !visited[i]) chains.push(follow(i));
+
+  const minLen = +$('minLen').value;
+  return chains
+    .filter(c => c.length >= Math.max(3, minLen))
+    .map(c => c.map(i => ({ x: i % imgW, y: (i / imgW) | 0 })));
+}
+
+function orderChains(chains) {
+  // greedy: from the end of the current line, go to the nearest unused line end
+  chains.sort((a, b) => b.length - a.length);
+  const used = new Uint8Array(chains.length);
+  const ordered = [chains[0]]; used[0] = 1;
+  for (let n = 1; n < chains.length; n++) {
+    const last = ordered[ordered.length - 1], p = last[last.length - 1];
+    let best = -1, bestD = Infinity, flip = false;
+    for (let i = 0; i < chains.length; i++) {
+      if (used[i]) continue;
+      const a = chains[i][0], b = chains[i][chains[i].length - 1];
+      const da = (a.x-p.x)**2 + (a.y-p.y)**2, db = (b.x-p.x)**2 + (b.y-p.y)**2;
+      if (da < bestD) { bestD = da; best = i; flip = false; }
+      if (db < bestD) { bestD = db; best = i; flip = true; }
+    }
+    used[best] = 1;
+    ordered.push(flip ? chains[best].slice().reverse() : chains[best]);
+  }
+  return ordered;
+}
+
+// =====================================================================
+// STEP 3 — Discrete Fourier Transform: X[k] = (1/N) Σ z[n]·e^(-2πikn/N)
+// =====================================================================
+function dft(points) {
+  const N = points.length, cosT = new Float64Array(N), sinT = new Float64Array(N);
+  for (let i = 0; i < N; i++) { cosT[i] = Math.cos(2*Math.PI*i/N); sinT[i] = Math.sin(2*Math.PI*i/N); }
+  const xs = Float64Array.from(points, p => p.x), ys = Float64Array.from(points, p => p.y);
+  const out = [];
+  for (let k = -Math.floor(N/2); k < Math.ceil(N/2); k++) {
+    let re = 0, im = 0;
+    const kk = ((k % N) + N) % N;
+    for (let n = 0, idx = 0; n < N; n++) {
+      const c = cosT[idx], s = sinT[idx];
+      re += xs[n]*c + ys[n]*s; im += ys[n]*c - xs[n]*s;
+      idx += kk; if (idx >= N) idx -= N;
+    }
+    re /= N; im /= N;
+    out.push({ freq: k, re, im, amp: Math.hypot(re, im) });
+  }
+  return out.sort((a, b) => b.amp - a.amp);
+}
+
+// =====================================================================
+// Pipeline
+// =====================================================================
+const later = fn => setTimeout(fn, 20);   // let the status text paint
+function build() {
+  if (!srcImage) return;
+  $('status').textContent = 'Finding edges…';
+  later(() => {
+    const edge = detectEdges(srcImage);
+    const chains = traceChains(edge);
+    if (!chains.length) { $('status').textContent = 'No lines found. Raise Detail or lower Remove specks.'; return; }
+
+    // preview of the lines we kept
+    edgeCanvas = document.createElement('canvas'); edgeCanvas.width = imgW; edgeCanvas.height = imgH;
+    const ec = edgeCanvas.getContext('2d'); ec.fillStyle = '#4aa3ff';
+    chains.forEach(c => c.forEach(p => ec.fillRect(p.x, p.y, 1, 1)));
+
+    $('status').textContent = `Joining ${chains.length} lines…`;
+    later(() => {
+      const ordered = orderChains(chains);
+      const total = ordered.reduce((s, c) => s + c.length, 0);
+      const every = Math.max(1, total / +$('maxPts').value);   // sampling step along each line
+
+      // sample each line evenly; always keep its last point; mark its first point as a pen-lift
+      const path = []; jumps = [];
+      for (const c of ordered) {
+        let first = true;
+        for (let t = 0; t < c.length; t += every) {
+          path.push(c[Math.floor(t)]); jumps.push(first); first = false;
+        }
+        if (c.length > 1 && path[path.length - 1] !== c[c.length - 1]) { path.push(c[c.length - 1]); jumps.push(false); }
+      }
+
+      const centred = path.map(p => ({ x: p.x - imgW/2, y: p.y - imgH/2 }));
+      $('status').textContent = `Fourier transform of ${centred.length} points…`;
+      later(() => {
+        const t0 = performance.now();
+        coeffs = dft(centred);
+        N = coeffs.length;
+        $('count').max = N; $('count').value = N;
+        $('status').textContent = `${chains.length} lines · ${N} circles · ${Math.round(performance.now()-t0)} ms`;
+        layout(); replay();
+      });
+    });
+  });
+}
+
+// =====================================================================
+// STEP 4 — Animation: sum the spinning circles; the tip is the pen
+// =====================================================================
+function penAt(n, count, arms) {
+  const t = 2 * Math.PI * n / N;
+  let x = 0, y = 0;
+  for (let i = 0; i < count; i++) {
+    const { freq, re, im } = coeffs[i];
+    const c = Math.cos(freq * t), s = Math.sin(freq * t);
+    const px = x, py = y;
+    x += re * c - im * s;          // (re + i·im) · e^(i·freq·t)
+    y += re * s + im * c;
+    if (arms && i < 200) arms.push([px, py, x, y, coeffs[i].amp]);
+  }
+  return [x, y];
+}
+const toScreen = (x, y) => [offX + x * scale, offY + y * scale];
+
+function layout() {
+  const r = canvas.getBoundingClientRect();
+  W = r.width; H = r.height; dpr = window.devicePixelRatio || 1;
+  for (const c of [canvas, traceCanvas]) { c.width = W * dpr; c.height = H * dpr; }
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0); tctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  if (imgW) { scale = Math.min(W / imgW, H / imgH) * 0.94; offX = W/2; offY = H/2; }
+}
+function replay() { tctx.clearRect(0, 0, W, H); step = 0; lastPen = null; }
+
+function frame() {
+  ctx.fillStyle = '#0f1115'; ctx.fillRect(0, 0, W, H);
+  if (N) {
+    const count = Math.min(+$('count').value, N);
+    $('countVal').textContent = count;
+    const box = [offX - imgW*scale/2, offY - imgH*scale/2, imgW*scale, imgH*scale];
+    if ($('showPhoto').checked && srcImage) { ctx.globalAlpha = 0.3; ctx.drawImage(srcImage, ...box); ctx.globalAlpha = 1; }
+    if ($('showEdges').checked && edgeCanvas) { ctx.globalAlpha = 0.6; ctx.imageSmoothingEnabled = false; ctx.drawImage(edgeCanvas, ...box); ctx.globalAlpha = 1; }
+
+    // advance the pen, drawing on the persistent trace layer
+    tctx.strokeStyle = '#ffcc33'; tctx.lineWidth = +$('lw').value / 10; tctx.lineCap = tctx.lineJoin = 'round';
+    const perFrame = Math.max(1, Math.round(N * +$('speed').value / 18000));  // speed 30 ≈ 10 s per drawing
+    tctx.beginPath();
+    for (let s = 0; s < perFrame && step < N; s++, step++) {
+      const [sx, sy] = toScreen(...penAt(step, count));
+      if (lastPen && !jumps[step]) { tctx.moveTo(lastPen[0], lastPen[1]); tctx.lineTo(sx, sy); }
+      lastPen = [sx, sy];
+    }
+    tctx.stroke();
+    ctx.drawImage(traceCanvas, 0, 0, W, H);
+
+    // circles at the current pen position
+    if (step < N) {
+      const arms = [];
+      penAt(step, count, arms);
+      ctx.lineWidth = 1;
+      for (const [px, py, x, y, amp] of arms) {
+        const [ax, ay] = toScreen(px, py), [bx, by] = toScreen(x, y), r = amp * scale;
+        if (r < 0.7) continue;
+        ctx.strokeStyle = 'rgba(255,255,255,.13)';
+        ctx.beginPath(); ctx.arc(ax, ay, r, 0, Math.PI*2); ctx.stroke();
+        ctx.strokeStyle = 'rgba(255,255,255,.4)';
+        ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.stroke();
+      }
+    }
+  }
+  requestAnimationFrame(frame);
+}
+
+// =====================================================================
+// Inputs
+// =====================================================================
+$('file').onchange = e => {
+  const f = e.target.files[0]; if (!f) return;
+  const img = new Image();
+  img.onload = () => { srcImage = img; build(); };
+  img.src = URL.createObjectURL(f);
+};
+
+function sampleFace() {
+  const c = document.createElement('canvas'); c.width = 300; c.height = 360;
+  const g = c.getContext('2d');
+  g.fillStyle = '#fff'; g.fillRect(0, 0, 300, 360);
+  g.fillStyle = '#e9c4a0'; g.beginPath(); g.ellipse(150, 190, 100, 125, 0, 0, Math.PI*2); g.fill();
+  g.fillStyle = '#3b2a1a'; g.beginPath(); g.ellipse(150, 105, 108, 60, 0, Math.PI, Math.PI*2); g.fill();
+  g.fillStyle = '#fff';
+  for (const x of [110, 190]) { g.beginPath(); g.ellipse(x, 170, 22, 13, 0, 0, Math.PI*2); g.fill(); }
+  g.fillStyle = '#222';
+  for (const x of [110, 190]) { g.beginPath(); g.arc(x, 170, 8, 0, Math.PI*2); g.fill(); }
+  g.strokeStyle = '#222'; g.lineWidth = 5;
+  for (const x of [110, 190]) { g.beginPath(); g.moveTo(x-25, 140); g.quadraticCurveTo(x, 128, x+25, 140); g.stroke(); }
+  g.beginPath(); g.moveTo(150, 180); g.lineTo(138, 225); g.lineTo(158, 228); g.stroke();
+  g.fillStyle = '#b34747'; g.beginPath(); g.moveTo(105, 255); g.quadraticCurveTo(150, 300, 195, 255); g.quadraticCurveTo(150, 275, 105, 255); g.fill();
+  return c;
+}
+
+$('sample').onclick = () => { srcImage = sampleFace(); build(); };
+$('rebuild').onclick = build;
+$('replay').onclick = replay;
+$('count').oninput = replay;
+$('lw').oninput = replay;
+// show slider values; rebuild automatically when a processing slider is released
+for (const id of ['thresh', 'smooth', 'minLen', 'res', 'maxPts']) {
+  const show = () => $(id + 'Val').textContent = $(id).value;
+  $(id).addEventListener('input', show); $(id).addEventListener('change', build); show();
+}
+new ResizeObserver(() => { layout(); replay(); }).observe($('stage'));
+
+srcImage = sampleFace(); build();
+frame();
+</script>
+</body>
+</html>

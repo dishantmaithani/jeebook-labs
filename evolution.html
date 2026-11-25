@@ -1,0 +1,512 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Primordial</title>
+<style>
+  :root { --bg:#06141a; --panel:rgba(8,28,34,.92); --ink:#dff6f0; --dim:#7fa9a3; --acc:#5ef2b5; --red:#ff6b6b; --gold:#ffd166; }
+  * { box-sizing:border-box; }
+  html,body { margin:0; height:100%; overflow:hidden; background:var(--bg); color:var(--ink); font:14px/1.4 system-ui,Segoe UI,sans-serif; user-select:none; }
+  canvas#c { display:block; width:100vw; height:100vh; touch-action:none; }
+  #hud { position:fixed; top:10px; left:10px; right:10px; display:flex; gap:10px; align-items:flex-start; pointer-events:none; flex-wrap:wrap; }
+  .chip { background:var(--panel); border:1px solid #1d4a50; border-radius:10px; padding:6px 10px; }
+  .bar { width:140px; height:8px; background:#12333a; border-radius:4px; overflow:hidden; margin-top:3px; }
+  .bar > i { display:block; height:100%; background:var(--acc); width:50%; transition:width .2s; }
+  #evoBtn { pointer-events:auto; margin-left:auto; background:var(--acc); color:#04261b; border:0; border-radius:10px; padding:9px 14px; font-weight:700; cursor:pointer; font-size:14px; }
+  #evoBtn.ready { animation:pulse 1s infinite; }
+  @keyframes pulse { 50% { box-shadow:0 0 0 6px rgba(94,242,181,.35); } }
+  #chart { position:fixed; right:10px; bottom:10px; background:var(--panel); border:1px solid #1d4a50; border-radius:10px; }
+  #banner { position:fixed; top:70px; left:50%; transform:translateX(-50%); background:var(--panel); border:1px solid var(--gold); color:var(--gold); padding:8px 16px; border-radius:20px; opacity:0; transition:opacity .5s; pointer-events:none; text-align:center; }
+  .overlay { position:fixed; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(2,10,12,.75); padding:16px; }
+  .overlay.hidden { display:none; }
+  .card { background:var(--panel); border:1px solid #1d4a50; border-radius:16px; padding:22px; max-width:640px; width:100%; max-height:92vh; overflow:auto; }
+  h1 { margin:0 0 6px; color:var(--acc); letter-spacing:1px; }
+  h2 { margin:0 0 12px; color:var(--acc); }
+  p { color:var(--dim); margin:6px 0; }
+  .btn { background:var(--acc); color:#04261b; border:0; border-radius:10px; padding:10px 18px; font-weight:700; cursor:pointer; font-size:15px; margin-top:12px; }
+  .btn.alt { background:#1d4a50; color:var(--ink); }
+  #traits { display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:10px; }
+  .trait { border:1px solid #1d4a50; border-radius:12px; padding:10px; background:rgba(255,255,255,.02); }
+  .trait b { display:block; }
+  .trait small { color:var(--dim); display:block; min-height:34px; }
+  .dots { margin:6px 0; letter-spacing:3px; color:var(--acc); }
+  .trait button { width:100%; border:0; border-radius:8px; padding:7px; font-weight:700; cursor:pointer; background:var(--acc); color:#04261b; }
+  .trait button:disabled { background:#1d3a3f; color:#5f8580; cursor:default; }
+  kbd { background:#1d4a50; border-radius:4px; padding:1px 6px; color:var(--ink); }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<div id="hud">
+  <div class="chip">Energy<div class="bar"><i id="eBar"></i></div></div>
+  <div class="chip">🧬 DNA <b id="dna">0</b></div>
+  <div class="chip">❤ <span id="hp"></span></div>
+  <div class="chip">Gen <b id="gen">1</b> · Pop <b id="pop">0</b></div>
+  <button id="evoBtn">🧬 Evolve (E)</button>
+</div>
+<canvas id="chart" width="260" height="130"></canvas>
+<div id="banner"></div>
+
+<div id="start" class="overlay">
+  <div class="card">
+    <h1>PRIMORDIAL</h1>
+    <p>You're a single cell in an ancient sea. Eat to gain <b>energy</b> and <b>🧬 DNA</b>, then spend DNA on mutations so you survive.</p>
+    <p>Every other creature evolves on its own. When they reproduce, their children mutate slightly. The ones that are too slow, too hungry, or too easy to catch die out. Watch the chart in the corner and you'll see natural selection happen live.</p>
+    <p><span style="color:#7ee081">● Green</span> = plant-eaters &nbsp; <span style="color:#ff7b6b">● Red</span> = predators. A predator can eat anything noticeably smaller than itself.</p>
+    <p>Move: mouse / touch / <kbd>WASD</kbd> &nbsp; Evolve: <kbd>E</kbd> &nbsp; Pause: <kbd>Space</kbd></p>
+    <p>Goal: grow your membrane to max size and become the <b>apex organism</b>.</p>
+    <button class="btn" id="playBtn">Begin life</button>
+  </div>
+</div>
+
+<div id="evo" class="overlay hidden">
+  <div class="card">
+    <h2>🧬 Mutations <span style="font-size:14px;color:var(--dim)">— DNA: <b id="dna2"></b></span></h2>
+    <div id="traits"></div>
+    <button class="btn alt" id="closeEvo">Back to the sea (E)</button>
+  </div>
+</div>
+
+<div id="dead" class="overlay hidden">
+  <div class="card">
+    <h2 id="deadTitle">You died</h2>
+    <p id="deadMsg"></p>
+    <p>Your species keeps its mutations, but half of your unspent DNA is lost.</p>
+    <button class="btn" id="respawnBtn">Divide again</button>
+  </div>
+</div>
+
+<div id="win" class="overlay hidden">
+  <div class="card">
+    <h2>👑 Apex organism</h2>
+    <p id="winMsg"></p>
+    <button class="btn" id="contBtn">Keep evolving</button>
+  </div>
+</div>
+
+<script>
+// ---------- utils ----------
+const rand=(a,b)=>a+Math.random()*(b-a);
+const clamp=(v,a,b)=>v<a?a:v>b?b:v;
+const gauss=()=>{let u=0,v=0;while(!u)u=Math.random();while(!v)v=Math.random();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);};
+const $=id=>document.getElementById(id);
+
+const cv=$('c'), ctx=cv.getContext('2d');
+const chart=$('chart'), cctx=chart.getContext('2d');
+let VW=0,VH=0;
+function resize(){VW=cv.width=innerWidth;VH=cv.height=innerHeight;}
+addEventListener('resize',resize); resize();
+
+// ---------- world ----------
+const WW=2800, WH=2800;
+const MAX_FOOD=900, POP_CAP=200;
+let nCarnNow=0;
+let food=[], creatures=[], particles=[];
+let frame=0, paused=true, maxGen=1;
+let event={name:'Calm waters',food:1,drain:1,until:0};
+let history=[];
+
+// Traits the player can buy
+const TRAITS={
+  flagella:{name:'Flagella',icon:'〰',max:5,base:8, desc:'Whip-like tails. Move faster.'},
+  membrane:{name:'Membrane',icon:'⭕',max:8,base:6, desc:'Grow bigger. Fewer things can eat you. Costs more energy.'},
+  eyes:    {name:'Eyespots', icon:'👁',max:3,base:12,desc:'See farther in the dark. Marks predators near you.'},
+  jaws:    {name:'Jaws',     icon:'🦷',max:3,base:15,desc:'Eat smaller creatures. Each level lets you eat bigger ones.'},
+  spikes:  {name:'Spikes',   icon:'✴',max:3,base:12,desc:'Survive one more bite. Predators that bite you get hurt.'},
+  metab:   {name:'Mitochondria',icon:'⚡',max:3,base:10,desc:'Burn 18% less energy per level.'},
+};
+
+const player={x:WW/2,y:WH/2,vx:0,vy:0,energy:80,dna:0,alive:false,hp:1,invuln:0,phase:0,
+  lv:{flagella:0,membrane:0,eyes:0,jaws:0,spikes:0,metab:0},eaten:0,deaths:0,won:false,born:0};
+const pSize=()=>10+player.lv.membrane*4;
+const pSpeed=()=>2.4+player.lv.flagella*0.45;
+const pSight=()=>230+player.lv.eyes*120;
+const pMaxE=()=>60+pSize()*3;
+const pMaxHp=()=>1+player.lv.spikes;
+const jawRatio=()=>player.lv.jaws?0.6+player.lv.jaws*0.12:0;   // prey must be smaller than ratio*mySize
+const cost=k=>TRAITS[k].base*(player.lv[k]+1);
+
+// a predator can eat prey if diet is meaty enough and prey is clearly smaller
+const canEat=(diet,size,preySize)=>diet>0.3 && preySize<size*0.85;
+
+// ---------- creatures ----------
+function newGenome(carn){
+  return carn ? {speed:rand(1.3,1.7),size:rand(15,19),sense:rand(120,170),diet:rand(.75,.9)}
+              : {speed:rand(1.0,1.5),size:rand(7,10), sense:rand(80,130), diet:rand(0,.12)};
+}
+function mutate(g){
+  return {speed:clamp(g.speed*(1+gauss()*.08),.4,3.4),
+          size: clamp(g.size*(1+gauss()*.06),5,g.diet>0.5?44:22),
+          sense:clamp(g.sense*(1+gauss()*.08),30,360),
+          diet: clamp(g.diet+gauss()*.04,0,1)};
+}
+function spawn(g,x,y,e,gen=1){
+  creatures.push({x,y,vx:0,vy:0,g,energy:e??g.size*2.5,age:0,gen,wander:rand(0,6.28),phase:rand(0,6.28),dead:false});
+  if(gen>maxGen)maxGen=gen;
+}
+function addFood(x,y,e=14){food.push({x:x??rand(10,WW-10),y:y??rand(10,WH-10),e,dead:false,r:e>14?4.5:3});}
+
+function drainOf(g){return (0.012+0.0018*g.size+0.00012*g.size*g.size+0.014*g.speed*g.speed+0.00006*g.sense)*event.drain;}
+
+function updateCreature(c){
+  c.age++; c.phase+=0.2+c.g.speed*0.1;
+  const s=c.g.size, sense2=c.g.sense*c.g.sense;
+  let fx=0,fy=0,flee=false,target=null,best=Infinity;
+  const herb=c.g.diet<0.7, carn=c.g.diet>0.3;
+
+  for(const o of creatures){
+    if(o===c||o.dead)continue;
+    const dx=o.x-c.x, dy=o.y-c.y, d2=dx*dx+dy*dy;
+    if(d2>sense2)continue;
+    if(canEat(o.g.diet,o.g.size,s)){if(d2>sense2*.4)continue;const d=Math.sqrt(d2)||1;fx-=dx/d;fy-=dy/d;flee=true;}
+    else if(carn&&canEat(c.g.diet,s,o.g.size)){
+      const r=s+o.g.size;
+      if(d2<r*r){ o.dead=true; c.energy+=(o.energy*.6+o.g.size*4)*c.g.diet; burst(o.x,o.y,'#ff8a7a',8); continue; }
+      if(d2<best){best=d2;target=o;}
+    }
+  }
+  // the player is part of the food web too
+  if(player.alive){
+    const dx=player.x-c.x, dy=player.y-c.y, d2=dx*dx+dy*dy, ps=pSize();
+    if(d2<sense2){
+      if(player.lv.jaws&&s<ps*jawRatio()){const d=Math.sqrt(d2)||1;fx-=dx/d*1.5;fy-=dy/d*1.5;flee=true;}
+      else if(carn&&canEat(c.g.diet,s,ps)&&d2<best){best=d2;target=player;}
+    }
+  }
+  if(herb&&!flee){
+    for(const f of food){
+      if(f.dead)continue;
+      const dx=f.x-c.x, dy=f.y-c.y, d2=dx*dx+dy*dy;
+      if(d2<(s+f.r)*(s+f.r)){f.dead=true;c.energy+=f.e*(1-c.g.diet);continue;}
+      if(d2<sense2&&d2<best){best=d2;target=f;}
+    }
+  }
+
+  let dx,dy;
+  if(flee){dx=fx;dy=fy;}
+  else if(target){dx=target.x-c.x;dy=target.y-c.y;}
+  else {c.wander+=gauss()*.25;dx=Math.cos(c.wander);dy=Math.sin(c.wander);}
+  const m=Math.hypot(dx,dy)||1, sp=c.g.speed*(flee?1:target?(target.g&&carn?1.3:1):.6);
+  c.vx+=(dx/m*sp-c.vx)*.12; c.vy+=(dy/m*sp-c.vy)*.12;
+  c.x+=c.vx; c.y+=c.vy;
+  if(c.x<s){c.x=s;c.vx*=-1;c.wander=Math.PI-c.wander;} if(c.x>WW-s){c.x=WW-s;c.vx*=-1;c.wander=Math.PI-c.wander;}
+  if(c.y<s){c.y=s;c.vy*=-1;c.wander=-c.wander;}      if(c.y>WH-s){c.y=WH-s;c.vy*=-1;c.wander=-c.wander;}
+
+  c.energy=Math.min(c.energy-drainOf(c.g),s*6);
+  if(c.energy<=0||c.age>60*150){ // starvation or old age
+    c.dead=true; if(Math.random()<.5)addFood(c.x,c.y,20);
+    return;
+  }
+  // reproduction: split in two, the child mutates
+  if(c.energy>s*3.6&&c.age>240&&(c.g.diet>0.5?nCarnNow<45:creatures.length-nCarnNow<POP_CAP)){
+    c.energy/=2;
+    spawn(mutate(c.g),c.x+rand(-5,5),c.y+rand(-5,5),c.energy,c.gen+1);
+  }
+}
+
+// ---------- player ----------
+const keys={};
+let pointer=null; // screen coords
+addEventListener('keydown',e=>{
+  keys[e.key.toLowerCase()]=true;
+  if(e.key==='e'||e.key==='E'){toggleEvo();}
+  if(e.key===' '){if(player.alive&&$('evo').classList.contains('hidden')){paused=!paused;showBanner(paused?'Paused':'');}e.preventDefault();}
+});
+addEventListener('keyup',e=>keys[e.key.toLowerCase()]=false);
+cv.addEventListener('pointermove',e=>pointer={x:e.clientX,y:e.clientY});
+cv.addEventListener('pointerdown',e=>pointer={x:e.clientX,y:e.clientY});
+cv.addEventListener('pointerleave',()=>pointer=null);
+
+function updatePlayer(){
+  const ps=pSize(), sp=pSpeed();
+  player.phase+=0.25+player.lv.flagella*0.05;
+  let dx=(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0);
+  let dy=(keys.s||keys.arrowdown?1:0)-(keys.w||keys.arrowup?1:0);
+  let mag=0;
+  if(dx||dy){mag=1;}
+  else if(pointer){
+    dx=pointer.x-VW/2; dy=pointer.y-VH/2;
+    const d=Math.hypot(dx,dy); mag=clamp((d-ps)/120,0,1);
+  }
+  const m=Math.hypot(dx,dy)||1;
+  player.vx+=(dx/m*sp*mag-player.vx)*.15; player.vy+=(dy/m*sp*mag-player.vy)*.15;
+  player.x=clamp(player.x+player.vx,ps,WW-ps); player.y=clamp(player.y+player.vy,ps,WH-ps);
+
+  const drain=(0.04+ps*0.0025+player.lv.flagella*0.006)*(1-0.18*player.lv.metab)*event.drain;
+  player.energy-=drain;
+  if(player.invuln>0)player.invuln--;
+  if(player.hp<pMaxHp()&&frame%600===0)player.hp++;
+
+  for(const f of food){
+    if(f.dead)continue;
+    const ddx=f.x-player.x, ddy=f.y-player.y, r=ps+f.r;
+    if(ddx*ddx+ddy*ddy<r*r){
+      f.dead=true; player.energy+=f.e*(player.lv.jaws>=3?.45:.65); player.dna+=1;
+      burst(f.x,f.y,'#9dffb0',3);
+    }
+  }
+  for(const c of creatures){
+    if(c.dead)continue;
+    const ddx=c.x-player.x, ddy=c.y-player.y, r=ps+c.g.size;
+    if(ddx*ddx+ddy*ddy>=r*r)continue;
+    if(player.lv.jaws&&c.g.size<ps*jawRatio()){
+      c.dead=true; player.energy+=c.g.size*2.2; player.dna+=Math.ceil(c.g.size/3); player.eaten++;
+      burst(c.x,c.y,'#ffcf7a',10);
+    } else if(canEat(c.g.diet,c.g.size,ps)&&player.invuln<=0){
+      player.hp--; player.invuln=90;
+      const d=Math.hypot(ddx,ddy)||1;
+      if(player.lv.spikes){c.energy-=12*player.lv.spikes; c.vx=ddx/d*6; c.vy=ddy/d*6;}
+      player.vx=-ddx/d*5; player.vy=-ddy/d*5;
+      burst(player.x,player.y,'#ff6b6b',12);
+      if(player.hp<=0){die('Eaten','A predator (size '+c.g.size.toFixed(0)+', generation '+c.gen+') caught you.');return;}
+    }
+  }
+  player.energy=Math.min(player.energy,pMaxE());
+  if(player.energy<=0)die('Starved','You ran out of energy. Bigger and faster bodies burn more of it.');
+}
+
+function die(title,msg){
+  player.alive=false; player.deaths++; paused=true;
+  burst(player.x,player.y,'#ffffff',25);
+  player.dna=Math.floor(player.dna/2);
+  $('deadTitle').textContent=title; $('deadMsg').textContent=msg;
+  $('dead').classList.remove('hidden');
+}
+function respawn(){
+  // pick a spot with no big predators nearby
+  for(let t=0;t<30;t++){
+    const x=rand(200,WW-200), y=rand(200,WH-200);
+    if(!creatures.some(c=>canEat(c.g.diet,c.g.size,pSize())&&Math.hypot(c.x-x,c.y-y)<400)){player.x=x;player.y=y;break;}
+  }
+  player.vx=player.vy=0; player.energy=pMaxE(); player.hp=pMaxHp(); player.invuln=120; player.alive=true;
+  $('dead').classList.add('hidden'); paused=false;
+}
+
+// ---------- evolution panel ----------
+function toggleEvo(force){
+  const el=$('evo'), open=force??el.classList.contains('hidden');
+  if(!player.alive||!$('start').classList.contains('hidden')||!$('win').classList.contains('hidden'))return;
+  el.classList.toggle('hidden',!open); paused=open;
+  if(open)renderTraits();
+}
+function renderTraits(){
+  $('dna2').textContent=player.dna;
+  $('traits').innerHTML=Object.entries(TRAITS).map(([k,t])=>{
+    const lv=player.lv[k], maxed=lv>=t.max, c=cost(k);
+    return `<div class="trait"><b>${t.icon} ${t.name}</b><small>${t.desc}</small>
+      <div class="dots">${'●'.repeat(lv)}${'○'.repeat(t.max-lv)}</div>
+      <button data-k="${k}" ${maxed||player.dna<c?'disabled':''}>${maxed?'Maxed':'Mutate · 🧬'+c}</button></div>`;
+  }).join('');
+}
+$('traits').addEventListener('click',e=>{
+  const k=e.target.dataset&&e.target.dataset.k; if(!k)return;
+  const c=cost(k); if(player.dna<c||player.lv[k]>=TRAITS[k].max)return;
+  player.dna-=c; player.lv[k]++;
+  if(k==='spikes')player.hp++;
+  if(k==='membrane')player.energy=Math.min(player.energy+20,pMaxE());
+  renderTraits();
+  if(k==='membrane'&&player.lv.membrane>=TRAITS.membrane.max&&!player.won){
+    player.won=true; $('evo').classList.add('hidden');
+    const mins=((frame-player.born)/3600).toFixed(1);
+    $('winMsg').textContent=`In ${mins} minutes you went from a speck to a giant. Deaths: ${player.deaths}. Creatures eaten: ${player.eaten}. The sea has reached generation ${maxGen}.`;
+    $('win').classList.remove('hidden');
+  }
+});
+$('evoBtn').onclick=()=>toggleEvo();
+$('closeEvo').onclick=()=>toggleEvo(false);
+$('respawnBtn').onclick=respawn;
+$('contBtn').onclick=()=>{$('win').classList.add('hidden');paused=false;};
+$('playBtn').onclick=()=>{$('start').classList.add('hidden');player.alive=true;player.invuln=120;player.born=frame;paused=false;};
+
+// ---------- events (selection pressure) ----------
+const EVENTS=[
+  {name:'🌿 Algae bloom: food is everywhere',food:2.6,drain:1},
+  {name:'☀ Drought: food is scarce',food:.5,drain:1},
+  {name:'❄ Cold snap: everyone burns energy faster',food:1,drain:1.25},
+  {name:'Calm waters',food:1,drain:1},
+];
+function updateEvent(){
+  if(frame>=event.until){
+    event=frame<60*40?{...EVENTS[3]}:{...EVENTS[Math.floor(Math.random()*EVENTS.length)]};
+    event.until=frame+60*rand(25,40);
+    if(player.alive)showBanner(event.name);
+  }
+}
+let bannerT=0;
+function showBanner(t){const b=$('banner');b.textContent=t;b.style.opacity=t?1:0;clearTimeout(bannerT);if(t&&t!=='Paused')bannerT=setTimeout(()=>b.style.opacity=0,3500);}
+
+// ---------- particles ----------
+function burst(x,y,col,n){for(let i=0;i<n;i++){const a=rand(0,6.28),s=rand(.5,3);particles.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:rand(20,40),col});}}
+
+// ---------- main loop ----------
+function step(){
+  frame++;
+  updateEvent();
+  // food spawns
+  let spawnN=1.6*event.food;
+  while(spawnN>0&&food.length<MAX_FOOD){if(Math.random()<spawnN)addFood();spawnN--;}
+  nCarnNow=0;for(const c of creatures)if(c.g.diet>0.5)nCarnNow++;
+  for(const c of creatures)if(!c.dead)updateCreature(c);
+  if(player.alive)updatePlayer();
+  creatures=creatures.filter(c=>!c.dead);
+  food=food.filter(f=>!f.dead);
+  // migration keeps the ecosystem from collapsing completely
+  const nCarn=creatures.filter(c=>c.g.diet>0.5).length;
+  if(frame%300===0){
+    if(creatures.length-nCarn<15)for(let i=0;i<5;i++)spawn(newGenome(false),rand(0,WW),rand(0,WH));
+    if(nCarn<6){const g=newGenome(true),hs=creatures.filter(c=>c.g.diet<=0.5);if(hs.length){g.speed=Math.max(g.speed,hs.reduce((a,c)=>a+c.g.speed,0)/hs.length);g.size=clamp(Math.max(g.size,hs.reduce((a,c)=>a+c.g.size,0)/hs.length*1.3),5,44);}spawn(g,rand(0,WW),rand(0,WH),g.size*5);}
+  }
+  if(frame%60===0)sample();
+}
+function sample(){
+  const n=creatures.length||1;
+  let sz=0,sp=0,h=0,c=0;
+  for(const k of creatures){sz+=k.g.size;sp+=k.g.speed;k.g.diet>0.5?c++:h++;}
+  history.push({size:sz/n,speed:sp/n,h,c});
+  if(history.length>150)history.shift();
+}
+
+// ---------- drawing ----------
+function cellColor(diet,a=1){const h=120-diet*115;return `hsla(${h},70%,${48+diet*6}%,${a})`;}
+function drawCell(x,y,r,diet,vx,vy,phase,tail,opts={}){
+  const ang=Math.atan2(vy,vx), ca=Math.cos(ang), sa=Math.sin(ang);
+  // flagella
+  const nT=opts.tails||1;
+  ctx.strokeStyle=cellColor(diet,.55); ctx.lineWidth=Math.max(1.2,r*.12);
+  for(let t=0;t<nT;t++){
+    const off=(t-(nT-1)/2)*.35;
+    ctx.beginPath();
+    for(let i=0;i<=10;i++){
+      const k=i/10, L=r+k*r*(0.8+tail*.5);
+      const wob=Math.sin(phase-k*7)*r*.3*k;
+      const bx=-ca*L - sa*(wob+off*r), by=-sa*L + ca*(wob+off*r);
+      i?ctx.lineTo(x+bx,y+by):ctx.moveTo(x+bx,y+by);
+    }
+    ctx.stroke();
+  }
+  // spikes
+  if(opts.spikes){
+    ctx.fillStyle='#e8fff6';
+    const n=6+opts.spikes*4;
+    for(let i=0;i<n;i++){const a=i/n*6.283+phase*.02;ctx.beginPath();
+      ctx.moveTo(x+Math.cos(a-.12)*r,y+Math.sin(a-.12)*r);ctx.lineTo(x+Math.cos(a)*(r+3+opts.spikes*2),y+Math.sin(a)*(r+3+opts.spikes*2));ctx.lineTo(x+Math.cos(a+.12)*r,y+Math.sin(a+.12)*r);ctx.fill();}
+  }
+  // body
+  const squish=1+Math.sin(phase*.5)*.04;
+  ctx.save(); ctx.translate(x,y); ctx.rotate(ang); ctx.scale(squish,1/squish);
+  ctx.fillStyle=opts.player?'hsla(190,85%,60%,.9)':cellColor(diet,.85);
+  ctx.beginPath(); ctx.arc(0,0,r,0,6.283); ctx.fill();
+  ctx.lineWidth=opts.player?2.5:1.5; ctx.strokeStyle=opts.player?'#ffffff':cellColor(diet,1); ctx.stroke();
+  // nucleus
+  ctx.fillStyle='rgba(0,30,30,.35)'; ctx.beginPath(); ctx.arc(-r*.25,0,r*.35,0,6.283); ctx.fill();
+  // jaws
+  if(opts.jaws){ctx.fillStyle='#fff3d6';for(const s of[-1,1]){ctx.beginPath();ctx.moveTo(r*.75,s*r*.15);ctx.lineTo(r+2+opts.jaws*2,s*r*.35);ctx.lineTo(r*.6,s*r*.5);ctx.fill();}}
+  // eyes
+  const er=Math.max(1.5,r*.16);
+  ctx.fillStyle='#fff'; for(const s of[-1,1]){ctx.beginPath();ctx.arc(r*.45,s*r*.32,er,0,6.283);ctx.fill();}
+  ctx.fillStyle='#000'; for(const s of[-1,1]){ctx.beginPath();ctx.arc(r*.5,s*r*.32,er*.55,0,6.283);ctx.fill();}
+  ctx.restore();
+}
+
+function draw(){
+  const camX=player.x-VW/2, camY=player.y-VH/2;
+  ctx.fillStyle='#08222a'; ctx.fillRect(0,0,VW,VH);
+  ctx.save(); ctx.translate(-camX,-camY);
+  // water texture grid
+  ctx.strokeStyle='rgba(120,220,210,.05)'; ctx.lineWidth=1;
+  const g=100, gx0=Math.floor(camX/g)*g, gy0=Math.floor(camY/g)*g;
+  ctx.beginPath();
+  for(let x=gx0;x<camX+VW+g;x+=g){ctx.moveTo(x,camY);ctx.lineTo(x,camY+VH);}
+  for(let y=gy0;y<camY+VH+g;y+=g){ctx.moveTo(camX,y);ctx.lineTo(camX+VW,y);}
+  ctx.stroke();
+  // world border
+  ctx.strokeStyle='rgba(255,120,120,.35)'; ctx.lineWidth=6; ctx.strokeRect(0,0,WW,WH);
+
+  const vis=(x,y,r)=>x+r>camX&&x-r<camX+VW&&y+r>camY&&y-r<camY+VH;
+  for(const f of food){if(!vis(f.x,f.y,5))continue;ctx.fillStyle=f.e>10?'#c7ff8a':'#6fe39a';ctx.beginPath();ctx.arc(f.x,f.y,f.r,0,6.283);ctx.fill();}
+  for(const c of creatures){
+    if(!vis(c.x,c.y,c.g.size*3))continue;
+    drawCell(c.x,c.y,c.g.size,c.g.diet,c.vx,c.vy,c.phase,c.g.speed/2,{jaws:c.g.diet>0.5?1:0,tails:c.g.speed>2.2?2:1});
+  }
+  if(player.alive&&!(player.invuln>0&&frame%10<5)){
+    const L=player.lv;
+    drawCell(player.x,player.y,pSize(),0,player.vx||1,player.vy,player.phase,L.flagella*.4+.5,{player:true,jaws:L.jaws,spikes:L.spikes,tails:1+Math.floor((L.flagella+1)/2)});
+  }
+  for(const p of particles){ctx.globalAlpha=p.life/40;ctx.fillStyle=p.col;ctx.fillRect(p.x-1.5,p.y-1.5,3,3);}
+  ctx.globalAlpha=1;
+  ctx.restore();
+
+  // darkness beyond sight
+  const sight=pSight();
+  const grd=ctx.createRadialGradient(VW/2,VH/2,sight*.55,VW/2,VH/2,sight);
+  grd.addColorStop(0,'rgba(2,8,10,0)'); grd.addColorStop(1,'rgba(2,8,10,.93)');
+  ctx.fillStyle=grd; ctx.fillRect(0,0,VW,VH);
+
+  // predator warnings (eyespots)
+  if(player.alive&&player.lv.eyes){
+    const range=sight*(1.2+player.lv.eyes*.3);
+    for(const c of creatures){
+      if(!canEat(c.g.diet,c.g.size,pSize()))continue;
+      const dx=c.x-player.x, dy=c.y-player.y, d=Math.hypot(dx,dy);
+      if(d<sight*.7||d>range)continue;
+      const a=Math.atan2(dy,dx), R=Math.min(sight*.62,Math.min(VW,VH)/2-30);
+      const ax=VW/2+Math.cos(a)*R, ay=VH/2+Math.sin(a)*R;
+      ctx.save();ctx.translate(ax,ay);ctx.rotate(a);ctx.fillStyle=`rgba(255,90,90,${1-d/range+.3})`;
+      ctx.beginPath();ctx.moveTo(12,0);ctx.lineTo(-6,-8);ctx.lineTo(-6,8);ctx.fill();ctx.restore();
+    }
+  }
+}
+
+function drawChart(){
+  const w=chart.width,h=chart.height;
+  cctx.clearRect(0,0,w,h);
+  cctx.fillStyle='#7fa9a3'; cctx.font='11px system-ui';
+  cctx.fillText('Natural selection (last 2.5 min)',8,14);
+  if(history.length<2)return;
+  const top=22,bot=h-20,ph=bot-top;
+  const maxPop=Math.max(40,...history.map(s=>Math.max(s.h,s.c)));
+  const line=(fn,max,col)=>{cctx.strokeStyle=col;cctx.lineWidth=1.6;cctx.beginPath();
+    history.forEach((s,i)=>{const x=8+i/(150-1)*(w-16),y=bot-clamp(fn(s)/max,0,1)*ph;i?cctx.lineTo(x,y):cctx.moveTo(x,y);});cctx.stroke();};
+  line(s=>s.h,maxPop,'#7ee081');
+  line(s=>s.c,maxPop,'#ff7b6b');
+  line(s=>s.size,30,'#ffd166');
+  line(s=>s.speed,3,'#6fd3ff');
+  const last=history[history.length-1];
+  const items=[['plant-eaters '+last.h,'#7ee081'],['predators '+last.c,'#ff7b6b'],['size '+last.size.toFixed(1),'#ffd166'],['speed '+last.speed.toFixed(2),'#6fd3ff']];
+  let x=8; cctx.font='10px system-ui';
+  for(const [t,c] of items){cctx.fillStyle=c;cctx.fillText(t,x,h-6);x+=cctx.measureText(t).width+8;}
+}
+
+function hud(){
+  $('eBar').style.width=clamp(player.energy/pMaxE()*100,0,100)+'%';
+  $('eBar').style.background=player.energy/pMaxE()<.25?'var(--red)':'var(--acc)';
+  $('dna').textContent=player.dna;
+  $('hp').textContent='♥'.repeat(Math.max(0,player.hp))+'♡'.repeat(Math.max(0,pMaxHp()-player.hp));
+  $('gen').textContent=maxGen; $('pop').textContent=creatures.length;
+  const affordable=Object.keys(TRAITS).some(k=>player.lv[k]<TRAITS[k].max&&player.dna>=cost(k));
+  $('evoBtn').classList.toggle('ready',affordable);
+}
+
+function loop(){
+  if(!paused)step();
+  for(const p of particles){p.x+=p.vx;p.y+=p.vy;p.vx*=.93;p.vy*=.93;p.life--;}
+  particles=particles.filter(p=>p.life>0);
+  draw();
+  if(frame%30===0)drawChart();
+  hud();
+  requestAnimationFrame(loop);
+}
+
+// ---------- init ----------
+for(let i=0;i<450;i++)addFood();
+for(let i=0;i<90;i++)spawn(newGenome(false),rand(0,WW),rand(0,WH));
+for(let i=0;i<12;i++)spawn(newGenome(true),rand(0,WW),rand(0,WH));
+// warm the ecosystem up a bit before the player arrives (keeps the start area safe)
+for(let i=0;i<600;i++)step();
+creatures=creatures.filter(c=>!(canEat(c.g.diet,c.g.size,pSize())&&Math.hypot(c.x-player.x,c.y-player.y)<350));
+loop();
+</script>
+</body>
+</html>

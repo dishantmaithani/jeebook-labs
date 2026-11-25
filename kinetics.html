@@ -1,0 +1,1090 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reaction Kinetics Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;800&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<style>
+:root {
+  --bg: #f6f3ec; --paper: #fffdf8; --ink: #1d2330; --muted: #5d6474; --line: #e2dccd; --grid: #ece6d8;
+  --accent: #2f5bea; --accent-2: #e2742b; --accent-3: #1a9a6c; --accent-4: #b0399a;
+  --chip: #ece7db; --good: #1a9a6c; --bad: #c8412f;
+  --f-head: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --f-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #12151c; --paper: #1a1e28; --ink: #e8e9ee; --muted: #9aa1b2; --line: #2b3140;
+    --grid: #232836; --accent: #7d9bff; --accent-2: #ff9d5c; --accent-3: #4fd1a1; --accent-4: #e27ad0;
+    --chip: #252a37; --good: #4fd1a1; --bad: #ff7a66; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #12151c; --paper: #1a1e28; --ink: #e8e9ee; --muted: #9aa1b2; --line: #2b3140;
+  --grid: #232836; --accent: #7d9bff; --accent-2: #ff9d5c; --accent-3: #4fd1a1; --accent-4: #e27ad0;
+  --chip: #252a37; --good: #4fd1a1; --bad: #ff7a66; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--ink); font: 400 14px/1.45 var(--f-body); }
+header { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; padding: 12px 20px; border-bottom: 1px solid var(--line); background: var(--paper); position: sticky; top: 0; z-index: 5; }
+h1 { font: 800 20px var(--f-head); margin: 0; letter-spacing: -.01em; }
+h1 small { font: 500 12px var(--f-body); color: var(--muted); margin-left: 6px; }
+.tabs { display: flex; gap: 3px; background: var(--chip); padding: 3px; border-radius: 999px; flex-wrap: wrap; }
+.tab { border: 0; background: transparent; color: var(--muted); padding: 6px 14px; border-radius: 999px; font: 600 13px var(--f-body); cursor: pointer; }
+.tab[aria-selected="true"] { background: var(--paper); color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,.1); }
+.spacer { flex: 1; }
+.btn { background: var(--chip); color: var(--ink); border: 1px solid var(--line); border-radius: 10px; padding: 6px 12px; font: 500 13px var(--f-body); cursor: pointer; }
+.btn:hover { border-color: var(--accent); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.panel { display: none; grid-template-columns: 300px minmax(0, 1fr); gap: 16px; padding: 16px 20px 40px; max-width: 1500px; margin: 0 auto; }
+.panel.on { display: grid; }
+aside { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.main { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.card { background: var(--paper); border: 1px solid var(--line); border-radius: 14px; padding: 14px; min-width: 0; }
+.card h3 { margin: 0 0 8px; font: 600 11px var(--f-body); text-transform: uppercase; letter-spacing: .08em; color: var(--muted); display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 4px 8px; }
+.badge { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+.ctrl { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; margin: 10px 0; align-items: baseline; }
+.ctrl label { font-weight: 500; }
+.ctrl output { font: 600 12px var(--f-mono); color: var(--accent); }
+.ctrl input[type=range] { grid-column: 1 / -1; width: 100%; accent-color: var(--accent); }
+.seg { display: flex; gap: 4px; flex-wrap: wrap; }
+.seg button { flex: 1; min-width: 40px; background: var(--bg); color: var(--ink); border: 1px solid var(--line); border-radius: 9px; padding: 7px 6px; font: 600 13px var(--f-body); cursor: pointer; }
+.seg button.on { background: var(--accent); color: #fff; border-color: var(--accent); }
+.check { display: flex; gap: 8px; align-items: center; font-weight: 500; margin: 8px 0; cursor: pointer; }
+.check input { accent-color: var(--accent); width: 16px; height: 16px; }
+.sub { border-top: 1px dashed var(--line); margin-top: 10px; padding-top: 4px; }
+.hidden { display: none !important; }
+.row { display: grid; gap: 16px; }
+.r2 { grid-template-columns: minmax(0, 1fr) minmax(0, 1.7fr); }
+.r3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+canvas { display: block; width: 100%; touch-action: none; }
+.plot { height: 300px; }
+.mini { height: 200px; }
+.beaker { height: 300px; }
+.tiny { height: 150px; }
+.lin { transition: border-color .2s, box-shadow .2s; }
+.lin h3 { flex-wrap: wrap; justify-content: flex-start; white-space: nowrap; }
+.lin.best { border-color: var(--good); box-shadow: 0 0 0 1px var(--good); }
+.badge { font: 600 11px var(--f-mono); padding: 2px 8px; border-radius: 999px; background: var(--chip); color: var(--muted); text-transform: none; letter-spacing: 0; white-space: nowrap; }
+.lin.best .badge { background: color-mix(in srgb, var(--good) 18%, var(--paper)); color: var(--good); }
+.transport { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.transport input[type=range] { flex: 1; min-width: 140px; accent-color: var(--accent); }
+.transport select { background: var(--bg); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 5px; font: 500 13px var(--f-body); }
+.tclock { font: 600 13px var(--f-mono); min-width: 92px; text-align: right; }
+.kv { display: grid; grid-template-columns: auto 1fr; gap: 5px 12px; font: 500 13px var(--f-mono); }
+.kv > span:nth-child(odd) { color: var(--muted); font-family: var(--f-body); }
+.kv > span:nth-child(even) { text-align: right; }
+.formulas { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+.fbox { background: var(--bg); border-radius: 10px; padding: 10px 12px; min-width: 0; overflow-x: auto; }
+.fbox b { display: block; font: 600 11px var(--f-body); color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 4px; }
+.fbox .katex-display { margin: 4px 0; }
+.note { color: var(--muted); font-size: 13px; margin: 6px 0 0; }
+.facts { margin: 8px 0 0; padding-left: 18px; }
+.facts li { margin: 3px 0; }
+.insight { border-left: 3px solid var(--accent-2); padding: 4px 0 4px 12px; margin: 0; }
+.legend { display: flex; gap: 12px; flex-wrap: wrap; font: 500 12px var(--f-body); color: var(--muted); }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 5px; vertical-align: -1px; }
+table.data { border-collapse: collapse; width: 100%; font: 500 13px var(--f-mono); }
+table.data th, table.data td { border-bottom: 1px solid var(--line); padding: 6px 8px; text-align: right; }
+table.data th { color: var(--muted); font: 600 12px var(--f-body); }
+.opts { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+.opt { background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 9px 14px; font: 600 14px var(--f-body); color: var(--ink); cursor: pointer; }
+.opt:hover:not(:disabled) { border-color: var(--accent); }
+.opt.sel { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, var(--bg)); }
+.opt.right { border-color: var(--good); background: color-mix(in srgb, var(--good) 16%, var(--bg)); }
+.opt.wrong { border-color: var(--bad); background: color-mix(in srgb, var(--bad) 14%, var(--bg)); }
+.verdict { margin-top: 12px; padding: 10px 12px; border-radius: 10px; background: var(--bg); }
+.verdict.ok { border-left: 3px solid var(--good); }
+.verdict.no { border-left: 3px solid var(--bad); }
+.score { font: 700 15px var(--f-mono); }
+.qtext { font-size: 15px; margin: 0 0 10px; }
+@media (max-width: 1000px) {
+  .panel { grid-template-columns: 1fr; padding: 12px 16px 32px; }
+  .r2, .r3 { grid-template-columns: 1fr; }
+  header { padding: 10px 16px; }
+  .plot { height: 260px; }
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>Reaction Kinetics Lab <small>zero · first · second · nth order</small></h1>
+  <nav class="tabs" role="tablist">
+    <button class="tab" role="tab" data-tab="orders" aria-selected="true">Orders</button>
+    <button class="tab" role="tab" data-tab="compare" aria-selected="false">Compare</button>
+    <button class="tab" role="tab" data-tab="mech" aria-selected="false">Mechanisms</button>
+    <button class="tab" role="tab" data-tab="quiz" aria-selected="false">Challenge</button>
+  </nav>
+  <span class="spacer"></span>
+  <button class="btn" id="themeBtn">Theme</button>
+</header>
+
+<!-- ================= ORDERS ================= -->
+<section class="panel on" id="p-orders">
+  <aside>
+    <div class="card">
+      <h3>Order of reaction <span class="badge" id="o-orderBadge">n = 1</span></h3>
+      <div class="seg" id="o-orderSeg">
+        <button data-n="0">0</button><button data-n="1" class="on">1</button><button data-n="2">2</button><button data-n="3">3</button>
+      </div>
+      <div class="ctrl"><label for="o-n">Any order n</label><output id="o-nV"></output><input id="o-n" type="range" min="0" max="3" step="0.25" value="1"></div>
+      <div class="ctrl"><label for="o-A0">Initial [A]₀</label><output id="o-A0V"></output><input id="o-A0" type="range" min="0.1" max="2" step="0.05" value="1"></div>
+      <div class="ctrl"><label for="o-k" id="o-kLab">Rate constant k</label><output id="o-kV"></output><input id="o-k" type="range" min="-3" max="0.7" step="0.01" value="-1"></div>
+      <label class="check"><input type="checkbox" id="o-temp"> Temperature control (Arrhenius)</label>
+      <div id="o-tempBox" class="sub hidden">
+        <div class="ctrl"><label for="o-T">Temperature T</label><output id="o-TV"></output><input id="o-T" type="range" min="250" max="450" step="1" value="298"></div>
+        <div class="ctrl"><label for="o-Ea">Activation energy Eₐ</label><output id="o-EaV"></output><input id="o-Ea" type="range" min="10" max="150" step="1" value="50"></div>
+        <canvas class="tiny" id="o-arr"></canvas>
+        <p class="note" id="o-arrNote"></p>
+      </div>
+      <label class="check"><input type="checkbox" id="o-noise"> Molecular noise (finite molecules)</label>
+      <div id="o-noiseBox" class="sub hidden">
+        <div class="ctrl"><label for="o-N">Molecules N</label><output id="o-NV"></output><input id="o-N" type="range" min="20" max="1500" step="10" value="150"></div>
+        <button class="btn" id="o-reroll">New random run</button>
+        <p class="note">Each molecule reacts by chance. Fewer molecules means a noisier curve; with many, the smooth law emerges.</p>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Live readout</h3>
+      <div class="kv">
+        <span>time t</span><span id="r-t"></span>
+        <span>[A]</span><span id="r-A"></span>
+        <span>[P]</span><span id="r-P"></span>
+        <span>rate = k[A]ⁿ</span><span id="r-rate"></span>
+        <span>converted</span><span id="r-conv"></span>
+        <span>k (effective)</span><span id="r-k"></span>
+        <span>first t½</span><span id="r-half"></span>
+        <span id="r-endL">time to finish</span><span id="r-end"></span>
+      </div>
+    </div>
+  </aside>
+  <div class="main">
+    <div class="row r2">
+      <div class="card"><h3>Beaker <span class="legend"><span><i style="background:var(--accent)"></i>A</span><span><i style="background:var(--accent-2)"></i>P</span></span></h3><canvas class="beaker" id="o-beaker"></canvas></div>
+      <div class="card"><h3>Concentration vs time <span class="badge">drag the graph to scrub</span></h3><canvas class="plot" id="o-main"></canvas></div>
+    </div>
+    <div class="card transport">
+      <button class="btn primary" id="o-play">▶ Play</button>
+      <button class="btn" id="o-reset">↺ Reset</button>
+      <input type="range" id="o-scrub" min="0" max="1000" value="0" aria-label="time">
+      <span class="tclock" id="o-clock"></span>
+      <select id="o-speed" aria-label="speed"><option value="0.25">0.25×</option><option value="0.5">0.5×</option><option value="1" selected>1×</option><option value="2">2×</option><option value="4">4×</option></select>
+    </div>
+    <div>
+      <p class="note" style="margin:0 0 8px">Which plot is a straight line? Data points appear as the reaction runs. The straight one tells you the order.</p>
+      <div class="row r3">
+        <div class="card lin" id="lin0"><h3>[A] vs t <span class="badge" id="lin0b"></span></h3><canvas class="mini" id="o-l0"></canvas><p class="note">Linear means zero order, slope = −k</p></div>
+        <div class="card lin" id="lin1"><h3>ln[A] vs t <span class="badge" id="lin1b"></span></h3><canvas class="mini" id="o-l1"></canvas><p class="note">Linear means first order, slope = −k</p></div>
+        <div class="card lin" id="lin2"><h3>1/[A] vs t <span class="badge" id="lin2b"></span></h3><canvas class="mini" id="o-l2"></canvas><p class="note">Linear means second order, slope = +k</p></div>
+      </div>
+    </div>
+    <div class="row r3">
+      <div class="card"><h3>Rate vs [A]</h3><canvas class="mini" id="o-rate"></canvas><p class="note">Curve shape is k[A]ⁿ. The dot is the current state.</p></div>
+      <div class="card"><h3>log rate vs log [A]</h3><canvas class="mini" id="o-log"></canvas><p class="note">Always a straight line, and its slope is the order n.</p></div>
+      <div class="card"><h3>Successive half-lives</h3><canvas class="mini" id="o-halves"></canvas><p class="note" id="o-halvesNote"></p></div>
+    </div>
+    <div class="card">
+      <h3>The maths for this order</h3>
+      <div class="formulas" id="o-formulas"></div>
+      <div class="ctrl" style="max-width:520px"><label for="o-x">Time for x% completion</label><output id="o-xV"></output><input id="o-x" type="range" min="10" max="99.9" step="0.1" value="75"></div>
+      <p class="note" id="o-xNote" style="margin-top:-4px"></p>
+      <ul class="facts" id="o-facts"></ul>
+    </div>
+  </div>
+</section>
+
+<!-- ================= COMPARE ================= -->
+<section class="panel" id="p-compare">
+  <aside>
+    <div class="card">
+      <h3>Same k, same [A]₀</h3>
+      <div class="ctrl"><label for="c-A0">Initial [A]₀</label><output id="c-A0V"></output><input id="c-A0" type="range" min="0.1" max="2" step="0.05" value="1"></div>
+      <div class="ctrl"><label for="c-k">k (same number)</label><output id="c-kV"></output><input id="c-k" type="range" min="-2" max="0.3" step="0.01" value="-1"></div>
+      <label class="check"><input type="checkbox" class="c-show" data-n="0" checked> <span style="color:var(--accent-4)">●</span> Zero order</label>
+      <label class="check"><input type="checkbox" class="c-show" data-n="1" checked> <span style="color:var(--accent)">●</span> First order</label>
+      <label class="check"><input type="checkbox" class="c-show" data-n="2" checked> <span style="color:var(--accent-2)">●</span> Second order</label>
+      <p class="note">The units of k differ between orders (M s⁻¹, s⁻¹, M⁻¹ s⁻¹). Here we use the same number to compare shapes.</p>
+    </div>
+    <div class="card">
+      <h3>What to notice</h3>
+      <p class="insight" id="c-insight"></p>
+    </div>
+  </aside>
+  <div class="main">
+    <div class="row r3">
+      <div class="card"><h3>Zero order <span class="badge" id="c-b0"></span></h3><canvas class="mini" id="c-beak0"></canvas></div>
+      <div class="card"><h3>First order <span class="badge" id="c-b1"></span></h3><canvas class="mini" id="c-beak1"></canvas></div>
+      <div class="card"><h3>Second order <span class="badge" id="c-b2"></span></h3><canvas class="mini" id="c-beak2"></canvas></div>
+    </div>
+    <div class="card"><h3>[A] vs time, all three <span class="badge">drag to scrub</span></h3><canvas class="plot" id="c-main"></canvas></div>
+    <div class="card transport">
+      <button class="btn primary" id="c-play">▶ Play</button>
+      <button class="btn" id="c-reset">↺ Reset</button>
+      <input type="range" id="c-scrub" min="0" max="1000" value="0" aria-label="time">
+      <span class="tclock" id="c-clock"></span>
+      <select id="c-speed" aria-label="speed"><option value="0.5">0.5×</option><option value="1" selected>1×</option><option value="2">2×</option></select>
+    </div>
+    <div class="row" style="grid-template-columns:repeat(auto-fit,minmax(280px,1fr))">
+      <div class="card"><h3>Half-life vs [A]₀</h3><canvas class="mini" id="c-half"></canvas><p class="note">t½ ∝ [A]₀¹⁻ⁿ. It rises for zero order, stays flat for first order and falls for second order.</p></div>
+      <div class="card"><h3>Initial rate vs [A]₀</h3><canvas class="mini" id="c-r0"></canvas><p class="note">All three curves meet at [A]₀ = 1 M, where k[A]₀ⁿ = k.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= MECHANISMS ================= -->
+<section class="panel" id="p-mech">
+  <aside>
+    <div class="card">
+      <h3>Mechanism</h3>
+      <div class="seg" id="m-typeSeg">
+        <button data-m="cons" class="on">A→B→C</button><button data-m="par">A→B, A→C</button><button data-m="rev">A⇌B</button>
+      </div>
+      <p class="note" id="m-desc"></p>
+      <div class="ctrl"><label for="m-A0">Initial [A]₀</label><output id="m-A0V"></output><input id="m-A0" type="range" min="0.2" max="2" step="0.05" value="1"></div>
+      <div class="ctrl"><label for="m-k1" id="m-k1L">k₁</label><output id="m-k1V"></output><input id="m-k1" type="range" min="-2" max="0.3" step="0.01" value="-0.5"></div>
+      <div class="ctrl"><label for="m-k2" id="m-k2L">k₂</label><output id="m-k2V"></output><input id="m-k2" type="range" min="-2" max="0.3" step="0.01" value="-1"></div>
+    </div>
+    <div class="card">
+      <h3>Key numbers</h3>
+      <div class="kv" id="m-kv"></div>
+    </div>
+  </aside>
+  <div class="main">
+    <div class="row r2">
+      <div class="card"><h3>Beaker <span class="legend"><span><i style="background:var(--accent)"></i>A</span><span><i style="background:var(--accent-2)"></i>B</span><span id="m-legC"><i style="background:var(--accent-3)"></i>C</span></span></h3><canvas class="beaker" id="m-beaker"></canvas></div>
+      <div class="card"><h3>Concentrations vs time <span class="badge">drag to scrub</span></h3><canvas class="plot" id="m-main"></canvas></div>
+    </div>
+    <div class="card transport">
+      <button class="btn primary" id="m-play">▶ Play</button>
+      <button class="btn" id="m-reset">↺ Reset</button>
+      <input type="range" id="m-scrub" min="0" max="1000" value="0" aria-label="time">
+      <span class="tclock" id="m-clock"></span>
+      <select id="m-speed" aria-label="speed"><option value="0.5">0.5×</option><option value="1" selected>1×</option><option value="2">2×</option></select>
+    </div>
+    <div class="row r2" style="grid-template-columns:repeat(auto-fit,minmax(300px,1fr))">
+      <div class="card"><h3>Rate of each step</h3><canvas class="mini" id="m-rates"></canvas><p class="note" id="m-ratesNote"></p></div>
+      <div class="card"><h3>The maths</h3><div class="formulas" id="m-formulas"></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= CHALLENGE ================= -->
+<section class="panel" id="p-quiz">
+  <aside>
+    <div class="card">
+      <h3>Problem type</h3>
+      <div class="seg" id="q-typeSeg" style="flex-direction:column">
+        <button data-q="graph" class="on">Graph detective</button>
+        <button data-q="rates">Initial rates method</button>
+        <button data-q="half">Half-life detective</button>
+      </div>
+      <p class="note" id="q-typeDesc"></p>
+    </div>
+    <div class="card">
+      <h3>Score</h3>
+      <div class="score" id="q-score">0 / 0</div>
+      <p class="note" id="q-streak"></p>
+      <button class="btn primary" id="q-next" style="margin-top:8px">New problem →</button>
+    </div>
+  </aside>
+  <div class="main">
+    <div class="card" id="q-card"></div>
+    <div class="row r3 hidden" id="q-reveal">
+      <div class="card lin" id="qlin0"><h3>[A] vs t <span class="badge" id="qlin0b"></span></h3><canvas class="mini" id="q-l0"></canvas></div>
+      <div class="card lin" id="qlin1"><h3>ln[A] vs t <span class="badge" id="qlin1b"></span></h3><canvas class="mini" id="q-l1"></canvas></div>
+      <div class="card lin" id="qlin2"><h3>1/[A] vs t <span class="badge" id="qlin2b"></span></h3><canvas class="mini" id="q-l2"></canvas></div>
+    </div>
+  </div>
+</section>
+
+<script>
+'use strict';
+// ============================================================
+// Utilities
+// ============================================================
+const $ = id => document.getElementById(id);
+const LN2 = Math.LN2, R_GAS = 8.314;
+const SUP = { '0':'⁰','1':'¹','2':'²','3':'³','4':'⁴','5':'⁵','6':'⁶','7':'⁷','8':'⁸','9':'⁹','-':'⁻','.':'·' };
+const sup = s => String(s).split('').map(c => SUP[c] ?? c).join('');
+function fmt(x, s = 3) {
+  if (!isFinite(x)) return '∞';
+  if (x === 0) return '0';
+  const a = Math.abs(x);
+  if (a >= 1e4 || a < 1e-3) {
+    let e = Math.floor(Math.log10(a)), m = x / 10 ** e;
+    if (Math.abs(+m.toFixed(s - 1)) >= 10) { m /= 10; e++; }
+    return m.toFixed(s - 1) + '×10' + sup(e);
+  }
+  return String(Number(x.toPrecision(s)));
+}
+const fT = t => fmt(t, 3) + ' s';
+const fC = c => fmt(c, 3) + ' M';
+function kUnits(n) {
+  if (n === 0) return 'mol L⁻¹ s⁻¹';
+  if (n === 1) return 's⁻¹';
+  if (n === 2) return 'L mol⁻¹ s⁻¹';
+  const p = n - 1, ps = Number.isInteger(p) ? String(p) : String(p);
+  return `L${sup(ps)} mol${sup(String(-p))} s⁻¹`;
+}
+function mulberry(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+function gauss(rnd = Math.random) { let u = 0; while (!u) u = rnd(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * rnd()); }
+function poisson(l, rnd = Math.random) {
+  if (!(l > 0)) return 0;
+  if (l < 30) { const L = Math.exp(-l); let k = 0, p = 1; do { k++; p *= rnd(); } while (p > L); return k - 1; }
+  return Math.max(0, Math.round(l + Math.sqrt(l) * gauss(rnd)));
+}
+function linfit(pts) {
+  const n = pts.length; if (n < 3) return null;
+  let sx = 0, sy = 0, sxx = 0, sxy = 0, syy = 0;
+  for (const [x, y] of pts) { sx += x; sy += y; sxx += x * x; sxy += x * y; syy += y * y; }
+  const d = n * sxx - sx * sx; if (!d) return null;
+  const m = (n * sxy - sx * sy) / d, b = (sy - m * sx) / n;
+  const vy = syy - sy * sy / n;
+  let ss = 0; for (const [x, y] of pts) ss += (y - m * x - b) ** 2;
+  return { m, b, r2: vy > 1e-18 ? Math.max(0, 1 - ss / vy) : 1 };
+}
+function tex(el, s, display = true) {
+  if (window.katex) { try { katex.render(s, el, { displayMode: display, throwOnError: false }); return; } catch (e) {} }
+  el.textContent = s;
+}
+
+// ---------- kinetics core ----------
+const isN = (n, v) => Math.abs(n - v) < 1e-9;
+function concA(n, A0, k, t) {
+  if (isN(n, 1)) return A0 * Math.exp(-k * t);
+  const base = Math.pow(A0, 1 - n) - (1 - n) * k * t;
+  if (n < 1) return base <= 0 ? 0 : Math.pow(base, 1 / (1 - n));
+  return Math.pow(base, 1 / (1 - n));
+}
+// time for fraction f of A to remain
+function tFrac(n, A0, k, f) {
+  if (isN(n, 1)) return -Math.log(f) / k;
+  return Math.pow(A0, 1 - n) * (1 - Math.pow(f, 1 - n)) / ((1 - n) * k);
+}
+const halfLife = (n, A0, k) => tFrac(n, A0, k, 0.5);
+function tEnd(n, A0, k) {
+  if (n < 1 - 1e-9) return 1.2 * tFrac(n, A0, k, 0);
+  return tFrac(n, A0, k, n > 2 ? 0.15 : 1 / 16);
+}
+
+// ---------- colours ----------
+const col = {};
+function readColors() {
+  const s = getComputedStyle(document.documentElement);
+  for (const k of ['bg','paper','ink','muted','line','grid','accent','accent-2','accent-3','accent-4','good','bad','chip','f-mono'])
+    col[k] = s.getPropertyValue('--' + k).trim();
+  col.sp = [col.accent, col['accent-2'], col['accent-3']];
+}
+
+// ---------- canvas & plotting ----------
+function fit(cv) {
+  const dpr = window.devicePixelRatio || 1;
+  const w = Math.max(1, cv.clientWidth), h = Math.max(1, cv.clientHeight);
+  const W = Math.round(w * dpr), H = Math.round(h * dpr);
+  if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; }
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  return { ctx, w, h };
+}
+function niceTicks(a, b, n) {
+  const span = b - a; if (!(span > 0)) return [a];
+  const raw = span / n, p = 10 ** Math.floor(Math.log10(raw)), m = raw / p;
+  const step = (m < 1.5 ? 1 : m < 3 ? 2 : m < 7 ? 5 : 10) * p;
+  const out = [];
+  for (let v = Math.ceil(a / step - 1e-9) * step; v <= b + step * 1e-9; v += step) out.push(Math.abs(v) < step * 1e-9 ? 0 : v);
+  return out;
+}
+function tickLabel(v) {
+  const a = Math.abs(v);
+  if (a === 0) return '0';
+  if (a >= 1e4 || a < 1e-2) return v.toExponential(0).replace('e', 'e');
+  return String(+v.toPrecision(3));
+}
+function plot(cv, o) {
+  const { ctx, w, h } = fit(cv);
+  ctx.clearRect(0, 0, w, h);
+  const P = { l: o.padL ?? 46, r: 12, t: o.legend ? 22 : 10, b: o.xlabel ? 34 : 22 };
+  const X0 = P.l, X1 = w - P.r, Y0 = h - P.b, Y1 = P.t;
+  const [xa, xb] = o.x, [ya, yb] = o.y;
+  const sx = v => X0 + (v - xa) / (xb - xa) * (X1 - X0);
+  const sy = v => Y0 - (v - ya) / (yb - ya) * (Y0 - Y1);
+  cv._tf = { X0, X1, inv: px => xa + (px - X0) / (X1 - X0) * (xb - xa) };
+  const mono = '11px ' + (col['f-mono'] || 'monospace');
+  ctx.font = mono; ctx.lineWidth = 1;
+  // grid
+  ctx.strokeStyle = col.grid; ctx.fillStyle = col.muted;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  for (const v of niceTicks(xa, xb, o.xt || Math.max(3, Math.floor((X1 - X0) / 70)))) {
+    const x = sx(v); ctx.beginPath(); ctx.moveTo(x, Y0); ctx.lineTo(x, Y1); ctx.stroke();
+    ctx.fillText(o.xf ? o.xf(v) : tickLabel(v), x, Y0 + 5);
+  }
+  ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+  for (const v of niceTicks(ya, yb, o.yt || Math.max(3, Math.floor((Y0 - Y1) / 45)))) {
+    const y = sy(v); ctx.beginPath(); ctx.moveTo(X0, y); ctx.lineTo(X1, y); ctx.stroke();
+    ctx.fillText(o.yf ? o.yf(v) : tickLabel(v), X0 - 6, y);
+  }
+  ctx.strokeStyle = col.muted; ctx.globalAlpha = .6;
+  ctx.beginPath(); ctx.moveTo(X0, Y1); ctx.lineTo(X0, Y0); ctx.lineTo(X1, Y0); ctx.stroke();
+  ctx.globalAlpha = 1;
+  if (o.xlabel) { ctx.textAlign = 'right'; ctx.textBaseline = 'bottom'; ctx.fillStyle = col.muted; ctx.font = '12px ' + getComputedStyle(document.body).fontFamily; ctx.fillText(o.xlabel, X1, h - 2); }
+  // legend
+  if (o.legend) {
+    ctx.font = '12px ' + getComputedStyle(document.body).fontFamily; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+    let lx = X0 + 4;
+    for (const L of o.legend) {
+      ctx.strokeStyle = L.c; ctx.lineWidth = 2.5; ctx.setLineDash(L.dash || []);
+      ctx.beginPath(); ctx.moveTo(lx, 10); ctx.lineTo(lx + 16, 10); ctx.stroke(); ctx.setLineDash([]);
+      ctx.fillStyle = col.ink; ctx.fillText(L.t, lx + 21, 10); lx += 30 + ctx.measureText(L.t).width;
+    }
+  }
+  // plot content (clipped)
+  ctx.save(); ctx.beginPath(); ctx.rect(X0, Y1 - 2, X1 - X0 + 2, Y0 - Y1 + 3); ctx.clip();
+  for (const b of o.bars || []) {
+    ctx.fillStyle = b.c; ctx.globalAlpha = b.a ?? .85;
+    const x0 = sx(b.x0), x1 = sx(b.x1), y = sy(b.y);
+    ctx.fillRect(x0, y, x1 - x0, sy(Math.max(ya, 0)) - y); ctx.globalAlpha = 1;
+  }
+  for (const s of o.segs || []) {
+    ctx.strokeStyle = s.c; ctx.lineWidth = s.w || 1.2; ctx.setLineDash(s.dash || [4, 4]); ctx.globalAlpha = s.a ?? 1;
+    ctx.beginPath(); ctx.moveTo(sx(s.x1), sy(s.y1)); ctx.lineTo(sx(s.x2), sy(s.y2)); ctx.stroke();
+    ctx.setLineDash([]); ctx.globalAlpha = 1;
+  }
+  for (const s of o.series || []) {
+    ctx.strokeStyle = s.c; ctx.lineWidth = s.w || 2.2; ctx.setLineDash(s.dash || []); ctx.globalAlpha = s.a ?? 1;
+    ctx.lineJoin = 'round'; ctx.beginPath(); let pen = false;
+    for (const [x, y] of s.pts) {
+      if (!isFinite(y) || !isFinite(x)) { pen = false; continue; }
+      const px = sx(x), py = Math.max(-1e4, Math.min(1e4, sy(y)));
+      if (pen) ctx.lineTo(px, py); else { ctx.moveTo(px, py); pen = true; }
+    }
+    ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha = 1;
+  }
+  for (const p of o.pts || []) {
+    if (!isFinite(p.y)) continue;
+    ctx.beginPath(); ctx.arc(sx(p.x), sy(p.y), p.r || 4, 0, 7);
+    if (p.ring) { ctx.strokeStyle = p.c; ctx.lineWidth = 2; ctx.fillStyle = col.paper; ctx.fill(); ctx.stroke(); }
+    else { ctx.fillStyle = p.c; ctx.fill(); }
+  }
+  ctx.restore();
+  // text labels (unclipped)
+  ctx.font = '11px ' + getComputedStyle(document.body).fontFamily;
+  for (const L of o.labels || []) {
+    if (!isFinite(L.y)) continue;
+    ctx.fillStyle = L.c || col.muted; ctx.textAlign = L.align || 'left'; ctx.textBaseline = L.base || 'bottom';
+    const x = Math.min(X1 - 2, Math.max(X0 + 2, sx(L.x) + (L.dx || 0)));
+    const y = Math.min(Y0 - 2, Math.max(Y1 + 10, sy(L.y) + (L.dy || 0)));
+    ctx.fillText(L.t, x, y);
+  }
+  return { sx, sy };
+}
+const sample = (f, a, b, n = 240) => { const o = []; for (let i = 0; i <= n; i++) { const x = a + (b - a) * i / n; o.push([x, f(x)]); } return o; };
+
+// ---------- beaker of particles ----------
+class Beaker {
+  constructor(cv, N) { this.cv = cv; this.setN(N); }
+  setN(N) {
+    this.N = N; this.p = [];
+    for (let i = 0; i < N; i++) this.p.push({ x: Math.random(), y: Math.random(), vx: (Math.random() - .5) * .1, vy: (Math.random() - .5) * .1, s: 0, f: 0 });
+    this.cnt = [N, 0, 0];
+  }
+  reset() { for (const q of this.p) { q.s = 0; q.f = 0; } this.cnt = [this.N, 0, 0]; }
+  move(a, b, m) {
+    m = Math.round(m); if (m <= 0 || a === b) return 0;
+    const idx = []; for (let i = 0; i < this.N; i++) if (this.p[i].s === a) idx.push(i);
+    m = Math.min(m, idx.length);
+    for (let j = 0; j < m; j++) {
+      const r = j + Math.floor(Math.random() * (idx.length - j));
+      [idx[j], idx[r]] = [idx[r], idx[j]];
+      const q = this.p[idx[j]]; q.s = b; q.f = 1;
+    }
+    this.cnt[a] -= m; this.cnt[b] += m; return m;
+  }
+  // counts: [nA, nB, nC]
+  sync(counts, mech = 'simple') {
+    const [tA, , tC] = counts, c = this.cnt;
+    if (mech === 'par') {
+      let d = counts[1] - c[1]; d > 0 ? this.move(0, 1, d) : this.move(1, 0, -d);
+      d = tC - c[2]; d > 0 ? this.move(0, 2, d) : this.move(2, 0, -d);
+      return;
+    }
+    let d = c[0] - tA;
+    if (d > 0) this.move(0, 1, d);
+    else if (d < 0) { const got = this.move(1, 0, -d); if (got < -d) this.move(2, 0, -d - got); }
+    if (mech === 'cons') { d = tC - c[2]; if (d > 0) { const got = this.move(1, 2, d); if (got < d) this.move(0, 2, d - got); } else this.move(2, 1, -d); }
+  }
+  fromFractions(fr) {
+    const nA = Math.round(fr[0] * this.N), nC = Math.round((fr[2] || 0) * this.N);
+    return [nA, Math.max(0, this.N - nA - nC), nC];
+  }
+  step(dt, temp = 1) {
+    const a = 1.6 * Math.sqrt(temp), vmax = 0.16 * Math.sqrt(temp);
+    for (const q of this.p) {
+      q.vx += (Math.random() - .5) * a * dt; q.vy += (Math.random() - .5) * a * dt;
+      const v = Math.hypot(q.vx, q.vy); if (v > vmax) { q.vx *= vmax / v; q.vy *= vmax / v; }
+      q.x += q.vx * dt; q.y += q.vy * dt;
+      if (q.x < 0) { q.x = -q.x; q.vx = Math.abs(q.vx); } if (q.x > 1) { q.x = 2 - q.x; q.vx = -Math.abs(q.vx); }
+      if (q.y < 0) { q.y = -q.y; q.vy = Math.abs(q.vy); } if (q.y > 1) { q.y = 2 - q.y; q.vy = -Math.abs(q.vy); }
+      if (q.f > 0) q.f = Math.max(0, q.f - dt * 1.4);
+    }
+  }
+  draw(names = ['A', 'P', 'C']) {
+    const { ctx, w, h } = fit(this.cv); ctx.clearRect(0, 0, w, h);
+    const gh = h - 30, gw = Math.min(w - 20, gh * 1.05), gx = (w - gw) / 2, gy = 24;
+    const lx = gx + 6, ly = gy + gh * 0.1, lw = gw - 12, lh = gh * 0.9 - 6;
+    // liquid
+    ctx.fillStyle = col.accent; ctx.globalAlpha = 0.07;
+    ctx.beginPath(); ctx.roundRect(lx, ly, lw, lh, [0, 0, 14, 14]); ctx.fill(); ctx.globalAlpha = 1;
+    ctx.strokeStyle = col.accent; ctx.globalAlpha = .35; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(lx, ly); ctx.quadraticCurveTo(lx + lw / 2, ly + 5, lx + lw, ly); ctx.stroke(); ctx.globalAlpha = 1;
+    // glass
+    ctx.strokeStyle = col.muted; ctx.lineWidth = 2; ctx.globalAlpha = .8;
+    ctx.beginPath(); ctx.moveTo(gx - 6, gy); ctx.lineTo(gx, gy + 6); ctx.lineTo(gx, gy + gh - 16);
+    ctx.quadraticCurveTo(gx, gy + gh, gx + 16, gy + gh); ctx.lineTo(gx + gw - 16, gy + gh);
+    ctx.quadraticCurveTo(gx + gw, gy + gh, gx + gw, gy + gh - 16); ctx.lineTo(gx + gw, gy); ctx.stroke();
+    ctx.lineWidth = 1; ctx.globalAlpha = .45;
+    for (let i = 1; i <= 4; i++) { const y = ly + lh * i / 5; ctx.beginPath(); ctx.moveTo(gx + gw - 14, y); ctx.lineTo(gx + gw - 2, y); ctx.stroke(); }
+    ctx.globalAlpha = 1;
+    // particles
+    const r = this.N > 900 ? 1.7 : this.N > 450 ? 2.4 : this.N > 200 ? 3.2 : 4.2;
+    for (const q of this.p) {
+      const x = lx + r + q.x * (lw - 2 * r), y = ly + 6 + r + q.y * (lh - 6 - 2 * r);
+      ctx.fillStyle = col.sp[q.s];
+      ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill();
+      if (q.f > 0) { ctx.strokeStyle = col.sp[q.s]; ctx.globalAlpha = q.f; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(x, y, r + (1 - q.f) * 9, 0, 7); ctx.stroke(); ctx.globalAlpha = 1; }
+    }
+    // counts
+    ctx.font = '600 12px ' + (col['f-mono'] || 'monospace'); ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
+    let tx = 4;
+    for (let s = 0; s < 3; s++) {
+      if (s === 2 && !this.cnt[2] && names.length < 3) continue;
+      if (s >= names.length) continue;
+      const t = `${names[s]}: ${this.cnt[s]}`;
+      ctx.fillStyle = col.sp[s]; ctx.fillText(t, tx, 10); tx += ctx.measureText(t).width + 14;
+    }
+  }
+}
+
+// ---------- generic transport (play / reset / scrub) ----------
+function makeTransport(pre, st, getTmax) {
+  const play = $(pre + '-play'), scrub = $(pre + '-scrub'), speed = $(pre + '-speed');
+  const setPlay = v => { st.playing = v; play.textContent = v ? '❚❚ Pause' : '▶ Play'; };
+  play.onclick = () => { if (!st.playing && st.t >= getTmax() - 1e-9) st.t = 0; setPlay(!st.playing); };
+  $(pre + '-reset').onclick = () => { st.t = 0; setPlay(false); st.onReset && st.onReset(); };
+  scrub.oninput = () => { st.t = scrub.value / 1000 * getTmax(); setPlay(false); };
+  speed.onchange = () => st.speed = +speed.value;
+  st.speed = +speed.value;
+  st.setPlay = setPlay;
+  st.tick = dt => {
+    const T = getTmax();
+    if (st.playing) { st.t += dt * T / 10 * st.speed; if (st.t >= T) { st.t = T; setPlay(false); } }
+    if (document.activeElement !== scrub) scrub.value = Math.round(st.t / T * 1000);
+    $(pre + '-clock').textContent = 't = ' + fmt(st.t, 3) + ' s';
+  };
+}
+function scrubOnCanvas(cv, st, getTmax) {
+  const go = e => { const tf = cv._tf; if (!tf) return; const r = cv.getBoundingClientRect(); st.t = Math.max(0, Math.min(getTmax(), tf.inv(e.clientX - r.left))); st.setPlay(false); };
+  cv.addEventListener('pointerdown', e => { cv.setPointerCapture(e.pointerId); go(e); });
+  cv.addEventListener('pointermove', e => { if (e.buttons) go(e); });
+}
+function bindRange(id, fn) { const el = $(id); el.addEventListener('input', () => fn(+el.value)); fn(+el.value); }
+
+// ============================================================
+// ORDERS TAB
+// ============================================================
+const O = { n: 1, A0: 1, logk: -1, temp: false, T: 298, Ea: 50, noise: false, N: 150, seed: 7, t: 0, playing: false, xPct: 75 };
+const oBeaker = new Beaker($('o-beaker'), 400);
+function oK() { const k0 = 10 ** O.logk; return O.temp ? k0 * Math.exp(-O.Ea * 1000 / R_GAS * (1 / O.T - 1 / 298)) : k0; }
+let oCache = null;
+function oRecompute() {
+  const k = oK(), tmax = tEnd(O.n, O.A0, k);
+  const c = { k, tmax };
+  if (O.noise) {
+    const rnd = mulberry(O.seed), steps = 900, dt = tmax / steps, N = O.N;
+    let nA = N; const traj = [N];
+    for (let i = 0; i < steps; i++) {
+      const conc = nA / N * O.A0, r = nA > 0 ? k * Math.pow(conc, O.n) : 0;
+      nA = Math.max(0, nA - poisson(r * dt * N / O.A0, rnd)); traj.push(nA);
+    }
+    c.traj = traj;
+  }
+  if (oCache && oCache.tmax) O.t = Math.min(tmax, O.t / oCache.tmax * tmax);
+  oCache = c;
+}
+function oA(t) {
+  if (O.noise && oCache.traj) { const i = Math.min(oCache.traj.length - 1, Math.max(0, Math.round(t / oCache.tmax * (oCache.traj.length - 1)))); return oCache.traj[i] / O.N * O.A0; }
+  return concA(O.n, O.A0, oCache.k, t);
+}
+function oSetN(n) {
+  O.n = n;
+  document.querySelectorAll('#o-orderSeg button').forEach(b => b.classList.toggle('on', +b.dataset.n === n));
+  $('o-n').value = n; $('o-nV').textContent = n; $('o-orderBadge').textContent = 'n = ' + n;
+  oRecompute(); oFormulas(); oParamText();
+}
+document.querySelectorAll('#o-orderSeg button').forEach(b => b.onclick = () => oSetN(+b.dataset.n));
+$('o-n').addEventListener('input', e => oSetN(+e.target.value));
+function oParamText() {
+  $('o-A0V').textContent = O.A0.toFixed(2) + ' M';
+  $('o-kV').textContent = fmt(10 ** O.logk) + ' ' + kUnits(O.n);
+  $('o-kLab').textContent = O.temp ? 'k at 298 K' : 'Rate constant k';
+}
+bindRange('o-A0', v => { O.A0 = v; if (oCache) { oRecompute(); oParamText(); oFormulas(); } });
+bindRange('o-k', v => { O.logk = v; if (oCache) { oRecompute(); oParamText(); } });
+bindRange('o-T', v => { O.T = v; $('o-TV').textContent = v + ' K (' + (v - 273) + ' °C)'; if (oCache) oRecompute(); });
+bindRange('o-Ea', v => { O.Ea = v; $('o-EaV').textContent = v + ' kJ/mol'; if (oCache) oRecompute(); });
+bindRange('o-N', v => { O.N = v; $('o-NV').textContent = v; if (oCache && O.noise) { oBeaker.setN(v); oRecompute(); } });
+bindRange('o-x', v => { O.xPct = v; $('o-xV').textContent = v + '%'; if (oCache) oXNote(); });
+$('o-temp').onchange = e => { O.temp = e.target.checked; $('o-tempBox').classList.toggle('hidden', !O.temp); oRecompute(); oParamText(); };
+$('o-noise').onchange = e => { O.noise = e.target.checked; $('o-noiseBox').classList.toggle('hidden', !O.noise); oBeaker.setN(O.noise ? O.N : 400); oRecompute(); };
+$('o-reroll').onclick = () => { O.seed = (Math.random() * 1e9) | 0; oRecompute(); };
+makeTransport('o', O, () => oCache.tmax);
+O.onReset = () => {};
+scrubOnCanvas($('o-main'), O, () => oCache.tmax);
+
+const FACTS = {
+  0: ['Rate does not depend on [A]. The reactant is used up at a steady rate until it runs out, so the reaction stops at a definite time t = [A]₀/k.',
+      'Examples: NH₃ decomposing on a hot Pt or W surface (the surface is saturated), photochemical H₂ + Cl₂ → 2HCl, and enzyme reactions when substrate is in large excess.',
+      't½ ∝ [A]₀. Each half-life is half as long as the one before.'],
+  1: ['The half-life does not depend on [A]₀. It takes the same time to go 100→50 as 50→25.',
+      'Examples: radioactive decay, 2N₂O₅ → 4NO₂ + O₂, and pseudo-first-order ester hydrolysis (water in large excess).',
+      'Handy relations: t₇₅% = 2 t½, t₈₇.₅% = 3 t½, t₉₉.₉% ≈ 10 t½.'],
+  2: ['t½ = 1/(k[A]₀), so the half-life doubles each time. The reaction slows down a lot near the end.',
+      'Examples: 2NO₂ → 2NO + O₂, 2HI → H₂ + I₂ and saponification of ethyl acetate (A + B with equal [ ]₀).',
+      't₇₅% = 3 t½ for second order (compare 2 t½ for first order).'],
+  3: ['Third-order reactions are rare because they need three molecules to collide at once. Example: 2NO + O₂ → 2NO₂.',
+      'Linear plot: 1/[A]² vs t with slope 2k. t½ = 3/(2k[A]₀²).'],
+  g: ['General result for any n ≠ 1: t½ ∝ [A]₀^(1−n). This is how to find the order from half-lives at two different [A]₀.',
+      'Fractional orders (e.g. n = 1.5 for CH₃CHO → CH₄ + CO) come from complex multi-step mechanisms. Order is found by experiment and can differ from the stoichiometric coefficients.']
+};
+function oFormulas() {
+  const n = O.n, box = $('o-formulas'); box.innerHTML = '';
+  const add = (title, s) => { const d = document.createElement('div'); d.className = 'fbox'; d.innerHTML = '<b>' + title + '</b><div></div>'; tex(d.lastChild, s); box.appendChild(d); };
+  add('Rate law', n === 0 ? String.raw`-\frac{d[A]}{dt}=k` : String.raw`-\frac{d[A]}{dt}=k[A]^{${n}}`);
+  if (isN(n, 0)) { add('Integrated law', String.raw`[A]=[A]_0-kt`); add('Half-life', String.raw`t_{1/2}=\frac{[A]_0}{2k}`); add('Straight-line plot', String.raw`[A]\ \text{vs}\ t,\ \text{slope}=-k`); }
+  else if (isN(n, 1)) { add('Integrated law', String.raw`[A]=[A]_0e^{-kt}\;\;\Leftrightarrow\;\; k=\frac{2.303}{t}\log\frac{[A]_0}{[A]}`); add('Half-life', String.raw`t_{1/2}=\frac{\ln 2}{k}=\frac{0.693}{k}`); add('Straight-line plot', String.raw`\ln[A]\ \text{vs}\ t,\ \text{slope}=-k`); }
+  else if (isN(n, 2)) { add('Integrated law', String.raw`\frac{1}{[A]}-\frac{1}{[A]_0}=kt`); add('Half-life', String.raw`t_{1/2}=\frac{1}{k[A]_0}`); add('Straight-line plot', String.raw`\frac{1}{[A]}\ \text{vs}\ t,\ \text{slope}=+k`); }
+  else { add('Integrated law', String.raw`\frac{1}{[A]^{${n - 1}}}-\frac{1}{[A]_0^{${n - 1}}}=${n - 1}\,kt`); add('Half-life', String.raw`t_{1/2}=\frac{2^{${n - 1}}-1}{${n - 1}\,k[A]_0^{${n - 1}}}`); add('Straight-line plot', String.raw`[A]^{${1 - n}}\ \text{vs}\ t,\ \text{slope}=${n - 1}k`); }
+  const uT = isN(n, 0) ? String.raw`\text{mol L}^{-1}\text{s}^{-1}` : isN(n, 1) ? String.raw`\text{s}^{-1}` : String.raw`\text{L}^{${n - 1}}\,\text{mol}^{${1 - n}}\,\text{s}^{-1}`;
+  add('Units of k', String.raw`(\text{mol L}^{-1})^{1-n}\,\text{s}^{-1}=` + uT);
+  if (O.temp) add('Arrhenius', String.raw`k=Ae^{-E_a/RT},\quad \ln\frac{k_2}{k_1}=\frac{E_a}{R}\left(\frac{1}{T_1}-\frac{1}{T_2}\right)`);
+  const facts = FACTS[n] || FACTS.g;
+  $('o-facts').innerHTML = facts.concat(Number.isInteger(n) && n < 3 ? [] : (n === 3 ? FACTS.g.slice(0, 1) : [])).map(f => '<li>' + f + '</li>').join('');
+  oXNote();
+}
+function oXNote() {
+  const k = oCache.k, f = 1 - O.xPct / 100, t = tFrac(O.n, O.A0, k, f), th = halfLife(O.n, O.A0, k);
+  $('o-xNote').textContent = `t(${O.xPct}%) = ${fT(t)}, which is ${fmt(t / th, 3)} × t½.` + (isN(O.n, 0) && O.xPct >= 99.9 ? ' (A zero-order reaction finishes completely at [A]₀/k = 2 t½.)' : '');
+}
+function oDrawArr() {
+  const k0 = 10 ** O.logk, kAt = T => k0 * Math.exp(-O.Ea * 1000 / R_GAS * (1 / T - 1 / 298));
+  const pts = sample(x => Math.log(kAt(1000 / x)), 1000 / 450, 1000 / 250, 60);
+  const ys = pts.map(p => p[1]);
+  const cur = [1000 / O.T, Math.log(kAt(O.T))];
+  plot($('o-arr'), { x: [2.2, 4.0], y: [Math.min(...ys) - .3, Math.max(...ys) + .3], xlabel: '1000/T (K⁻¹)', padL: 38,
+    series: [{ pts, c: col['accent-4'], w: 2 }], pts: [{ x: cur[0], y: cur[1], c: col['accent-4'], r: 5 }],
+    labels: [{ x: 2.25, y: Math.max(...ys), t: 'ln k   slope = −Eₐ/R', base: 'top', dy: 0 }] });
+  const q10 = kAt(O.T + 10) / kAt(O.T);
+  $('o-arrNote').textContent = `k = ${fmt(kAt(O.T))} at ${O.T} K. A +10 K rise multiplies k by ${q10.toFixed(2)}, and the reaction speeds up by the same factor.`;
+}
+function oLinData(upto) {
+  const tmax = oCache.tmax, out = [[], [], []], full = [[], [], []];
+  for (let j = 0; j <= 16; j++) {
+    const t = tmax * j / 16, A = oA(t);
+    const tr = [A, A > O.A0 * 0.02 ? Math.log(A) : NaN, A > O.A0 * 0.02 ? 1 / A : NaN];
+    for (let i = 0; i < 3; i++) { if (!isFinite(tr[i])) continue; full[i].push([t, tr[i]]); if (t <= upto + 1e-9) out[i].push([t, tr[i]]); }
+  }
+  return { out, full };
+}
+function drawLin(cvIds, badgeIds, cardIds, { out, full }, tmax, revealAll) {
+  let best = -1, bestR = -1;
+  const fits = out.map(p => linfit(p));
+  fits.forEach((f, i) => { if (f && f.r2 > bestR + 1e-6) { bestR = f.r2; best = i; } });
+  for (let i = 0; i < 3; i++) {
+    const ys = full[i].map(p => p[1]);
+    let ya = Math.min(...ys), yb = Math.max(...ys); if (!(yb > ya)) { ya -= 1; yb += 1; }
+    const pad = (yb - ya) * .08;
+    const f = fits[i];
+    const segs = f ? [{ x1: 0, y1: f.b, x2: tmax, y2: f.m * tmax + f.b, c: col.muted, dash: [5, 4], a: .8 }] : [];
+    plot($(cvIds[i]), { x: [0, tmax], y: [ya - pad, yb + pad], xlabel: 't (s)', padL: 44,
+      series: out[i].length > 1 ? [{ pts: out[i], c: col.sp[0], w: 1.2, a: .45 }] : [], segs,
+      pts: out[i].map(([x, y]) => ({ x, y, c: col.accent, r: 3.4 })) });
+    $(badgeIds[i]).textContent = f ? `R² = ${f.r2.toFixed(4)}  slope = ${fmt(f.m, 3)}` : 'collecting data…';
+    $(cardIds[i]).classList.toggle('best', i === best && f && f.r2 > 0.995 && (revealAll || out[i].length >= 4));
+  }
+  return { best, fits };
+}
+function oDraw() {
+  const { k, tmax } = oCache, t = O.t, n = O.n, A0 = O.A0;
+  const A = oA(t), Aexact = concA(n, A0, k, t);
+  // beaker
+  const counts = oBeaker.fromFractions([A / A0, 1 - A / A0]);
+  oBeaker.sync(counts);
+  oBeaker.draw(['A', 'P']);
+  // main plot
+  const curve = sample(x => concA(n, A0, k, x), 0, tmax, 300);
+  const series = [];
+  if (O.noise) {
+    const tr = oCache.traj, pts = tr.map((v, i) => [i / (tr.length - 1) * tmax, v / O.N * A0]).filter(p => p[0] <= t);
+    series.push({ pts: curve, c: col.accent, w: 1.5, dash: [5, 4], a: .6 }, { pts, c: col.accent, w: 2.2 },
+      { pts: pts.map(([x, y]) => [x, A0 - y]), c: col['accent-2'], w: 2 });
+  } else {
+    series.push({ pts: curve, c: col.accent, w: 1.2, a: .25 }, { pts: curve.filter(p => p[0] <= t).concat([[t, A]]), c: col.accent, w: 2.6 },
+      { pts: curve.filter(p => p[0] <= t).map(([x, y]) => [x, A0 - y]).concat([[t, A0 - A]]), c: col['accent-2'], w: 2.2 });
+  }
+  const segs = [], labels = [], pts = [];
+  const fr = ['½', '¼', '⅛', '1⁄16'];
+  for (let i = 1; i <= 4; i++) {
+    const ti = tFrac(n, A0, k, 2 ** -i), yi = A0 * 2 ** -i;
+    if (!(ti <= tmax)) break;
+    segs.push({ x1: ti, y1: 0, x2: ti, y2: yi, c: col.muted, a: .55 }, { x1: 0, y1: yi, x2: ti, y2: yi, c: col.muted, a: .35 });
+    labels.push({ x: ti, y: yi, t: fr[i - 1] + ' at ' + fmt(ti, 3) + ' s', dx: 5, dy: -3 });
+    pts.push({ x: ti, y: yi, c: col.muted, r: 3 });
+  }
+  // tangent = instantaneous rate
+  const rate = A > 0 ? k * Math.pow(A, n) : 0;
+  if (A > 0) {
+    const half = tmax * 0.14, slope = -k * Math.pow(Aexact, n);
+    segs.push({ x1: t - half, y1: Aexact - slope * half, x2: t + half, y2: Aexact + slope * half, c: col['accent-4'], dash: [], w: 2 });
+  }
+  segs.push({ x1: t, y1: 0, x2: t, y2: A0 * 1.08, c: col.ink, a: .25, dash: [2, 3] });
+  pts.push({ x: t, y: A, c: col.accent, r: 5, ring: true }, { x: t, y: A0 - A, c: col['accent-2'], r: 5, ring: true });
+  plot($('o-main'), { x: [0, tmax], y: [0, A0 * 1.08], xlabel: 'time (s)', segs, series, pts, labels,
+    legend: [{ c: col.accent, t: '[A] reactant' }, { c: col['accent-2'], t: '[P] product' }, { c: col['accent-4'], t: 'tangent, slope = −rate' }],
+    yf: v => tickLabel(v) });
+  // linearization
+  drawLin(['o-l0', 'o-l1', 'o-l2'], ['lin0b', 'lin1b', 'lin2b'], ['lin0', 'lin1', 'lin2'], oLinData(t), tmax, false);
+  // rate vs [A]
+  const rc = sample(x => k * Math.pow(x, n), 0, A0, 160);
+  const rMax = Math.max(k * Math.pow(A0, n), 1e-12);
+  plot($('o-rate'), { x: [0, A0], y: [0, rMax * 1.12], xlabel: '[A] (M)', padL: 52, series: [{ pts: rc, c: col['accent-4'] }],
+    pts: [{ x: A, y: rate, c: col['accent-4'], r: 5, ring: true }], yf: v => fmt(v, 2) });
+  // log-log
+  const lx0 = Math.log10(A0 / 100), lx1 = Math.log10(A0);
+  const lc = sample(x => Math.log10(k) + n * x, lx0, lx1, 2);
+  const lyA = Math.log10(k) + n * lx0, lyB = Math.log10(k) + n * lx1;
+  const lya = Math.min(lyA, lyB) - .3, lyb = Math.max(lyA, lyB) + .3;
+  plot($('o-log'), { x: [lx0, lx1], y: [lya, lyb], xlabel: 'log₁₀[A]', padL: 40, series: [{ pts: lc, c: col['accent-4'] }],
+    pts: A > A0 / 100 ? [{ x: Math.log10(A), y: Math.log10(rate), c: col['accent-4'], r: 5, ring: true }] : [],
+    labels: [{ x: lx0, y: lyb, t: `slope = n = ${n}   intercept = log k`, base: 'top', dx: 4 }] });
+  // successive half-lives
+  const bars = [], th = [];
+  for (let i = 0; i < 4; i++) { const v = halfLife(n, A0 / 2 ** i, k); th.push(v); bars.push({ x0: i + 0.18, x1: i + 0.82, y: v, c: col.sp[i % 2 ? 1 : 0], a: .8 }); }
+  const hmax = Math.max(...th);
+  plot($('o-halves'), { x: [0, 4], y: [0, hmax * 1.18], xlabel: '1st → 4th half-life', xt: 4, padL: 44, xf: () => '', bars,
+    labels: th.map((v, i) => ({ x: i + 0.5, y: v, t: fmt(v, 3) + ' s', align: 'center', dy: -3, c: col.ink })) });
+  $('o-halvesNote').textContent = isN(n, 1) ? 'Every half-life is the same length. This is the mark of first order.'
+    : n < 1 ? `Each half-life is ${fmt(2 ** (n - 1), 2)}× the one before, so they keep getting shorter.` : `Each half-life is ${fmt(2 ** (n - 1), 2)}× the one before, so they keep getting longer.`;
+  // readout
+  const tFinish = n < 1 ? tFrac(n, A0, k, 0) : Infinity;
+  $('r-t').textContent = fT(t); $('r-A').textContent = fC(A); $('r-P').textContent = fC(A0 - A);
+  $('r-rate').textContent = fmt(rate) + ' M s⁻¹'; $('r-conv').textContent = ((1 - A / A0) * 100).toFixed(1) + ' %';
+  $('r-k').textContent = fmt(k) + ' ' + kUnits(n); $('r-half').textContent = fT(halfLife(n, A0, k));
+  $('r-endL').textContent = n < 1 ? 'time to finish' : 'time to 99%';
+  $('r-end').textContent = n < 1 ? fT(tFinish) : fT(tFrac(n, A0, k, 0.01));
+  if (O.temp) oDrawArr();
+}
+
+// ============================================================
+// COMPARE TAB
+// ============================================================
+const Cs = { A0: 1, logk: -1, show: [true, true, true], t: 0, playing: false };
+const cBeakers = [0, 1, 2].map(i => new Beaker($('c-beak' + i), 160));
+const cColor = () => [col['accent-4'], col.accent, col['accent-2']];
+const cK = () => 10 ** Cs.logk;
+function cTmax() { const k = cK(); return Math.max(1.2 * Cs.A0 / k, 2 * Math.log(16) / k); }
+bindRange('c-A0', v => { Cs.A0 = v; $('c-A0V').textContent = v.toFixed(2) + ' M'; });
+bindRange('c-k', v => { const r = Cs.t / (cTmax() || 1); Cs.logk = v; $('c-kV').textContent = fmt(10 ** v); Cs.t = r * cTmax(); });
+document.querySelectorAll('.c-show').forEach(c => c.onchange = () => Cs.show[+c.dataset.n] = c.checked);
+makeTransport('c', Cs, cTmax);
+scrubOnCanvas($('c-main'), Cs, cTmax);
+function cDraw() {
+  const k = cK(), A0 = Cs.A0, T = cTmax(), t = Cs.t, cc = cColor();
+  const series = [], pts = [], labels = [], segs = [];
+  for (let n = 0; n < 3; n++) {
+    const A = concA(n, A0, k, t);
+    const b = cBeakers[n]; b.sync(b.fromFractions([A / A0, 1 - A / A0])); b.draw(['A', 'P']);
+    $('c-b' + n).textContent = `[A] = ${fmt(A, 3)} M · t½ = ${fmt(halfLife(n, A0, k), 3)} s`;
+    if (!Cs.show[n]) continue;
+    const curve = sample(x => concA(n, A0, k, x), 0, T, 300);
+    series.push({ pts: curve, c: cc[n], w: 1.2, a: .25 }, { pts: curve.filter(p => p[0] <= t).concat([[t, A]]), c: cc[n], w: 2.6 });
+    pts.push({ x: t, y: A, c: cc[n], r: 5, ring: true });
+    const th = halfLife(n, A0, k);
+    if (th < T) { pts.push({ x: th, y: A0 / 2, c: cc[n], r: 3 }); segs.push({ x1: th, y1: 0, x2: th, y2: A0 / 2, c: cc[n], a: .5 }); }
+  }
+  segs.push({ x1: 0, y1: A0 / 2, x2: T, y2: A0 / 2, c: col.muted, a: .4 });
+  labels.push({ x: T, y: A0 / 2, t: '[A]₀/2', align: 'right', dy: -3 });
+  segs.push({ x1: t, y1: 0, x2: t, y2: A0 * 1.08, c: col.ink, a: .25, dash: [2, 3] });
+  plot($('c-main'), { x: [0, T], y: [0, A0 * 1.08], xlabel: 'time (s)', series, pts, segs, labels,
+    legend: [{ c: cc[0], t: 'zero' }, { c: cc[1], t: 'first' }, { c: cc[2], t: 'second' }] });
+  // half-life vs A0
+  const hs = [0, 1, 2].map(n => sample(a => halfLife(n, a, k), 0.1, 2, 120));
+  const hmax = Math.max(...hs.flat().map(p => p[1]));
+  plot($('c-half'), { x: [0, 2], y: [0, hmax * 1.08], xlabel: '[A]₀ (M)', series: hs.map((p, n) => ({ pts: p, c: cc[n], a: Cs.show[n] ? 1 : .15 })),
+    segs: [{ x1: A0, y1: 0, x2: A0, y2: hmax * 1.08, c: col.ink, a: .3, dash: [2, 3] }],
+    pts: [0, 1, 2].filter(n => Cs.show[n]).map(n => ({ x: A0, y: halfLife(n, A0, k), c: cc[n], r: 4.5, ring: true })) });
+  const rs = [0, 1, 2].map(n => sample(a => k * a ** n, 0, 2, 120));
+  plot($('c-r0'), { x: [0, 2], y: [0, k * 4 * 1.05], xlabel: '[A]₀ (M)', padL: 50, yf: v => fmt(v, 2), series: rs.map((p, n) => ({ pts: p, c: cc[n], a: Cs.show[n] ? 1 : .15 })),
+    segs: [{ x1: A0, y1: 0, x2: A0, y2: k * 4.2, c: col.ink, a: .3, dash: [2, 3] }],
+    pts: [0, 1, 2].filter(n => Cs.show[n]).map(n => ({ x: A0, y: k * A0 ** n, c: cc[n], r: 4.5, ring: true })) });
+  // insight
+  const names = ['Zero order', 'First order', 'Second order'];
+  const r0 = [0, 1, 2].map(n => k * A0 ** n), th = [0, 1, 2].map(n => halfLife(n, A0, k));
+  const fast = r0.indexOf(Math.max(...r0)), firstHalf = th.indexOf(Math.min(...th));
+  let msg;
+  if (Math.abs(A0 - 1) < 0.03) msg = `At [A]₀ = 1 M all three start at exactly the same rate (k·1ⁿ = k). Watch them split apart: zero order keeps a steady slope and stops dead at t = ${fmt(A0 / k)} s, first order slows down smoothly, and second order lingers for a long time.`;
+  else if (A0 < 1) msg = `With [A]₀ < 1 M, [A]ⁿ is smaller for higher n, so the ${names[fast].toLowerCase()} reaction starts fastest. ${names[firstHalf]} reaches half first (t½ = ${fmt(th[firstHalf])} s). Second order is slowest because the low concentration hurts it most.`;
+  else msg = `With [A]₀ > 1 M, the higher power wins at first, so second order starts fastest (rate ${fmt(r0[2])} vs ${fmt(r0[0])} M/s). Later, as [A] drops, its rate falls the most. ${names[firstHalf]} reaches half first.`;
+  $('c-insight').textContent = msg;
+}
+
+// ============================================================
+// MECHANISMS TAB
+// ============================================================
+const M = { type: 'cons', A0: 1, logk1: -0.5, logk2: -1, t: 0, playing: false };
+const mBeaker = new Beaker($('m-beaker'), 400);
+const MDESC = {
+  cons: 'Consecutive reactions: A turns into the intermediate B, and B then turns into the final product C. Both steps are first order.',
+  par: 'Parallel (side) reactions: A forms B and C at the same time by two competing first-order paths.',
+  rev: 'Reversible reaction: A forms B and B forms A again. It reaches dynamic equilibrium, where both reactions keep going at equal rates.'
+};
+function mKs() { return [10 ** M.logk1, 10 ** M.logk2]; }
+function mTmax() {
+  const [k1, k2] = mKs();
+  if (M.type === 'cons') return Math.min(6 / Math.min(k1, k2), 60 / Math.max(k1, k2) + 6 / Math.min(k1, k2));
+  return 5 / (k1 + k2);
+}
+function mConc(t) {
+  const [k1, k2] = mKs(), A0 = M.A0;
+  if (M.type === 'cons') {
+    const a = Math.exp(-k1 * t);
+    const b = Math.abs(k2 - k1) < 1e-9 ? k1 * t * Math.exp(-k1 * t) : k1 / (k2 - k1) * (Math.exp(-k1 * t) - Math.exp(-k2 * t));
+    return [a * A0, b * A0, Math.max(0, 1 - a - b) * A0];
+  }
+  if (M.type === 'par') {
+    const a = Math.exp(-(k1 + k2) * t), s = k1 + k2;
+    return [a * A0, k1 / s * (1 - a) * A0, k2 / s * (1 - a) * A0];
+  }
+  const s = k1 + k2, Aeq = A0 * k2 / s, a = Aeq + (A0 - Aeq) * Math.exp(-s * t);
+  return [a, A0 - a, 0];
+}
+function mSetType(m) {
+  const r = M.t / mTmax();
+  M.type = m;
+  document.querySelectorAll('#m-typeSeg button').forEach(b => b.classList.toggle('on', b.dataset.m === m));
+  $('m-desc').textContent = MDESC[m];
+  $('m-k1L').textContent = m === 'rev' ? 'k_f (forward, A→B)' : 'k₁ (A→B)';
+  $('m-k2L').textContent = m === 'rev' ? 'k_b (backward, B→A)' : m === 'cons' ? 'k₂ (B→C)' : 'k₂ (A→C)';
+  $('m-legC').classList.toggle('hidden', m === 'rev');
+  M.t = r * mTmax(); mBeaker.reset(); mFormulas();
+}
+document.querySelectorAll('#m-typeSeg button').forEach(b => b.onclick = () => mSetType(b.dataset.m));
+bindRange('m-A0', v => { M.A0 = v; $('m-A0V').textContent = v.toFixed(2) + ' M'; });
+bindRange('m-k1', v => { const r = M.t / mTmax(); M.logk1 = v; $('m-k1V').textContent = fmt(10 ** v) + ' s⁻¹'; M.t = r * mTmax(); });
+bindRange('m-k2', v => { const r = M.t / mTmax(); M.logk2 = v; $('m-k2V').textContent = fmt(10 ** v) + ' s⁻¹'; M.t = r * mTmax(); });
+makeTransport('m', M, mTmax);
+M.onReset = () => mBeaker.reset();
+scrubOnCanvas($('m-main'), M, mTmax);
+function mFormulas() {
+  const box = $('m-formulas'); box.innerHTML = '';
+  const add = (title, s) => { const d = document.createElement('div'); d.className = 'fbox'; d.innerHTML = '<b>' + title + '</b><div></div>'; tex(d.lastChild, s); box.appendChild(d); };
+  if (M.type === 'cons') {
+    add('Intermediate B', String.raw`[B]=\frac{k_1[A]_0}{k_2-k_1}\left(e^{-k_1t}-e^{-k_2t}\right)`);
+    add('Time of maximum [B]', String.raw`t_{\max}=\frac{\ln(k_1/k_2)}{k_1-k_2}`);
+    add('Maximum [B]', String.raw`[B]_{\max}=[A]_0\left(\frac{k_1}{k_2}\right)^{\frac{k_2}{k_1-k_2}}`);
+  } else if (M.type === 'par') {
+    add('Overall decay', String.raw`[A]=[A]_0e^{-(k_1+k_2)t},\quad t_{1/2}=\frac{0.693}{k_1+k_2}`);
+    add('Product ratio (always)', String.raw`\frac{[B]}{[C]}=\frac{k_1}{k_2}`);
+    add('Fraction of B', String.raw`\%B=\frac{k_1}{k_1+k_2}\times100`);
+  } else {
+    add('Approach to equilibrium', String.raw`[A]-[A]_{eq}=([A]_0-[A]_{eq})\,e^{-(k_f+k_b)t}`);
+    add('Equilibrium constant', String.raw`K_c=\frac{[B]_{eq}}{[A]_{eq}}=\frac{k_f}{k_b}`);
+    add('At equilibrium', String.raw`k_f[A]_{eq}=k_b[B]_{eq}\ \ (\text{rates equal, not zero})`);
+  }
+}
+function mDraw(dtSim) {
+  const [k1, k2] = mKs(), T = mTmax(), t = M.t, A0 = M.A0, c = mConc(t);
+  const mech = M.type === 'cons' ? 'cons' : M.type === 'par' ? 'par' : 'simple';
+  mBeaker.sync(mBeaker.fromFractions([c[0] / A0, c[1] / A0, c[2] / A0]), mech);
+  if (M.type === 'rev' && dtSim > 0) {
+    // dynamic equilibrium: molecules keep swapping both ways
+    const gross = Math.min(k1 * mBeaker.cnt[0], k2 * mBeaker.cnt[1]) * dtSim;
+    const m = poisson(gross); mBeaker.move(0, 1, m); mBeaker.move(1, 0, m);
+  }
+  mBeaker.draw(M.type === 'rev' ? ['A', 'B'] : ['A', 'B', 'C']);
+  const nS = M.type === 'rev' ? 2 : 3, names = ['[A]', '[B]', '[C]'];
+  const curves = [0, 1, 2].slice(0, nS).map(i => sample(x => mConc(x)[i], 0, T, 300));
+  const series = [], pts = [], segs = [], labels = [];
+  curves.forEach((cv, i) => {
+    series.push({ pts: cv, c: col.sp[i], w: 1.2, a: .25 }, { pts: cv.filter(p => p[0] <= t).concat([[t, c[i]]]), c: col.sp[i], w: 2.6 });
+    pts.push({ x: t, y: c[i], c: col.sp[i], r: 5, ring: true });
+  });
+  const kv = [];
+  if (M.type === 'cons') {
+    const tm = Math.abs(k1 - k2) < 1e-9 ? 1 / k1 : Math.log(k1 / k2) / (k1 - k2), bm = mConc(tm)[1];
+    segs.push({ x1: tm, y1: 0, x2: tm, y2: bm, c: col['accent-2'], a: .7 });
+    labels.push({ x: tm, y: bm, t: '[B]max', dx: 5, dy: -4, c: col['accent-2'] });
+    kv.push(['t_max', fT(tm)], ['[B]max', fC(bm)], ['k₁/k₂', fmt(k1 / k2)], ['slow step', k1 < k2 / 5 ? 'A→B (RDS)' : k2 < k1 / 5 ? 'B→C (RDS)' : 'comparable']);
+    $('m-ratesNote').textContent = k1 > 5 * k2 ? 'B forms quickly and is used up slowly, so it builds up a lot. B→C is the rate-determining step.'
+      : k2 > 5 * k1 ? 'B is used up almost as soon as it forms. [B] stays small and nearly steady (the steady-state approximation). A→B is the rate-determining step.'
+      : '[B] peaks at the moment its formation rate k₁[A] equals its consumption rate k₂[B], where the two curves cross.';
+  } else if (M.type === 'par') {
+    kv.push(['k_total', fmt(k1 + k2) + ' s⁻¹'], ['t½ overall', fT(LN2 / (k1 + k2))], ['[B]/[C]', fmt(k1 / k2)], ['% B', (k1 / (k1 + k2) * 100).toFixed(1) + ' %']);
+    $('m-ratesNote').textContent = 'Both rates fall together and their ratio stays fixed at k₁/k₂, so the product mixture is the same at every moment.';
+  } else {
+    const Aeq = A0 * k2 / (k1 + k2);
+    segs.push({ x1: 0, y1: Aeq, x2: T, y2: Aeq, c: col.accent, a: .5 }, { x1: 0, y1: A0 - Aeq, x2: T, y2: A0 - Aeq, c: col['accent-2'], a: .5 });
+    labels.push({ x: T, y: Aeq, t: '[A]eq', align: 'right', dy: -3, c: col.accent }, { x: T, y: A0 - Aeq, t: '[B]eq', align: 'right', dy: -3, c: col['accent-2'] });
+    kv.push(['K = k_f/k_b', fmt(k1 / k2)], ['[A]eq', fC(Aeq)], ['[B]eq', fC(A0 - Aeq)], ['relax time', fT(1 / (k1 + k2))], ['Q now', fmt(c[1] / c[0])]);
+    $('m-ratesNote').textContent = 'The forward rate falls and the backward rate rises until they are equal. After that nothing changes overall, but molecules keep swapping (watch the flashes in the beaker).';
+  }
+  kv.unshift(...[0, 1, 2].slice(0, nS).map(i => [names[i] + ' now', fC(c[i])]));
+  $('m-kv').innerHTML = kv.map(([a, b]) => `<span>${a}</span><span>${b}</span>`).join('');
+  segs.push({ x1: t, y1: 0, x2: t, y2: A0 * 1.08, c: col.ink, a: .25, dash: [2, 3] });
+  plot($('m-main'), { x: [0, T], y: [0, A0 * 1.08], xlabel: 'time (s)', series, pts, segs, labels,
+    legend: [0, 1, 2].slice(0, nS).map(i => ({ c: col.sp[i], t: names[i] })) });
+  // rates
+  let rA, rB, la, lb;
+  if (M.type === 'cons') { rA = x => k1 * mConc(x)[0]; rB = x => k2 * mConc(x)[1]; la = 'makes B: k₁[A]'; lb = 'uses B: k₂[B]'; }
+  else if (M.type === 'par') { rA = x => k1 * mConc(x)[0]; rB = x => k2 * mConc(x)[0]; la = 'A→B: k₁[A]'; lb = 'A→C: k₂[A]'; }
+  else { rA = x => k1 * mConc(x)[0]; rB = x => k2 * mConc(x)[1]; la = 'fwd k_f[A]'; lb = 'back k_b[B]'; }
+  const pa = sample(rA, 0, T, 240), pb = sample(rB, 0, T, 240);
+  const rmax = Math.max(...pa.map(p => p[1]), ...pb.map(p => p[1])) * 1.1 || 1;
+  plot($('m-rates'), { x: [0, T], y: [0, rmax], xlabel: 'time (s)', padL: 50, yf: v => fmt(v, 2),
+    series: [{ pts: pa, c: col['accent-4'] }, { pts: pb, c: col['accent-3'] }],
+    segs: [{ x1: t, y1: 0, x2: t, y2: rmax, c: col.ink, a: .25, dash: [2, 3] }],
+    pts: [{ x: t, y: rA(t), c: col['accent-4'], r: 4.5, ring: true }, { x: t, y: rB(t), c: col['accent-3'], r: 4.5, ring: true }],
+    legend: [{ c: col['accent-4'], t: la }, { c: col['accent-3'], t: lb }] });
+}
+
+// ============================================================
+// CHALLENGE TAB
+// ============================================================
+const Q = { type: 'graph', score: 0, total: 0, streak: 0, cur: null };
+const QDESC = {
+  graph: 'You get a table of [A] against time. Work out the order from the shape of the data.',
+  rates: 'You get initial rates from several experiments. Find the order with respect to each reactant.',
+  half: 'You get half-lives measured at two starting concentrations. Use t½ ∝ [A]₀¹⁻ⁿ to find n.'
+};
+const pick = a => a[Math.floor(Math.random() * a.length)];
+const r3 = x => Number(x.toPrecision(3));
+function qNew() {
+  $('q-reveal').classList.add('hidden');
+  const card = $('q-card');
+  if (Q.type === 'graph') {
+    const n = pick([0, 1, 2]), A0 = pick([0.4, 0.5, 0.8, 1.0, 1.5, 2.0]), tE = pick([20, 30, 40, 60, 90, 120]), fE = pick([0.15, 0.2, 0.25]);
+    const k = n === 0 ? A0 * (1 - fE) / tE : n === 1 ? -Math.log(fE) / tE : (1 / (fE * A0) - 1 / A0) / tE;
+    const data = []; for (let j = 0; j <= 6; j++) { const t = tE * j / 6; data.push([r3(t), r3(concA(n, A0, k, t) * (j ? 1 + 0.008 * gauss() : 1))]); }
+    Q.cur = { n, k, A0, data, tE };
+    card.innerHTML = `<h3>Graph detective</h3><p class="qtext">A reaction A → products was followed over time. What is its order?</p>
+      <div class="row r2"><div><table class="data"><tr><th>t (s)</th><th>[A] (M)</th></tr>${data.map(([t, a]) => `<tr><td>${t}</td><td>${a}</td></tr>`).join('')}</table></div>
+      <div><canvas class="mini" id="q-raw"></canvas></div></div>
+      <div class="opts">${[0, 1, 2].map(o => `<button class="opt" data-a="${o}">${['Zero', 'First', 'Second'][o]} order</button>`).join('')}</div><div id="q-verdict"></div>`;
+    requestAnimationFrame(() => plot($('q-raw'), { x: [0, tE], y: [0, A0 * 1.1], xlabel: 't (s)', pts: data.map(([x, y]) => ({ x, y, c: col.accent, r: 4 })), series: [{ pts: data, c: col.accent, w: 1, a: .4 }] }));
+    card.querySelectorAll('.opt').forEach(b => b.onclick = () => qAnswer(+b.dataset.a === n, b, () => {
+      $('q-reveal').classList.remove('hidden');
+      const full = [[], [], []]; for (const [t, a] of data) { full[0].push([t, a]); full[1].push([t, Math.log(a)]); full[2].push([t, 1 / a]); }
+      const { fits } = drawLin(['q-l0', 'q-l1', 'q-l2'], ['qlin0b', 'qlin1b', 'qlin2b'], ['qlin0', 'qlin1', 'qlin2'], { out: full, full }, tE, true);
+      const kf = Math.abs(fits[n].m);
+      return `It is <b>${['zero', 'first', 'second'][n]} order</b>. The ${['[A]', 'ln[A]', '1/[A]'][n]} vs t plot is the straight one (R² = ${fits[n].r2.toFixed(4)}). From its slope, k ≈ ${fmt(kf)} ${kUnits(n)}.` +
+        (n === 1 ? ` Check: the half-life is constant at about ${fmt(LN2 / kf)} s.` : n === 0 ? ' Check: [A] drops by the same amount in each interval.' : ' Check: each half-life is twice as long as the one before.');
+    }));
+  } else if (Q.type === 'rates') {
+    const a = pick([0, 1, 2]), b = pick([0, 1, 2]), fa = pick([2, 3]), fb = pick([2, 3, 4]);
+    const A = pick([0.1, 0.2]), B = pick([0.1, 0.2, 0.3]), k = r3(10 ** (Math.random() * 2 - 2.5));
+    const ex = [[A, B], [A * fa, B], [A, B * fb], [A * fa, B * fb]].map(([x, y]) => [r3(x), r3(y), k * x ** a * y ** b]);
+    Q.cur = { a, b, sel: [null, null] };
+    card.innerHTML = `<h3>Initial rates method</h3><p class="qtext">For A + B → products, rate = k[A]<sup>x</sup>[B]<sup>y</sup>. Find x and y.</p>
+      <table class="data" style="max-width:520px"><tr><th>Exp.</th><th>[A] (M)</th><th>[B] (M)</th><th>initial rate (M s⁻¹)</th></tr>
+      ${ex.map((e, i) => `<tr><td>${i + 1}</td><td>${e[0]}</td><td>${e[1]}</td><td>${fmt(e[2], 3)}</td></tr>`).join('')}</table>
+      <p style="margin:12px 0 0">Order in A (x):</p><div class="opts" data-g="0">${[0, 1, 2].map(o => `<button class="opt" data-v="${o}">${o}</button>`).join('')}</div>
+      <p style="margin:12px 0 0">Order in B (y):</p><div class="opts" data-g="1">${[0, 1, 2].map(o => `<button class="opt" data-v="${o}">${o}</button>`).join('')}</div>
+      <div class="opts"><button class="btn primary" id="q-check">Check</button></div><div id="q-verdict"></div>`;
+    card.querySelectorAll('.opts[data-g] .opt').forEach(btn => btn.onclick = () => {
+      if (Q.cur.done) return;
+      const g = +btn.parentElement.dataset.g; Q.cur.sel[g] = +btn.dataset.v;
+      btn.parentElement.querySelectorAll('.opt').forEach(o => o.classList.toggle('sel', o === btn));
+    });
+    $('q-check').onclick = () => {
+      if (Q.cur.sel.includes(null)) { $('q-verdict').innerHTML = '<div class="verdict">Pick an order for both A and B first.</div>'; return; }
+      const ok = Q.cur.sel[0] === a && Q.cur.sel[1] === b;
+      card.querySelectorAll('.opts[data-g]').forEach(gEl => { const g = +gEl.dataset.g; gEl.querySelectorAll('.opt').forEach(o => { const v = +o.dataset.v; if (v === [a, b][g]) o.classList.add('right'); else if (o.classList.contains('sel')) o.classList.add('wrong'); }); });
+      qAnswer(ok, null, () => `Exp 2 ÷ Exp 1: [A] ×${fa} makes the rate ×${fmt(ex[1][2] / ex[0][2], 3)} = ${fa}<sup>${a}</sup>, so x = <b>${a}</b>. Exp 3 ÷ Exp 1: [B] ×${fb} makes the rate ×${fmt(ex[2][2] / ex[0][2], 3)} = ${fb}<sup>${b}</sup>, so y = <b>${b}</b>.
+        Overall order is ${a + b}. Then k = rate/([A]<sup>${a}</sup>[B]<sup>${b}</sup>) = ${fmt(k)} ${kUnits(a + b)}. Exp 4 checks it: ×${fa ** a * fb ** b}.`);
+    };
+  } else {
+    const n = pick([0, 1, 2]), c1 = pick([0.2, 0.4, 0.5, 1.0]), f = pick([2, 3, 4]), c2 = r3(c1 * f), k = r3(10 ** (Math.random() * 1.5 - 2));
+    const t1 = halfLife(n, c1, k), t2 = halfLife(n, c2, k);
+    Q.cur = { n };
+    card.innerHTML = `<h3>Half-life detective</h3><p class="qtext">For the decomposition of A, the half-life was measured at two starting concentrations. What is the order?</p>
+      <table class="data" style="max-width:420px"><tr><th>[A]₀ (M)</th><th>t½ (s)</th></tr><tr><td>${c1}</td><td>${fmt(t1, 3)}</td></tr><tr><td>${c2}</td><td>${fmt(t2, 3)}</td></tr></table>
+      <div class="opts">${[0, 1, 2].map(o => `<button class="opt" data-a="${o}">${['Zero', 'First', 'Second'][o]} order</button>`).join('')}</div><div id="q-verdict"></div>`;
+    card.querySelectorAll('.opt').forEach(b => b.onclick = () => qAnswer(+b.dataset.a === n, b, () =>
+      `t½ ∝ [A]₀<sup>1−n</sup>. Here [A]₀ goes up ×${f} and t½ changes ×${fmt(t2 / t1, 3)} = ${f}<sup>${1 - n}</sup>, so 1 − n = ${1 - n} and n = <b>${n}</b>. ` +
+      ['For zero order, t½ = [A]₀/2k grows with concentration.', 'For first order, t½ = 0.693/k does not depend on concentration at all.', 'For second order, t½ = 1/(k[A]₀) shrinks as concentration rises.'][n]));
+  }
+}
+function qAnswer(ok, btn, explain) {
+  if (Q.cur.done) return; Q.cur.done = true;
+  if (btn) {
+    const right = Q.type === 'graph' || Q.type === 'half' ? Q.cur.n : null;
+    btn.parentElement.querySelectorAll('.opt').forEach(o => { if (+o.dataset.a === right) o.classList.add('right'); });
+    if (!ok) btn.classList.add('wrong');
+  }
+  Q.total++; if (ok) { Q.score++; Q.streak++; } else Q.streak = 0;
+  $('q-score').textContent = `${Q.score} / ${Q.total}`;
+  $('q-streak').textContent = Q.streak >= 2 ? `🔥 ${Q.streak} in a row` : '';
+  $('q-verdict').innerHTML = `<div class="verdict ${ok ? 'ok' : 'no'}"><b>${ok ? 'Correct.' : 'Not quite.'}</b> ${explain()}</div>`;
+}
+document.querySelectorAll('#q-typeSeg button').forEach(b => b.onclick = () => {
+  Q.type = b.dataset.q; document.querySelectorAll('#q-typeSeg button').forEach(x => x.classList.toggle('on', x === b));
+  $('q-typeDesc').textContent = QDESC[Q.type]; qNew();
+});
+$('q-next').onclick = qNew;
+
+// ============================================================
+// Tabs, theme, main loop
+// ============================================================
+let tab = 'orders';
+document.querySelectorAll('.tab').forEach(b => b.onclick = () => {
+  tab = b.dataset.tab;
+  document.querySelectorAll('.tab').forEach(x => x.setAttribute('aria-selected', x === b));
+  document.querySelectorAll('.panel').forEach(p => p.classList.toggle('on', p.id === 'p-' + tab));
+  if (tab === 'quiz' && !Q.cur) qNew();
+});
+$('themeBtn').onclick = () => {
+  const r = document.documentElement, dark = getComputedStyle(r).getPropertyValue('color-scheme').trim() === 'dark';
+  r.dataset.theme = dark ? 'light' : 'dark'; readColors();
+  if (tab === 'quiz' && Q.cur) qNew();
+};
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', readColors);
+
+readColors();
+oRecompute(); oSetN(1); oParamText();
+mSetType('cons');
+$('q-typeDesc').textContent = QDESC.graph;
+window.addEventListener('load', () => { oFormulas(); mFormulas(); });
+
+let last = performance.now();
+function frame(now) {
+  const dt = Math.min(0.05, (now - last) / 1000); last = now;
+  if (tab === 'orders') {
+    O.tick(dt);
+    oBeaker.step(dt, O.temp ? O.T / 298 : 1);
+    oDraw();
+  } else if (tab === 'compare') {
+    Cs.tick(dt); cBeakers.forEach(b => b.step(dt)); cDraw();
+  } else if (tab === 'mech') {
+    M.tick(dt); mBeaker.step(dt);
+    mDraw(dt * mTmax() / 10);
+  }
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

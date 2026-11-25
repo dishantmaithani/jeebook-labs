@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Web Hero Prototype</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #0d1020; overflow: hidden; font-family: system-ui, sans-serif; }
+  canvas { display: block; width: 100vw; height: 100vh; cursor: crosshair; }
+  #hud { position: fixed; top: 12px; left: 14px; color: #fff; font-size: 15px; text-shadow: 0 1px 3px #000; pointer-events: none; line-height: 1.5; }
+  #hud b { color: #ffd24a; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="hud"></div>
+<script>
+const cv = document.getElementById('c'), ctx = cv.getContext('2d'), hud = document.getElementById('hud');
+let W, H;
+function resize() { W = cv.width = innerWidth; H = cv.height = innerHeight; }
+addEventListener('resize', resize); resize();
+
+const GROUND = 600, GRAV = 1500, WEB_RANGE = 520;
+let buildings, drones, bullets, particles, webShots, player, cam, score, keys = {}, mouse = { x: 0, y: 0, down: false }, gameOver, nextBuildX, spawnT;
+
+function reset() {
+  buildings = []; drones = []; bullets = []; particles = []; webShots = [];
+  nextBuildX = -400; score = 0; gameOver = false; spawnT = 1;
+  player = { x: 0, y: GROUND - 40, vx: 0, vy: 0, r: 14, onGround: false, rope: null, hp: 5, hurtT: 0, face: 1 };
+  cam = { x: 0, y: 0 };
+  genBuildings(2000);
+}
+function genBuildings(toX) {
+  while (nextBuildX < toX) {
+    const w = 120 + Math.random() * 160, h = 200 + Math.random() * 380;
+    buildings.push({ x: nextBuildX, y: GROUND - h, w, h, hue: 220 + Math.random() * 40 });
+    nextBuildX += w + 140 + Math.random() * 220;
+  }
+}
+
+// ---------- input ----------
+addEventListener('keydown', e => { keys[e.code] = true; if (e.code === 'KeyR') reset(); if (e.code === 'Space') e.preventDefault(); });
+addEventListener('keyup', e => keys[e.code] = false);
+cv.addEventListener('mousemove', e => { mouse.x = e.clientX; mouse.y = e.clientY; });
+cv.addEventListener('contextmenu', e => e.preventDefault());
+cv.addEventListener('mousedown', e => {
+  mouse.x = e.clientX; mouse.y = e.clientY;
+  if (gameOver) return reset();
+  if (e.button === 0) shootSwing();   // left click: swing line
+  if (e.button === 2) shootBlob();    // right click: web blob attack
+});
+cv.addEventListener('mouseup', e => { if (e.button === 0) player.rope = null; });
+
+function worldMouse() { return { x: mouse.x + cam.x, y: mouse.y + cam.y }; }
+
+// Ray-march from player toward the mouse; return first building or drone hit
+function castRay(maxLen) {
+  const m = worldMouse(), dx = m.x - player.x, dy = m.y - player.y, d = Math.hypot(dx, dy) || 1;
+  const ux = dx / d, uy = dy / d;
+  for (let t = 0; t < maxLen; t += 6) {
+    const px = player.x + ux * t, py = player.y + uy * t;
+    for (const dr of drones) if (!dr.webbed && Math.hypot(px - dr.x, py - dr.y) < dr.r) return { type: 'drone', obj: dr, x: px, y: py };
+    for (const b of buildings) if (px > b.x && px < b.x + b.w && py > b.y && py < GROUND) return { type: 'wall', x: px, y: py };
+    if (py >= GROUND) return null;
+  }
+  return null;
+}
+function shootSwing() {
+  const hit = castRay(WEB_RANGE);
+  if (!hit) { webShots.push({ x1: player.x, y1: player.y, ...aimEnd(WEB_RANGE), t: 0.15 }); return; }
+  if (hit.type === 'drone') return webDrone(hit.obj);
+  const len = Math.hypot(hit.x - player.x, hit.y - player.y);
+  player.rope = { x: hit.x, y: hit.y, len: Math.max(40, len) };
+}
+function shootBlob() {
+  const m = worldMouse(), dx = m.x - player.x, dy = m.y - player.y, d = Math.hypot(dx, dy) || 1;
+  bullets.push({ x: player.x, y: player.y, vx: dx / d * 900 + player.vx * 0.3, vy: dy / d * 900 + player.vy * 0.3, web: true, life: 0.8 });
+}
+function aimEnd(len) {
+  const m = worldMouse(), dx = m.x - player.x, dy = m.y - player.y, d = Math.hypot(dx, dy) || 1;
+  return { x2: player.x + dx / d * len, y2: player.y + dy / d * len };
+}
+function webDrone(dr) {
+  dr.webbed = true; dr.vy = -100; score += 100;
+  webShots.push({ x1: player.x, y1: player.y, x2: dr.x, y2: dr.y, t: 0.2 });
+  burst(dr.x, dr.y, '#ffffff', 14);
+}
+function burst(x, y, col, n) {
+  for (let i = 0; i < n; i++) { const a = Math.random() * 6.28, s = 60 + Math.random() * 220; particles.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: 0.5, col }); }
+}
+
+// ---------- update ----------
+function update(dt) {
+  if (gameOver) return;
+  const p = player;
+  const left = keys.KeyA || keys.ArrowLeft, right = keys.KeyD || keys.ArrowRight;
+  const accel = p.onGround ? 2600 : 900;
+  if (left) { p.vx -= accel * dt; p.face = -1; }
+  if (right) { p.vx += accel * dt; p.face = 1; }
+  if (p.onGround && !left && !right) p.vx *= Math.pow(0.0005, dt);
+  if ((keys.Space || keys.KeyW || keys.ArrowUp) && p.onGround) { p.vy = -620; p.onGround = false; }
+  if (p.rope && (keys.KeyW || keys.ArrowUp)) p.rope.len = Math.max(40, p.rope.len - 350 * dt);  // reel in
+  if (p.rope && (keys.KeyS || keys.ArrowDown)) p.rope.len = Math.min(WEB_RANGE, p.rope.len + 350 * dt);
+  p.vx = Math.max(-1100, Math.min(1100, p.vx));
+
+  p.vy += GRAV * dt;
+  p.x += p.vx * dt; p.y += p.vy * dt;
+
+  // rope constraint (pendulum)
+  if (p.rope) {
+    const dx = p.x - p.rope.x, dy = p.y - p.rope.y, d = Math.hypot(dx, dy);
+    if (d > p.rope.len) {
+      const nx = dx / d, ny = dy / d;
+      p.x = p.rope.x + nx * p.rope.len; p.y = p.rope.y + ny * p.rope.len;
+      const vr = p.vx * nx + p.vy * ny;
+      if (vr > 0) { p.vx -= vr * nx; p.vy -= vr * ny; }
+    }
+  }
+
+  // collisions with ground and buildings
+  p.onGround = false;
+  if (p.y + p.r > GROUND) { p.y = GROUND - p.r; p.vy = Math.min(0, p.vy); p.onGround = true; }
+  for (const b of buildings) {
+    const cx = Math.max(b.x, Math.min(p.x, b.x + b.w)), cy = Math.max(b.y, Math.min(p.y, GROUND));
+    const dx = p.x - cx, dy = p.y - cy, d = Math.hypot(dx, dy);
+    if (d < p.r && d > 0) {
+      const nx = dx / d, ny = dy / d, push = p.r - d;
+      p.x += nx * push; p.y += ny * push;
+      const vn = p.vx * nx + p.vy * ny; if (vn < 0) { p.vx -= vn * nx; p.vy -= vn * ny; }
+      if (ny < -0.6) p.onGround = true;
+    }
+  }
+
+  // camera + world generation
+  cam.x += (p.x - W * 0.4 - cam.x) * Math.min(1, dt * 5);
+  cam.y += (Math.min(p.y - H * 0.55, GROUND - H + 60) - cam.y) * Math.min(1, dt * 5);
+  genBuildings(cam.x + W + 1200);
+  buildings = buildings.filter(b => b.x + b.w > cam.x - 1500);
+
+  // spawn drones
+  spawnT -= dt;
+  if (spawnT <= 0) {
+    spawnT = Math.max(0.8, 2.5 - score / 4000);
+    drones.push({ x: cam.x + W + 60, y: GROUND - 250 - Math.random() * 350, r: 18, t: Math.random() * 6, fire: 1 + Math.random() * 2, webbed: false, vy: 0 });
+  }
+  for (const dr of drones) {
+    dr.t += dt;
+    if (dr.webbed) { dr.vy += GRAV * dt; dr.y += dr.vy * dt; continue; }
+    const dx = p.x - dr.x, dy = p.y - dr.y, d = Math.hypot(dx, dy) || 1;
+    dr.x += (dx / d) * 70 * dt; dr.y += Math.sin(dr.t * 2) * 40 * dt;
+    dr.fire -= dt;
+    if (dr.fire <= 0 && d < 700) { dr.fire = 2 + Math.random() * 1.5; bullets.push({ x: dr.x, y: dr.y, vx: dx / d * 380, vy: dy / d * 380, web: false, life: 3 }); }
+  }
+  drones = drones.filter(dr => dr.y < GROUND + 200 && dr.x > cam.x - 800);
+
+  // bullets: player web blobs and drone shots
+  for (const b of bullets) {
+    b.x += b.vx * dt; b.y += b.vy * dt; b.life -= dt;
+    if (b.web) {
+      b.vy += 300 * dt;
+      for (const dr of drones) if (!dr.webbed && Math.hypot(b.x - dr.x, b.y - dr.y) < dr.r + 6) { webDrone(dr); b.life = 0; }
+    } else if (p.hurtT <= 0 && Math.hypot(b.x - p.x, b.y - p.y) < p.r + 5) {
+      b.life = 0; p.hp--; p.hurtT = 1; burst(p.x, p.y, '#ff4a4a', 10);
+      if (p.hp <= 0) gameOver = true;
+    }
+    if (b.y > GROUND) b.life = 0;
+  }
+  bullets = bullets.filter(b => b.life > 0);
+  p.hurtT -= dt;
+
+  for (const q of particles) { q.x += q.vx * dt; q.y += q.vy * dt; q.vy += 600 * dt; q.life -= dt; }
+  particles = particles.filter(q => q.life > 0);
+  for (const s of webShots) s.t -= dt;
+  webShots = webShots.filter(s => s.t > 0);
+
+  score += Math.max(0, p.vx) * dt * 0.05;
+}
+
+// ---------- draw ----------
+function draw() {
+  const g = ctx.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, '#1b1f4a'); g.addColorStop(1, '#e0785a');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  // distant parallax skyline
+  ctx.fillStyle = '#2a2d5c';
+  for (let i = -1; i < W / 90 + 2; i++) {
+    const wx = i * 90 - (cam.x * 0.3) % 90, h = 120 + ((Math.floor((i + Math.floor(cam.x * 0.3 / 90)) * 7919) % 5) * 40);
+    ctx.fillRect(wx, GROUND - cam.y * 0.5 - h - 100, 80, h + 400);
+  }
+
+  ctx.save(); ctx.translate(-cam.x, -cam.y);
+  for (const b of buildings) {
+    ctx.fillStyle = `hsl(${b.hue},25%,18%)`; ctx.fillRect(b.x, b.y, b.w, b.h);
+    ctx.fillStyle = 'rgba(255,220,120,0.55)';
+    for (let wy = b.y + 16; wy < GROUND - 20; wy += 32) for (let wx = b.x + 12; wx < b.x + b.w - 16; wx += 26)
+      if (((wx * 13 + wy * 7) | 0) % 5 < 2) ctx.fillRect(wx, wy, 12, 16);
+  }
+  ctx.fillStyle = '#15172b'; ctx.fillRect(cam.x - 10, GROUND, W + 20, 400);
+
+  // aim guide
+  const hit = castRay(WEB_RANGE), m = worldMouse();
+  ctx.setLineDash([4, 8]); ctx.strokeStyle = hit ? 'rgba(120,255,200,0.6)' : 'rgba(255,255,255,0.2)';
+  ctx.beginPath(); ctx.moveTo(player.x, player.y);
+  const e = hit ? { x2: hit.x, y2: hit.y } : aimEnd(Math.min(WEB_RANGE, Math.hypot(m.x - player.x, m.y - player.y)));
+  ctx.lineTo(e.x2, e.y2); ctx.stroke(); ctx.setLineDash([]);
+
+  // web lines
+  ctx.strokeStyle = '#f4f4ff'; ctx.lineWidth = 2;
+  if (player.rope) { ctx.beginPath(); ctx.moveTo(player.x, player.y); ctx.lineTo(player.rope.x, player.rope.y); ctx.stroke(); }
+  for (const s of webShots) { ctx.globalAlpha = s.t / 0.2; ctx.beginPath(); ctx.moveTo(s.x1, s.y1); ctx.lineTo(s.x2, s.y2); ctx.stroke(); }
+  ctx.globalAlpha = 1;
+
+  // drones
+  for (const dr of drones) {
+    ctx.fillStyle = dr.webbed ? '#ddd' : '#9aa3b8'; ctx.beginPath(); ctx.arc(dr.x, dr.y, dr.r, 0, 7); ctx.fill();
+    ctx.fillStyle = dr.webbed ? '#999' : '#ff3355'; ctx.beginPath(); ctx.arc(dr.x, dr.y, 6, 0, 7); ctx.fill();
+    ctx.strokeStyle = '#555'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(dr.x - 26, dr.y - 14); ctx.lineTo(dr.x + 26, dr.y - 14); ctx.stroke();
+    if (dr.webbed) { ctx.strokeStyle = '#fff'; ctx.lineWidth = 1; for (let k = 0; k < 4; k++) { ctx.beginPath(); ctx.moveTo(dr.x - 20, dr.y - 18 + k * 12); ctx.lineTo(dr.x + 20, dr.y - 12 + k * 10); ctx.stroke(); } }
+  }
+  // bullets
+  for (const b of bullets) { ctx.fillStyle = b.web ? '#ffffff' : '#ff5a3c'; ctx.beginPath(); ctx.arc(b.x, b.y, b.web ? 6 : 5, 0, 7); ctx.fill(); }
+
+  // hero (original design: teal suit, orange visor)
+  const p = player;
+  if (!(p.hurtT > 0 && Math.floor(p.hurtT * 20) % 2)) {
+    ctx.save(); ctx.translate(p.x, p.y);
+    ctx.fillStyle = '#1fb8a6'; ctx.beginPath(); ctx.ellipse(0, 4, 11, 14, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = '#163c5a'; ctx.beginPath(); ctx.arc(0, -12, 10, 0, 7); ctx.fill();
+    ctx.fillStyle = '#ff9a2e'; ctx.fillRect(p.face > 0 ? -1 : -9, -15, 10, 5);
+    ctx.restore();
+  }
+  for (const q of particles) { ctx.globalAlpha = q.life * 2; ctx.fillStyle = q.col; ctx.fillRect(q.x - 2, q.y - 2, 4, 4); }
+  ctx.globalAlpha = 1;
+  ctx.restore();
+
+  hud.innerHTML = `Score <b>${score | 0}</b> &nbsp; HP <b>${'♥'.repeat(Math.max(0, player.hp))}</b><br>
+    Hold left click: swing &nbsp;·&nbsp; Right click: web shot &nbsp;·&nbsp; A/D move &nbsp;·&nbsp; Space jump &nbsp;·&nbsp; W/S reel in/out &nbsp;·&nbsp; R restart`;
+  if (gameOver) {
+    ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.font = 'bold 44px system-ui';
+    ctx.fillText('GAME OVER', W / 2, H / 2 - 10); ctx.font = '20px system-ui';
+    ctx.fillText(`Score ${score | 0}  —  click or press R to restart`, W / 2, H / 2 + 30);
+  }
+}
+
+let last = performance.now();
+function loop(now) {
+  const dt = Math.min(0.033, (now - last) / 1000); last = now;
+  update(dt); draw(); requestAnimationFrame(loop);
+}
+reset(); requestAnimationFrame(loop);
+</script>
+</body>
+</html>

@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fourier Epicycles</title>
+<style>
+  :root { --bg:#0f1115; --fg:#e8e8e8; --muted:#8a8f98; --circle:rgba(255,255,255,.22); --pen:#ffcc33; --user:#4aa3ff; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg); font:14px system-ui, sans-serif; }
+  header { padding:10px 16px; display:flex; flex-wrap:wrap; gap:12px; align-items:center; }
+  header h1 { font-size:16px; margin:0 12px 0 0; }
+  button { background:#252a33; color:var(--fg); border:1px solid #3a404c; border-radius:6px; padding:6px 12px; cursor:pointer; }
+  button:hover { background:#2f3541; }
+  label { color:var(--muted); display:flex; gap:8px; align-items:center; }
+  #hint { color:var(--muted); }
+  canvas { display:block; width:100%; height:calc(100vh - 56px); touch-action:none; cursor:crosshair; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Fourier Epicycles</h1>
+  <button id="heart">Heart</button>
+  <button id="star">Star</button>
+  <button id="clear">Clear</button>
+  <label>Circles <input id="count" type="range" min="1" max="300" value="300"><span id="countVal"></span></label>
+  <label>Speed <input id="speed" type="range" min="1" max="10" value="4"></label>
+  <span id="hint">Draw any closed shape with your mouse or finger.</span>
+</header>
+<canvas id="c"></canvas>
+
+<script>
+// ---------- Setup ----------
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+let W, H;
+var currentShape = null, trace = [];
+function resize() {
+  if (!canvas.clientWidth) return;
+  const dpr = window.devicePixelRatio || 1;
+  W = canvas.clientWidth; H = canvas.clientHeight;
+  canvas.width = W * dpr; canvas.height = H * dpr;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  if (typeof currentShape === 'function') loadShape(currentShape());  // rescale built-in shapes
+  else trace = [];
+}
+
+const N_SAMPLES = 300;     // how many points the shape is resampled to
+let coeffs = [];           // [{freq, amp, phase}] sorted biggest first
+let userPath = [];         // raw points the user drew
+// `trace` (declared at top) = what the pen has drawn so far
+let time = 0;
+let drawing = false;
+
+// ---------- Step 1: resample a path to N evenly spaced points ----------
+function resample(points, n) {
+  const pts = [...points, points[0]];             // close the loop
+  const seg = [];
+  let total = 0;
+  for (let i = 1; i < pts.length; i++) {
+    const d = Math.hypot(pts[i].x - pts[i-1].x, pts[i].y - pts[i-1].y);
+    seg.push(d); total += d;
+  }
+  const out = [];
+  let i = 0, acc = 0;
+  for (let k = 0; k < n; k++) {
+    const target = (k / n) * total;
+    while (i < seg.length - 1 && acc + seg[i] < target) { acc += seg[i]; i++; }
+    const t = seg[i] ? (target - acc) / seg[i] : 0;
+    out.push({ x: pts[i].x + (pts[i+1].x - pts[i].x) * t,
+               y: pts[i].y + (pts[i+1].y - pts[i].y) * t });
+  }
+  return out;
+}
+
+// ---------- Step 2: Discrete Fourier Transform ----------
+// Treat each point as a complex number z = x + iy.
+// X[k] = (1/N) * sum_n z[n] * e^(-2πi k n / N)
+function dft(points) {
+  const N = points.length;
+  const result = [];
+  for (let k = -Math.floor(N/2); k < Math.ceil(N/2); k++) {
+    let re = 0, im = 0;
+    for (let n = 0; n < N; n++) {
+      const phi = (2 * Math.PI * k * n) / N;
+      // (x + iy)(cos φ - i sin φ)
+      re += points[n].x * Math.cos(phi) + points[n].y * Math.sin(phi);
+      im += points[n].y * Math.cos(phi) - points[n].x * Math.sin(phi);
+    }
+    re /= N; im /= N;
+    result.push({ freq: k, amp: Math.hypot(re, im), phase: Math.atan2(im, re) });
+  }
+  return result.sort((a, b) => b.amp - a.amp);   // big circles first
+}
+
+function loadShape(points) {
+  // centre the shape on (0,0) so the circles start from the middle
+  const cx = points.reduce((s, p) => s + p.x, 0) / points.length;
+  const cy = points.reduce((s, p) => s + p.y, 0) / points.length;
+  const centred = points.map(p => ({ x: p.x - cx, y: p.y - cy }));
+  coeffs = dft(resample(centred, N_SAMPLES));
+  countInput.max = coeffs.length;
+  trace = []; time = 0;
+}
+
+// ---------- Sample shapes ----------
+function heart() {
+  const s = Math.min(W, H) / 40, pts = [];
+  for (let t = 0; t < Math.PI * 2; t += 0.02) {
+    pts.push({ x: s * 16 * Math.sin(t) ** 3,
+               y: -s * (13*Math.cos(t) - 5*Math.cos(2*t) - 2*Math.cos(3*t) - Math.cos(4*t)) });
+  }
+  return pts;
+}
+function star() {
+  const R = Math.min(W, H) * 0.35, r = R * 0.4, pts = [];
+  for (let i = 0; i < 10; i++) {
+    const a = -Math.PI/2 + i * Math.PI / 5, rad = i % 2 ? r : R;
+    pts.push({ x: rad * Math.cos(a), y: rad * Math.sin(a) });
+  }
+  return pts;
+}
+
+// ---------- Step 3: draw the epicycles ----------
+const countInput = document.getElementById('count');
+const countVal = document.getElementById('countVal');
+const speedInput = document.getElementById('speed');
+
+function frame() {
+  ctx.fillStyle = '#0f1115';
+  ctx.fillRect(0, 0, W, H);
+
+  if (drawing) {
+    ctx.strokeStyle = '#4aa3ff'; ctx.lineWidth = 2; ctx.beginPath();
+    userPath.forEach((p, i) => i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y));
+    ctx.stroke();
+    requestAnimationFrame(frame);
+    return;
+  }
+
+  const n = Math.min(+countInput.value, coeffs.length);
+  countVal.textContent = n;
+  let x = W / 2, y = H / 2;
+
+  // Each circle: radius = amp, spins at `freq` turns per cycle, starts at `phase`
+  for (let i = 0; i < n; i++) {
+    const { freq, amp, phase } = coeffs[i];
+    const px = x, py = y;
+    x += amp * Math.cos(freq * time + phase);
+    y += amp * Math.sin(freq * time + phase);
+    if (amp > 0.5) {
+      ctx.strokeStyle = 'rgba(255,255,255,.18)'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.arc(px, py, amp, 0, Math.PI * 2); ctx.stroke();
+      ctx.strokeStyle = 'rgba(255,255,255,.5)';
+      ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(x, y); ctx.stroke();
+    }
+  }
+
+  trace.push({ x, y });
+  ctx.strokeStyle = '#ffcc33'; ctx.lineWidth = 2.5; ctx.beginPath();
+  trace.forEach((p, i) => i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y));
+  ctx.stroke();
+
+  const dt = (2 * Math.PI / N_SAMPLES) * (+speedInput.value / 4);
+  time += dt;
+  if (time > 2 * Math.PI) { time = 0; trace = []; }   // one full loop = whole shape
+  requestAnimationFrame(frame);
+}
+
+// ---------- Mouse / touch drawing ----------
+function pos(e) { const r = canvas.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; }
+canvas.addEventListener('pointerdown', e => { drawing = true; userPath = [pos(e)]; canvas.setPointerCapture(e.pointerId); });
+canvas.addEventListener('pointermove', e => { if (drawing) userPath.push(pos(e)); });
+canvas.addEventListener('pointerup', () => {
+  drawing = false;
+  if (userPath.length > 10) { currentShape = null; loadShape(userPath); }
+});
+
+document.getElementById('heart').onclick = () => { currentShape = heart; loadShape(heart()); };
+document.getElementById('star').onclick = () => { currentShape = star; loadShape(star()); };
+document.getElementById('clear').onclick = () => { trace = []; time = 0; };
+countInput.oninput = () => { trace = []; time = 0; };
+
+currentShape = heart;
+new ResizeObserver(resize).observe(canvas);   // sizes canvas, then loads the heart
+frame();
+</script>
+</body>
+</html>

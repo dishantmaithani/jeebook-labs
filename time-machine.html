@@ -1,0 +1,542 @@
+<title>Chronoskip Time Machine</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;700&family=IBM+Plex+Sans:wght@400;500;600&family=Share+Tech+Mono&display=swap">
+<style>
+/* Layout: one instrument console — dial panel on the left, arrival report on the right; stacks on phones. Single dark theme by choice (it's a machine). */
+:root {
+  --steel: #0e181a;
+  --panel: #16252a;
+  --panel-2: #1d3137;
+  --line: #2c454c;
+  --brass: #c9a14a;
+  --amber: #ffb347;
+  --verdigris: #5cc2ad;
+  --text: #e9e3d3;
+  --muted: #9fb2b1;
+  --danger: #e0674f;
+  --f-display: "Chakra Petch", "Segoe UI", system-ui, sans-serif;
+  --f-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --f-digit: "Share Tech Mono", ui-monospace, Consolas, monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { background: var(--steel); color: var(--text); }
+body {
+  font-family: var(--f-body); font-size: 15px; line-height: 1.55;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 20px 40px;
+  background:
+    radial-gradient(1200px 500px at 20% -10%, #1b3236 0%, transparent 60%),
+    var(--steel);
+  min-height: 100%;
+}
+.wrap { max-width: 1180px; margin: 0 auto; display: grid; gap: 20px; }
+header.top { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 20px; }
+h1 { font-family: var(--f-display); font-weight: 700; font-size: clamp(26px, 4vw, 38px); letter-spacing: .04em; margin: 0; text-wrap: balance; }
+h1 span { color: var(--brass); }
+.serial { font-family: var(--f-digit); color: var(--muted); font-size: 13px; letter-spacing: .12em; }
+
+.grid { display: grid; grid-template-columns: minmax(0, 420px) minmax(0, 1fr); gap: 20px; align-items: start; }
+@media (max-width: 880px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+
+.console {
+  background: linear-gradient(180deg, var(--panel-2), var(--panel));
+  border: 1px solid var(--line); border-radius: 14px; padding: 20px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.05), 0 20px 40px rgba(0,0,0,.35);
+  display: grid; gap: 18px;
+}
+.label { font-family: var(--f-display); font-size: 12px; letter-spacing: .16em; text-transform: uppercase; color: var(--muted); }
+
+.readout { display: grid; gap: 6px; }
+.tubes {
+  display: flex; align-items: center; justify-content: center; gap: 6px; flex-wrap: wrap;
+  background: #070d0e; border: 1px solid #000; border-radius: 10px; padding: 16px 10px;
+  box-shadow: inset 0 0 24px rgba(0,0,0,.8);
+}
+.tube {
+  font-family: var(--f-digit); font-size: clamp(30px, 7vw, 46px); line-height: 1;
+  color: var(--amber); text-shadow: 0 0 8px rgba(255,160,60,.75), 0 0 22px rgba(255,120,30,.45);
+  background: linear-gradient(180deg, #1a1410, #0c0907); border-radius: 6px;
+  padding: 8px 6px; min-width: 1.05em; text-align: center; border: 1px solid #2a2016;
+}
+.tube.era { font-size: clamp(18px, 4vw, 24px); color: var(--verdigris); text-shadow: 0 0 10px rgba(92,194,173,.6); padding: 14px 8px; }
+.sub { display: flex; justify-content: space-between; gap: 10px; font-family: var(--f-digit); font-size: 13px; color: var(--muted); flex-wrap: wrap; }
+.sub b { color: var(--text); font-weight: 400; }
+
+.row { display: flex; gap: 8px; flex-wrap: wrap; }
+button, .inp {
+  font: inherit; color: var(--text); background: #0f1c1f; border: 1px solid var(--line);
+  border-radius: 8px; padding: 8px 12px; cursor: pointer;
+}
+button:hover { border-color: var(--brass); }
+button:focus-visible, .inp:focus-visible, input[type=range]:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+.nudge { font-family: var(--f-digit); flex: 1 1 0; min-width: 56px; }
+.entry { display: grid; grid-template-columns: minmax(0,1fr) auto auto; gap: 8px; }
+.inp { cursor: text; font-family: var(--f-digit); width: 100%; min-width: 0; }
+select.inp { cursor: pointer; width: auto; }
+
+input[type=range] { width: 100%; accent-color: var(--brass); }
+.ticks { display: flex; justify-content: space-between; font-family: var(--f-digit); font-size: 11px; color: var(--muted); }
+
+.engage {
+  font-family: var(--f-display); font-weight: 700; font-size: 20px; letter-spacing: .18em; text-transform: uppercase;
+  padding: 16px; border-radius: 12px; border: 1px solid #7d5f20;
+  background: linear-gradient(180deg, #e0b85a, #a7802f); color: #1b1305;
+  box-shadow: 0 4px 0 #6b4f18, 0 10px 24px rgba(201,161,74,.25);
+}
+.engage:active { transform: translateY(3px); box-shadow: 0 1px 0 #6b4f18; }
+.engage:disabled { filter: grayscale(.6) brightness(.7); cursor: wait; }
+
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { font-size: 13px; padding: 5px 10px; border-radius: 999px; background: transparent; }
+.chip[aria-pressed="true"] { border-color: var(--amber); color: var(--amber); }
+
+/* Report */
+.report { display: grid; gap: 16px; min-width: 0; }
+.arrive { border-bottom: 1px solid var(--line); padding-bottom: 14px; display: grid; gap: 6px; }
+.arrive h2 { font-family: var(--f-display); font-size: clamp(24px, 3.4vw, 34px); margin: 0; line-height: 1.15; text-wrap: balance; }
+.arrive p { margin: 0; color: var(--muted); max-width: 65ch; }
+.stamp { font-family: var(--f-digit); color: var(--amber); font-size: 14px; letter-spacing: .08em; }
+
+.stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+@media (max-width: 560px) { .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.stat { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; min-width: 0; }
+.stat .v { font-family: var(--f-digit); font-size: 18px; color: var(--text); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.meter { display: flex; gap: 3px; margin-top: 6px; }
+.meter i { flex: 1; height: 8px; border-radius: 2px; background: #22363b; }
+.meter i.on { background: var(--danger); }
+
+.cols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 560px) { .cols { grid-template-columns: minmax(0, 1fr); } }
+.box h3 { font-family: var(--f-display); font-size: 14px; letter-spacing: .14em; text-transform: uppercase; color: var(--brass); margin: 0 0 8px; }
+.box ul { margin: 0; padding-left: 18px; display: grid; gap: 4px; }
+.tip { background: #1c2a1f; border: 1px solid #355a3f; border-radius: 10px; padding: 12px 14px; }
+.tip h3 { color: var(--verdigris); }
+.tip p { margin: 0; }
+
+.log { display: grid; gap: 6px; }
+.log ol { margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; max-height: 180px; overflow: auto; }
+.log li { display: flex; justify-content: space-between; gap: 10px; font-family: var(--f-digit); font-size: 13px; color: var(--muted); border-bottom: 1px dashed var(--line); padding: 3px 0; }
+.log li b { color: var(--text); font-weight: 400; }
+.empty { color: var(--muted); font-size: 13px; }
+.note { color: var(--muted); font-size: 12px; }
+
+/* Warp overlay */
+#warp { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 50; pointer-events: none; opacity: 0; transition: opacity .25s; }
+#warp.on { opacity: 1; }
+#flash { position: fixed; inset: 0; z-index: 51; background: #fff6e0; opacity: 0; pointer-events: none; }
+#flash.go { animation: flash .6s ease-out; }
+@keyframes flash { 0% { opacity: .9 } 100% { opacity: 0 } }
+.report.fresh { animation: settle .5s ease-out; }
+@keyframes settle { from { transform: translateY(6px); filter: blur(2px); } to { transform: none; filter: none; } }
+@media (prefers-reduced-motion: reduce) { .report.fresh, #flash.go { animation: none; } }
+</style>
+
+<canvas id="warp" aria-hidden="true"></canvas>
+<div id="flash" aria-hidden="true"></div>
+
+<div class="wrap">
+  <header class="top">
+    <h1>CHRONO<span>SKIP</span></h1>
+    <div class="serial">TEMPORAL DISPLACEMENT UNIT · MK-IV</div>
+  </header>
+
+  <div class="grid">
+    <section class="console" aria-label="Time machine controls">
+      <div class="readout">
+        <div class="label">Destination</div>
+        <div class="tubes" id="tubes" aria-live="polite"></div>
+        <div class="sub"><span>Present: <b id="nowYear"></b></span><span>Δ <b id="delta"></b></span></div>
+      </div>
+
+      <div class="row" role="group" aria-label="Adjust year">
+        <button class="nudge" data-n="-1000">−1000</button>
+        <button class="nudge" data-n="-100">−100</button>
+        <button class="nudge" data-n="-1">−1</button>
+        <button class="nudge" data-n="1">+1</button>
+        <button class="nudge" data-n="100">+100</button>
+        <button class="nudge" data-n="1000">+1000</button>
+      </div>
+
+      <div>
+        <div class="label" style="margin-bottom:6px">Coarse dial</div>
+        <input type="range" id="dial" min="0" max="1000" step="1" aria-label="Coarse time dial">
+        <div class="ticks"><span>66M BC</span><span>10k BC</span><span>1 AD</span><span>NOW</span><span>1B AD</span></div>
+      </div>
+
+      <form class="entry" id="entry">
+        <label class="sr" for="yearIn" hidden>Type a year</label>
+        <input class="inp" id="yearIn" inputmode="numeric" placeholder="Type a year, e.g. 1492" autocomplete="off">
+        <select class="inp" id="eraIn" aria-label="Era"><option>AD</option><option>BC</option></select>
+        <button type="submit">Set</button>
+      </form>
+
+      <div>
+        <div class="label" style="margin-bottom:6px">Famous stops</div>
+        <div class="chips" id="chips"></div>
+      </div>
+
+      <button class="engage" id="engage">Engage</button>
+      <div class="row">
+        <button id="home" style="flex:1">Return to present</button>
+        <button id="random" style="flex:1">Surprise me</button>
+        <button id="sound" aria-pressed="true" style="flex:0 0 auto">Sound: on</button>
+      </div>
+
+      <div class="log">
+        <div class="label">Travel log</div>
+        <ol id="log"></ol>
+        <div class="empty" id="logEmpty">No trips yet. Set a year and press Engage.</div>
+      </div>
+    </section>
+
+    <section class="console report" id="report" aria-live="polite"></section>
+  </div>
+  <p class="note">Facts are real history and science; anything past the present year is a forecast, not a promise. Population and price figures are rounded estimates.</p>
+</div>
+
+<script>
+const NOW = new Date().getFullYear();
+const fmt = n => n.toLocaleString('en-US');
+const yearLabel = y => y <= 0 ? `${fmt(1 - y)} BC` : `${fmt(y)} AD`; // astronomical year: 0 = 1 BC
+
+// Destinations. Years are astronomical (1 BC = 0, 44 BC = -43).
+const STOPS = [
+  { y: -65999999, name: "Late Cretaceous", short: "Dinosaurs",
+    intro: "Days are about 23.5 hours long. A 10-km asteroid is about to strike the Yucatán.",
+    see: ["Tyrannosaurus rex and Triceratops in western North America", "Flowering plants spreading, but no grass yet", "Oxygen-rich, warm air with no polar ice caps"],
+    events: ["Chicxulub impact ends the age of non-bird dinosaurs", "Deccan Traps volcanoes erupting in what will become India", "Small mammals hiding in burrows, waiting their turn"],
+    tip: "Don't land in Mexico. Bring your own oxygen-balanced food: nothing here is safe to eat.", danger: 5, lang: "None", money: "None", tech: "None" },
+  { y: -9999, name: "End of the Ice Age", short: "10,000 BC",
+    intro: "Glaciers are retreating and people in the Fertile Crescent are starting to plant seeds on purpose.",
+    see: ["Mammoths still alive in parts of Siberia", "Göbekli Tepe's stone pillars standing in Anatolia", "Sea levels about 50 m lower than today"],
+    events: ["Earliest farming of wheat and barley", "Dogs already living alongside humans", "Humans have reached every continent except Antarctica"],
+    tip: "Learn to make fire with a bow drill before you go. Nobody will trade with you for a phone.", danger: 4, lang: "Unknown prehistoric languages", money: "Barter", tech: "Stone tools, bows, bone needles" },
+  { y: -2559, name: "Building the Great Pyramid", short: "Giza",
+    intro: "Pharaoh Khufu's pyramid at Giza is rising, block by block, along the Nile.",
+    see: ["Teams of paid workers hauling limestone on sledges", "Hieroglyphs being carved and painted", "Beer and bread handed out as wages"],
+    events: ["The Great Pyramid becomes the tallest human-made structure for about 3,800 years", "Harappan cities like Mohenjo-daro thrive in the Indus Valley", "Writing exists in only a few places on Earth"],
+    tip: "Bring sunscreen and linen clothes. Don't touch the tombs.", danger: 2, lang: "Old Egyptian", money: "Grain, bread and beer rations", tech: "Copper tools, ramps, levers" },
+  { y: -775, name: "The First Olympics", short: "776 BC",
+    intro: "At Olympia in Greece, the first recorded Olympic Games are held. There is one event: a sprint.",
+    see: ["A footrace of about 192 m called the stadion", "Athletes competing naked", "Winners crowned with olive wreaths"],
+    events: ["Koroibos, a cook, wins the race", "Greek city-states spreading around the Mediterranean", "Homer's epics taking shape"],
+    tip: "Only free Greek men may compete. Married women aren't allowed to watch.", danger: 2, lang: "Ancient Greek", money: "Iron spits and bartering (coins arrive a century later)", tech: "Iron tools, triremes coming soon" },
+  { y: -220, name: "China Unified", short: "Qin Dynasty",
+    intro: "Qin Shi Huang has just become the first emperor of a unified China.",
+    see: ["Standard weights, measures and writing across the empire", "Early walls being linked into a northern defence", "Work beginning on a tomb that will hold the Terracotta Army"],
+    events: ["Mauryan Empire in India after Ashoka", "Rome and Carthage heading toward the Second Punic War", "Archimedes working in Syracuse"],
+    tip: "Don't criticize the emperor. Book burnings are a thing here.", danger: 3, lang: "Old Chinese", money: "Ban Liang round coins with square holes", tech: "Crossbows, cast iron, canals" },
+  { y: -43, name: "The Ides of March", short: "44 BC",
+    intro: "Rome, 15 March. Julius Caesar is about to walk into a meeting of the Senate.",
+    see: ["Marble temples and crowded insulae apartment blocks", "Chariot racing at the Circus Maximus", "Public baths and aqueducts"],
+    events: ["Caesar is stabbed 23 times", "The Roman Republic is about to become an empire", "Cleopatra is in Rome at the time"],
+    tip: "Avoid the Theatre of Pompey on the 15th.", danger: 3, lang: "Latin", money: "Denarius (silver)", tech: "Concrete, roads, aqueducts" },
+  { y: 1, name: "Year 1 AD", short: "1 AD",
+    intro: "There is no year zero. The calendar you're using won't be invented for another 500 years.",
+    see: ["Augustus ruling Rome", "The Han dynasty in China, about as big as Rome", "Silk moving west along trade routes"],
+    events: ["World population around 200 million", "Rome and Han China together hold half of humanity", "Trade between Rome and South India in pepper and pearls"],
+    tip: "Nobody will understand if you say \"AD 1\". Romans count from the founding of the city.", danger: 3, lang: "Latin, Greek, Han Chinese, Sanskrit, Tamil", money: "Denarius, Wuzhu coins", tech: "Water mills, paper in China soon" },
+  { y: 476, name: "Fall of Western Rome", short: "476 AD",
+    intro: "The last western Roman emperor, a teenager named Romulus Augustulus, is removed from power.",
+    see: ["The Gupta Empire in India in a golden age of science and art", "Constantinople carrying on the Roman Empire in the east", "Old Roman towns shrinking in the west"],
+    events: ["Odoacer becomes King of Italy", "Aryabhata is born in India around now; he will compute π to 3.1416", "Mayan cities growing in Central America"],
+    tip: "Head to Pataliputra or Constantinople if you want comfort.", danger: 3, lang: "Latin, Greek, Sanskrit", money: "Solidus (gold)", tech: "Decimal place value developing in India" },
+  { y: 1066, name: "Battle of Hastings", short: "1066",
+    intro: "William of Normandy invades England. Halley's Comet appeared in the sky earlier this year.",
+    see: ["Knights with kite-shaped shields", "Stone castles about to spread across England", "The comet, recorded later on the Bayeux Tapestry"],
+    events: ["King Harold II is killed", "Song dynasty China using movable type", "The Chola Empire ruling much of South India"],
+    tip: "Don't take sides. Learn some Old English and some Norman French.", danger: 4, lang: "Old English, Norman French", money: "Silver pennies", tech: "Crossbows, windmills soon, compass in China" },
+  { y: 1347, name: "The Black Death", short: "1347",
+    intro: "Plague arrives in Europe by ship. Within five years it will kill around a third of Europeans.",
+    see: ["Ports in Sicily closing to ships", "Doctors with no idea what's going on", "Cities emptying"],
+    events: ["Ibn Battuta travelling the world", "Delhi Sultanate under Muhammad bin Tughluq", "The Hundred Years' War in progress"],
+    tip: "Stay away from rats and fleas. Bring antibiotics and don't tell anyone.", danger: 5, lang: "Middle English, Italian, Arabic, Persian", money: "Florins, ducats, tanka", tech: "Gunpowder cannons, mechanical clocks" },
+  { y: 1450, name: "The Printing Press", short: "Gutenberg",
+    intro: "Johannes Gutenberg is perfecting metal movable type in Mainz. Books are about to get cheap.",
+    see: ["Monks still copying books by hand", "Renaissance artists working in Florence", "Constantinople three years from falling"],
+    events: ["Gutenberg Bible printed around 1455", "Machu Picchu built for the Inca emperor", "Vijayanagara Empire powerful in South India"],
+    tip: "Invest early in paper.", danger: 2, lang: "Early New High German, Latin", money: "Gulden", tech: "Printing press, caravel ships" },
+  { y: 1492, name: "Columbus Crosses the Atlantic", short: "1492",
+    intro: "Three Spanish ships reach the Caribbean, starting lasting contact between Europe and the Americas.",
+    see: ["The Taíno people on Guanahaní", "Leonardo da Vinci sketching flying machines", "Granada falling in Spain"],
+    events: ["Columbus thinks he has reached Asia", "Vasco da Gama will reach India by sea in 1498", "Aztec Tenochtitlan is one of the largest cities in the world"],
+    tip: "He is not in India. Don't argue with him about it.", danger: 3, lang: "Spanish, Taíno, Nahuatl", money: "Maravedís", tech: "Astrolabes, caravels, arquebuses" },
+  { y: 1526, name: "First Battle of Panipat", short: "Panipat",
+    intro: "Babur defeats Ibrahim Lodi near Delhi using field cannons, founding the Mughal Empire.",
+    see: ["War elephants facing gunpowder artillery", "Persian poetry at court", "Gardens laid out in the charbagh style"],
+    events: ["Mughal rule in India begins", "Suleiman the Magnificent rules the Ottomans", "Magellan's expedition has just circled the globe"],
+    tip: "Stay well back from the elephants and the guns.", danger: 4, lang: "Persian, Chagatai Turkic, Hindavi", money: "Shahrukhi silver coins", tech: "Cannons, matchlocks" },
+  { y: 1610, name: "Galileo's Telescope", short: "1610",
+    intro: "Galileo points a telescope at Jupiter and finds four moons circling it.",
+    see: ["Shakespeare's plays at the Globe in London", "Jahangir ruling the Mughal Empire", "Kepler publishing his laws of planetary motion"],
+    events: ["Sidereus Nuncius published", "East India Company trading in India since 1600", "Jamestown colony struggling in Virginia"],
+    tip: "Don't say the Earth goes around the Sun too loudly in Rome.", danger: 2, lang: "Italian, Latin, Early Modern English", money: "Scudi, rupiya", tech: "Telescopes, microscopes, pendulum clocks soon" },
+  { y: 1769, name: "The Steam Age Begins", short: "Watt",
+    intro: "James Watt patents a better steam engine. Factories will soon run on coal.",
+    see: ["Captain Cook sailing to Tahiti to watch Venus cross the Sun", "Spinning machines in English mills", "Candles and oil lamps at night"],
+    events: ["Napoleon is born", "The Bengal famine kills millions", "Mozart, age 13, touring Italy"],
+    tip: "Coal smoke everywhere. Bring a scarf.", danger: 2, lang: "English, French, Bengali", money: "Pounds, shillings and pence", tech: "Steam engines, spinning jenny" },
+  { y: 1857, name: "The Rebellion of 1857", short: "1857",
+    intro: "Indian soldiers rise against the East India Company, starting a revolt across northern India.",
+    see: ["Rani Lakshmibai leading forces at Jhansi", "Telegraph lines carrying news", "Railways newly built in India"],
+    events: ["Bahadur Shah Zafar, the last Mughal emperor, becomes the symbol of the revolt", "The British Crown takes direct control of India in 1858", "Darwin two years from publishing On the Origin of Species"],
+    tip: "Very dangerous year in Delhi, Kanpur and Lucknow.", danger: 5, lang: "Hindustani, Persian, English", money: "Company rupee", tech: "Rifles, telegraph, railways" },
+  { y: 1903, name: "First Powered Flight", short: "Wright brothers",
+    intro: "At Kitty Hawk, North Carolina, the Wright Flyer flies for 12 seconds and 37 metres.",
+    see: ["Horses and the first cars sharing roads", "Electric lights in some big cities", "Silent films starting up"],
+    events: ["Marie Curie shares the Nobel Prize in Physics", "Partition of Bengal announced in 1905", "Einstein two years from his miracle year"],
+    tip: "Tell no one you've flown across an ocean.", danger: 1, lang: "English", money: "Dollars, a loaf of bread is about 5 cents", tech: "Telephones, radio, early cars" },
+  { y: 1947, name: "Indian Independence", short: "1947",
+    intro: "At midnight on 15 August, India becomes independent. Partition creates Pakistan the same night.",
+    see: ["Nehru's \"Tryst with Destiny\" speech on the radio", "Millions crossing new borders", "The transistor being invented at Bell Labs"],
+    events: ["Partition displaces 10 to 20 million people", "The first supersonic flight by Chuck Yeager", "The Cold War is starting"],
+    tip: "Do not travel by train in Punjab this year.", danger: 4, lang: "Hindi, Urdu, Punjabi, Bengali, English", money: "Indian rupee", tech: "Radio, valve computers, jet engines" },
+  { y: 1969, name: "The Moon Landing", short: "Apollo 11",
+    intro: "On 20 July, Neil Armstrong and Buzz Aldrin walk on the Moon. About 600 million people watch on TV.",
+    see: ["Black-and-white TVs in living rooms", "The first message sent over ARPANET in October", "Woodstock music festival"],
+    events: ["Apollo 11 lands in the Sea of Tranquility", "ISRO is founded in India", "Concorde's first flight"],
+    tip: "The guidance computer has 4 KB of RAM. Your phone has about a million times more.", danger: 1, lang: "English, Russian", money: "A gallon of US petrol costs 35 cents", tech: "Mainframes, colour TV, jets" },
+  { y: 1991, name: "The Web Goes Public", short: "1991",
+    intro: "Tim Berners-Lee puts the World Wide Web online for everyone. There is one website.",
+    see: ["Dial-up modems screeching", "Game Boys and cassette tapes", "India opening its economy"],
+    events: ["The Soviet Union dissolves", "India's economic liberalisation", "Linux is first released"],
+    tip: "Your Wi-Fi password is useless here.", danger: 1, lang: "English, Russian, Hindi", money: "Dollars, rupees", tech: "PCs, mobile phones the size of bricks" },
+  { y: 2007, name: "The First iPhone", short: "2007",
+    intro: "A touchscreen phone without a keyboard is announced. Smartphones are about to change everything.",
+    see: ["Flip phones and BlackBerrys everywhere", "YouTube is two years old", "Facebook opening up to everyone"],
+    events: ["India wins the first T20 World Cup", "The global financial crisis begins", "Kindle e-readers launch"],
+    tip: "Buy some Bitcoin in 2010. (Not financial advice. It's a joke.)", danger: 1, lang: "English and every other", money: "Dollars, euros, rupees", tech: "3G, smartphones" },
+  { y: NOW, name: "The Present", short: "Now",
+    intro: "Welcome home. Everything is where you left it.",
+    see: ["AI assistants helping with code and homework", "Electric cars getting cheaper", "Reusable rockets landing themselves"],
+    events: ["Over 8 billion people alive", "Most of humanity is online", "You are reading this"],
+    tip: "Drink some water. Time travel is dehydrating.", danger: 1, lang: "About 7,000 languages", money: "Mostly digital", tech: "Smartphones, AI, satellites" },
+  { y: 2100, name: "The Year 2100", short: "2100",
+    intro: "A forecast, not history. The UN expects population to peak around 10 billion in the 2080s.",
+    see: ["Much more solar and wind power", "Higher seas along coastlines", "Lots of people over 100 years old"],
+    events: ["Halley's Comet came back in 2061", "Possibly crewed bases on the Moon or Mars", "Your grandkids might be here"],
+    tip: "Don't trust the forecast. Bring an umbrella and a charger.", danger: 2, lang: "Probably still English, Hindi, Mandarin and Spanish", money: "Unknown", tech: "Unknown, but probably small and smart" },
+  { y: 3000, name: "Year 3000", short: "3000",
+    intro: "Nobody knows. Here's what physics says is likely.",
+    see: ["Polaris slightly off as the pole star, because Earth's axis wobbles", "Days a few milliseconds longer", "Today's languages drifted as far as Old English is from modern English"],
+    events: ["Voyager 1 still drifting, but dead", "Pluto still hasn't finished many orbits since its discovery: about 3.9", "Any surviving buildings from today are ancient monuments"],
+    tip: "Bring a dictionary. Nobody will understand your accent.", danger: 3, lang: "Unknown descendants of today's languages", money: "Unknown", tech: "Unknown" },
+  { y: 1000000000, name: "One Billion Years On", short: "1B AD",
+    intro: "The Sun is about 10% brighter. Earth's oceans are starting to boil away.",
+    see: ["Mostly bare rock and steam", "Maybe only microbes left", "The Moon farther away, so no total solar eclipses"],
+    events: ["Photosynthesis struggling as CO₂ drops", "Continents have moved into a new layout", "The Andromeda galaxy is still about 3.5 billion years from colliding with ours"],
+    tip: "Don't step outside.", danger: 5, lang: "None", money: "None", tech: "None" },
+];
+
+// World population estimates (millions), rough interpolation points.
+const POP = [[-9999,4],[-4999,5],[-2999,14],[-999,50],[1,200],[1000,275],[1500,450],[1700,600],[1800,990],[1900,1650],[1950,2500],[2000,6100],[2026,8200],[2085,10300],[2100,10200]];
+function population(y) {
+  if (y < -300000) return "0 humans";
+  if (y < -9999) return "Under 4 million";
+  if (y > 2100) return "Unknown";
+  for (let i = 0; i < POP.length - 1; i++) {
+    const [y0, p0] = POP[i], [y1, p1] = POP[i + 1];
+    if (y >= y0 && y <= y1) {
+      const p = p0 + (p1 - p0) * (y - y0) / (y1 - y0);
+      return p >= 1000 ? `${(p / 1000).toFixed(1)} billion` : `${Math.round(p)} million`;
+    }
+  }
+  return "Unknown";
+}
+function nearestStop(y) {
+  let best = STOPS[0], bd = Infinity;
+  for (const s of STOPS) { const d = Math.abs(Math.log10(Math.abs(s.y - y) + 1)); if (d < bd) { bd = d; best = s; } }
+  return best;
+}
+
+// Dial mapping: piecewise so recent history gets most of the travel.
+const DIAL = [[0,-65999999],[150,-9999],[400,1],[880,NOW],[940,3000],[1000,1000000000]];
+function dialToYear(v) {
+  for (let i = 0; i < DIAL.length - 1; i++) {
+    const [a, ya] = DIAL[i], [b, yb] = DIAL[i + 1];
+    if (v <= b) {
+      const t = (v - a) / (b - a);
+      const span = yb - ya;
+      const raw = (i === 0 || i === DIAL.length - 2) ? ya + span * t * t * (i === 0 ? 1 : 1) : ya + span * t;
+      const y = Math.round(raw);
+      const step = Math.abs(y) > 100000 ? 10000 : Math.abs(y) > 5000 ? 100 : 1;
+      return Math.round(y / step) * step || 1;
+    }
+  }
+  return DIAL[DIAL.length - 1][1];
+}
+function yearToDial(y) {
+  for (let i = 0; i < DIAL.length - 1; i++) {
+    const [a, ya] = DIAL[i], [b, yb] = DIAL[i + 1];
+    if (y <= yb) return Math.round(a + (b - a) * Math.max(0, Math.min(1, (y - ya) / (yb - ya))));
+  }
+  return 1000;
+}
+
+// State
+let target = 1969;
+let here = NOW;
+let soundOn = true;
+const $ = id => document.getElementById(id);
+
+function renderTubes() {
+  const bc = target <= 0;
+  const digits = fmt(bc ? 1 - target : target).split("");
+  $("tubes").innerHTML = digits.map(d => `<span class="tube">${d === "," ? "," : d}</span>`).join("") +
+    `<span class="tube era">${bc ? "BC" : "AD"}</span>`;
+  const d = target - NOW;
+  $("delta").textContent = d === 0 ? "now" : `${fmt(Math.abs(d))} yrs ${d < 0 ? "ago" : "ahead"}`;
+  $("dial").value = yearToDial(target);
+  document.querySelectorAll(".chip").forEach(c => c.setAttribute("aria-pressed", String(+c.dataset.y === target)));
+}
+function setTarget(y) {
+  y = Math.round(y);
+  if (y === 0) y = target > 0 ? 0 : 1; // stepping across: 1 AD ↔ 1 BC (astronomical 0)
+  target = Math.max(-65999999, Math.min(1000000000, y));
+  renderTubes();
+}
+
+function renderReport(y, animate) {
+  const s = nearestStop(y);
+  const exact = s.y === y;
+  const ago = NOW - y;
+  const r = $("report");
+  r.innerHTML = `
+    <div class="arrive">
+      <div class="stamp">ARRIVED · ${yearLabel(y)}${exact ? "" : ` · nearest logged stop: ${yearLabel(s.y)}`}</div>
+      <h2>${s.name}</h2>
+      <p>${s.intro}</p>
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="label">Time from now</div><div class="v">${ago === 0 ? "0 yrs" : `${fmt(Math.abs(ago))} yrs ${ago > 0 ? "back" : "ahead"}`}</div></div>
+      <div class="stat"><div class="label">Humans alive</div><div class="v">${population(y)}</div></div>
+      <div class="stat"><div class="label">Money</div><div class="v" style="font-size:14px">${s.money}</div></div>
+      <div class="stat"><div class="label">Danger</div><div class="meter">${[1,2,3,4,5].map(i => `<i class="${i <= s.danger ? "on" : ""}"></i>`).join("")}</div></div>
+    </div>
+    <div class="cols">
+      <div class="box"><h3>What you'll see</h3><ul>${s.see.map(x => `<li>${x}</li>`).join("")}</ul></div>
+      <div class="box"><h3>Happening around now</h3><ul>${s.events.map(x => `<li>${x}</li>`).join("")}</ul></div>
+    </div>
+    <div class="cols">
+      <div class="box"><h3>Languages</h3><p style="margin:0">${s.lang}</p></div>
+      <div class="box"><h3>Latest tech</h3><p style="margin:0">${s.tech}</p></div>
+    </div>
+    <div class="tip box"><h3>Traveller's tip</h3><p>${s.tip}</p></div>`;
+  if (animate) { r.classList.remove("fresh"); void r.offsetWidth; r.classList.add("fresh"); }
+}
+
+// Travel log (per-viewer convenience)
+let log = [];
+try { log = JSON.parse(localStorage.getItem("chronoskip-log") || "[]"); } catch (e) { log = []; }
+function renderLog() {
+  $("log").innerHTML = log.slice().reverse().map(e => `<li><b>${yearLabel(e.y)}</b><span>${nearestStop(e.y).short}</span></li>`).join("");
+  $("logEmpty").hidden = log.length > 0;
+}
+function addLog(y) {
+  log.push({ y, t: Date.now() }); log = log.slice(-30);
+  try { localStorage.setItem("chronoskip-log", JSON.stringify(log)); } catch (e) {}
+  renderLog();
+}
+
+// Sound
+let actx;
+function whoosh(dur) {
+  if (!soundOn) return;
+  try {
+    actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+    const t = actx.currentTime;
+    const o = actx.createOscillator(), o2 = actx.createOscillator(), g = actx.createGain(), f = actx.createBiquadFilter();
+    o.type = "sawtooth"; o2.type = "sine";
+    o.frequency.setValueAtTime(60, t); o.frequency.exponentialRampToValueAtTime(900, t + dur * .85);
+    o2.frequency.setValueAtTime(120, t); o2.frequency.exponentialRampToValueAtTime(1800, t + dur * .85);
+    f.type = "lowpass"; f.frequency.setValueAtTime(300, t); f.frequency.exponentialRampToValueAtTime(4000, t + dur);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.18, t + .3);
+    g.gain.setValueAtTime(0.18, t + dur * .85); g.gain.exponentialRampToValueAtTime(0.0001, t + dur + .3);
+    o.connect(f); o2.connect(f); f.connect(g); g.connect(actx.destination);
+    o.start(t); o2.start(t); o.stop(t + dur + .4); o2.stop(t + dur + .4);
+  } catch (e) {}
+}
+
+// Warp animation
+const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+function warp(dir, dur) {
+  return new Promise(res => {
+    if (reduce) { setTimeout(res, 300); return; }
+    const c = $("warp"), ctx = c.getContext("2d");
+    const dpr = Math.min(2, devicePixelRatio || 1);
+    c.width = innerWidth * dpr; c.height = innerHeight * dpr; ctx.scale(dpr, dpr);
+    const W = innerWidth, H = innerHeight, cx = W / 2, cy = H / 2;
+    const stars = Array.from({ length: 420 }, () => ({ a: Math.random() * Math.PI * 2, r: Math.random() * 40 + 2, s: Math.random() * 2 + .5 }));
+    const hue = dir < 0 ? 35 : 170; // amber into the past, verdigris into the future
+    c.classList.add("on");
+    const t0 = performance.now();
+    (function frame(now) {
+      const p = Math.min(1, (now - t0) / (dur * 1000));
+      const speed = 2 + 60 * Math.sin(p * Math.PI) ** 2;
+      ctx.fillStyle = `rgba(6,10,12,${0.25 + 0.5 * (1 - p)})`; ctx.fillRect(0, 0, W, H);
+      for (const st of stars) {
+        const r0 = st.r; st.r += speed * st.s * (st.r / 60 + .2);
+        if (st.r > Math.hypot(W, H)) { st.r = Math.random() * 20 + 2; st.a = Math.random() * Math.PI * 2; continue; }
+        ctx.strokeStyle = `hsla(${hue + st.s * 20},90%,${60 + st.s * 10}%,${.4 + .5 * Math.sin(p * Math.PI)})`;
+        ctx.lineWidth = st.s;
+        ctx.beginPath();
+        ctx.moveTo(cx + Math.cos(st.a) * r0, cy + Math.sin(st.a) * r0);
+        ctx.lineTo(cx + Math.cos(st.a) * st.r, cy + Math.sin(st.a) * st.r);
+        ctx.stroke();
+      }
+      // spinning year counter in the middle
+      const y = Math.round(here + (target - here) * (p < .5 ? 2 * p * p : 1 - (-2 * p + 2) ** 2 / 2));
+      ctx.font = `700 ${Math.min(64, W / 8)}px "Share Tech Mono", monospace`;
+      ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillStyle = `hsla(${hue},100%,70%,.95)`; ctx.shadowColor = `hsl(${hue},100%,55%)`; ctx.shadowBlur = 24;
+      ctx.fillText(yearLabel(y || 1), cx, cy); ctx.shadowBlur = 0;
+      if (p < 1) requestAnimationFrame(frame);
+      else { c.classList.remove("on"); ctx.setTransform(1,0,0,1,0,0); ctx.clearRect(0,0,c.width,c.height); res(); }
+    })(t0);
+  });
+}
+
+async function engage() {
+  if (target === here) { renderReport(here, true); return; }
+  const btn = $("engage"); btn.disabled = true; btn.textContent = "Travelling…";
+  const dur = 1.6 + Math.min(1.4, Math.log10(Math.abs(target - here) + 1) * .2);
+  whoosh(dur);
+  await warp(Math.sign(target - here), dur);
+  const f = $("flash"); f.classList.remove("go"); void f.offsetWidth; f.classList.add("go");
+  here = target;
+  renderReport(here, true);
+  addLog(here);
+  btn.disabled = false; btn.textContent = "Engage";
+  if (innerWidth < 880) $("report").scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
+}
+
+// Wire up
+$("nowYear").textContent = NOW;
+$("chips").innerHTML = STOPS.map(s => `<button class="chip" type="button" data-y="${s.y}">${s.short}</button>`).join("");
+$("chips").addEventListener("click", e => { const b = e.target.closest(".chip"); if (b) setTarget(+b.dataset.y); });
+document.querySelectorAll(".nudge").forEach(b => b.addEventListener("click", () => {
+  const n = +b.dataset.n; let y = target + n;
+  if (target > 0 && y <= 0) y -= 0; // astronomical years handle BC naturally
+  setTarget(y);
+}));
+$("dial").addEventListener("input", e => setTarget(dialToYear(+e.target.value)));
+$("entry").addEventListener("submit", e => {
+  e.preventDefault();
+  const n = parseInt(($("yearIn").value || "").replace(/[^\d]/g, ""), 10);
+  if (!n) { $("yearIn").value = ""; $("yearIn").placeholder = "Enter a whole year like 1857"; return; }
+  setTarget($("eraIn").value === "BC" ? 1 - n : n);
+  $("yearIn").value = "";
+});
+$("engage").addEventListener("click", engage);
+$("home").addEventListener("click", () => { setTarget(NOW); engage(); });
+$("random").addEventListener("click", () => { const s = STOPS[Math.floor(Math.random() * STOPS.length)]; setTarget(s.y); engage(); });
+$("sound").addEventListener("click", e => { soundOn = !soundOn; e.target.setAttribute("aria-pressed", soundOn); e.target.textContent = `Sound: ${soundOn ? "on" : "off"}`; });
+document.addEventListener("keydown", e => { if (e.key === "Enter" && e.target === document.body) engage(); });
+
+renderTubes();
+renderReport(NOW, false); // start at home; 1969 is dialled in as a suggested first trip
+renderLog();
+</script>

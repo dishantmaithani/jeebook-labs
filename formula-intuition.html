@@ -1,0 +1,1964 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Formula Intuition Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;800&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<style>
+:root {
+  --bg: #f6f3ec;
+  --paper: #fffdf8;
+  --ink: #1d2330;
+  --muted: #5d6474;
+  --line: #e2dccd;
+  --grid: #ece6d8;
+  --accent: #2f5bea;
+  --accent-2: #e2742b;
+  --accent-3: #1a9a6c;
+  --accent-4: #b0399a;
+  --chip: #ece7db;
+  --good: #1a9a6c;
+  --bad: #c8412f;
+  --f-head: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --f-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #12151c; --paper: #1a1e28; --ink: #e8e9ee; --muted: #9aa1b2; --line: #2b3140;
+    --grid: #232836; --accent: #7d9bff; --accent-2: #ff9d5c; --accent-3: #4fd1a1; --accent-4: #e27ad0;
+    --chip: #252a37; --good: #4fd1a1; --bad: #ff7a66; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #12151c; --paper: #1a1e28; --ink: #e8e9ee; --muted: #9aa1b2; --line: #2b3140;
+  --grid: #232836; --accent: #7d9bff; --accent-2: #ff9d5c; --accent-3: #4fd1a1; --accent-4: #e27ad0;
+  --chip: #252a37; --good: #4fd1a1; --bad: #ff7a66; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--bg); color: var(--ink); }
+body { font: 15px/1.55 var(--f-body); padding: 20px 16px 48px; }
+.wrap { max-width: 1180px; margin: 0 auto; }
+header { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 12px; margin-bottom: 18px; }
+h1 { font: 800 clamp(26px, 4vw, 38px)/1.05 var(--f-head); margin: 0; letter-spacing: -0.02em; }
+h1 span { color: var(--accent); }
+.sub { color: var(--muted); margin: 4px 0 0; max-width: 60ch; }
+.theme-btn { background: var(--chip); color: var(--ink); border: 1px solid var(--line); border-radius: 999px; padding: 6px 14px; font: 500 13px var(--f-body); cursor: pointer; }
+
+.layout { display: grid; grid-template-columns: 240px 1fr; gap: 20px; align-items: start; }
+.side { position: sticky; top: 16px; max-height: calc(100vh - 32px); overflow-y: auto; display: grid; gap: 10px; align-content: start; padding-right: 4px; }
+#search { width: 100%; background: var(--paper); color: var(--ink); border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; font: 400 14px var(--f-body); }
+.progress { font: 500 12px var(--f-mono); color: var(--muted); padding: 0 4px; }
+.progress .bar { height: 5px; background: var(--chip); border-radius: 9px; margin-top: 5px; overflow: hidden; }
+.progress .bar i { display: block; height: 100%; background: var(--good); }
+nav { display: grid; gap: 14px; }
+.empty { color: var(--muted); font-size: 13px; padding: 4px; }
+.group h3 { font: 600 11px var(--f-mono); text-transform: uppercase; letter-spacing: .12em; color: var(--muted); margin: 0 0 6px 4px; }
+.group .list { display: grid; gap: 4px; }
+.topic { text-align: left; background: transparent; border: 1px solid transparent; color: var(--ink); border-radius: 10px; padding: 8px 10px; font: 500 14px var(--f-body); cursor: pointer; display: flex; align-items: center; gap: 8px; }
+.topic:hover { background: var(--chip); }
+.topic[aria-current="true"] { background: var(--paper); border-color: var(--line); box-shadow: 0 1px 0 var(--line); }
+.topic .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--line); flex: none; }
+.topic.done .dot { background: var(--good); }
+
+main { display: grid; gap: 16px; min-width: 0; }
+.card { background: var(--paper); border: 1px solid var(--line); border-radius: 16px; padding: 18px; min-width: 0; }
+.head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px; align-items: baseline; }
+.head h2 { font: 800 24px/1.15 var(--f-head); margin: 0; }
+.tag { font: 600 11px var(--f-mono); text-transform: uppercase; letter-spacing: .1em; color: var(--muted); }
+.formula { font-size: 26px; margin: 14px 0 6px; padding: 14px; border-radius: 12px; background: var(--bg); text-align: center; overflow-x: auto; }
+.blurb { color: var(--muted); margin: 0; }
+
+.stage { position: relative; width: 100%; aspect-ratio: 16 / 9; max-height: 440px; border-radius: 12px; background: var(--bg); overflow: hidden; }
+canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+.controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px 20px; margin-top: 14px; }
+.ctl label { display: flex; justify-content: space-between; font-size: 13px; color: var(--muted); }
+.ctl label b { font: 600 13px var(--f-mono); color: var(--ink); }
+input[type=range] { width: 100%; accent-color: var(--accent); }
+.readout { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.pill { font: 500 13px var(--f-mono); background: var(--chip); border-radius: 8px; padding: 5px 10px; }
+.pill i { font-style: normal; color: var(--muted); }
+
+.two { display: grid; grid-template-columns: 1.3fr 1fr; gap: 16px; }
+.card h4 { font: 700 16px var(--f-head); margin: 0 0 8px; }
+.card ul { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+.try { border-left: 3px solid var(--accent-2); padding-left: 12px; margin: 0; }
+.quiz .opts { display: grid; gap: 8px; margin-top: 10px; }
+.opt { text-align: left; background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 9px 12px; font: 500 14px var(--f-body); color: var(--ink); cursor: pointer; }
+.opt:hover:not(:disabled) { border-color: var(--accent); }
+.opt.right { border-color: var(--good); background: color-mix(in srgb, var(--good) 14%, var(--bg)); }
+.opt.wrong { border-color: var(--bad); background: color-mix(in srgb, var(--bad) 12%, var(--bg)); }
+.why { margin-top: 10px; color: var(--muted); }
+.navrow { display: flex; justify-content: space-between; gap: 10px; }
+.navrow button { background: var(--chip); color: var(--ink); border: 1px solid var(--line); border-radius: 10px; padding: 8px 14px; font: 500 14px var(--f-body); cursor: pointer; }
+
+@media (max-width: 820px) {
+  .layout { grid-template-columns: 1fr; }
+  .side { position: static; max-height: none; overflow: visible; padding: 0; }
+  nav { display: flex; overflow-x: auto; gap: 6px; padding-bottom: 4px; }
+  .group { display: contents; }
+  .group h3 { display: none; }
+  .group .list { display: contents; }
+  .topic { white-space: nowrap; flex: none; background: var(--chip); }
+  .two { grid-template-columns: 1fr; }
+  .formula { font-size: 20px; }
+  .stage { aspect-ratio: 4 / 3; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Formula <span>Intuition</span> Lab</h1>
+      <p class="sub">Don't memorise the formula — move the sliders and watch why it has to be that way.</p>
+    </div>
+    <button class="theme-btn" id="themeBtn" type="button">Toggle theme</button>
+  </header>
+  <div class="layout">
+    <aside class="side">
+      <input id="search" type="search" placeholder="Search formulas…" aria-label="Search formulas">
+      <div id="progress" class="progress"></div>
+      <nav id="nav" aria-label="Formulas"></nav>
+    </aside>
+    <main>
+      <section class="card">
+        <div class="head"><h2 id="title"></h2><span class="tag" id="subject"></span></div>
+        <div class="formula" id="formula"></div>
+        <p class="blurb" id="blurb"></p>
+      </section>
+      <section class="card">
+        <div class="stage" id="stage"><canvas id="cv"></canvas></div>
+        <div class="controls" id="controls"></div>
+        <div class="readout" id="readout"></div>
+      </section>
+      <div class="two">
+        <section class="card"><h4>Why it works</h4><ul id="insights"></ul></section>
+        <section class="card"><h4>Try this</h4><p class="try" id="tryit"></p></section>
+      </div>
+      <section class="card quiz">
+        <h4>Quick check</h4>
+        <div id="q"></div>
+        <div class="opts" id="opts"></div>
+        <div class="why" id="why"></div>
+      </section>
+      <div class="navrow"><button id="prev" type="button">← Previous</button><button id="next" type="button">Next →</button></div>
+    </main>
+  </div>
+</div>
+
+<script>
+const R = String.raw;
+const DEG = Math.PI / 180;
+const fmt = (x, d = 2) => (Math.abs(x) >= 1000 ? x.toFixed(0) : x.toFixed(d));
+
+// ---------- drawing helpers ----------
+let C = {};
+function readColors() {
+  const s = getComputedStyle(document.documentElement);
+  for (const k of ['ink','muted','line','grid','accent','accent-2','accent-3','accent-4','paper','bg']) C[k] = s.getPropertyValue('--' + k).trim();
+}
+function line(c, x1, y1, x2, y2, col, w = 2, dash = null) {
+  c.save(); c.strokeStyle = col; c.lineWidth = w; if (dash) c.setLineDash(dash);
+  c.beginPath(); c.moveTo(x1, y1); c.lineTo(x2, y2); c.stroke(); c.restore();
+}
+function arrow(c, x1, y1, x2, y2, col, w = 2, dash = null) {
+  line(c, x1, y1, x2, y2, col, w, dash);
+  const a = Math.atan2(y2 - y1, x2 - x1), L = 9;
+  if (Math.hypot(x2 - x1, y2 - y1) < 3) return;
+  c.save(); c.fillStyle = col; c.beginPath(); c.moveTo(x2, y2);
+  c.lineTo(x2 - L * Math.cos(a - .4), y2 - L * Math.sin(a - .4));
+  c.lineTo(x2 - L * Math.cos(a + .4), y2 - L * Math.sin(a + .4)); c.closePath(); c.fill(); c.restore();
+}
+function dot(c, x, y, r, col) { c.save(); c.fillStyle = col; c.beginPath(); c.arc(x, y, r, 0, 7); c.fill(); c.restore(); }
+function text(c, s, x, y, col, size = 13, align = 'left', base = 'alphabetic') {
+  c.save(); c.fillStyle = col; c.font = `500 ${size}px "IBM Plex Sans", system-ui, sans-serif`; c.textAlign = align; c.textBaseline = base; c.fillText(s, x, y); c.restore();
+}
+function gridBg(c, w, h, step = 28) {
+  c.save(); c.strokeStyle = C.grid; c.lineWidth = 1; c.beginPath();
+  for (let x = step; x < w; x += step) { c.moveTo(x + .5, 0); c.lineTo(x + .5, h); }
+  for (let y = step; y < h; y += step) { c.moveTo(0, y + .5); c.lineTo(w, y + .5); }
+  c.stroke(); c.restore();
+}
+
+function axes(c, b, xr, yr, xl = '', yl = '') {
+  const X = v => b.x + (v - xr[0]) / (xr[1] - xr[0]) * b.w, Y = v => b.y + b.h - (v - yr[0]) / (yr[1] - yr[0]) * b.h;
+  const y0 = Y(Math.min(Math.max(0, yr[0]), yr[1])), x0 = X(Math.min(Math.max(0, xr[0]), xr[1]));
+  line(c, b.x, y0, b.x + b.w, y0, C.ink, 1.5); line(c, x0, b.y, x0, b.y + b.h, C.ink, 1.5);
+  if (xl) text(c, xl, b.x + b.w, y0 + 16, C.muted, 12, 'right');
+  if (yl) text(c, yl, x0 + 6, b.y + 10, C.muted, 12, 'left');
+  return { X, Y };
+}
+function plot(c, f, x0, x1, X, Y, col, wd = 2.5, dash = null, n = 200) {
+  c.save(); c.strokeStyle = col; c.lineWidth = wd; if (dash) c.setLineDash(dash); c.beginPath();
+  for (let i = 0; i <= n; i++) { const x = x0 + (x1 - x0) * i / n, y = f(x); i ? c.lineTo(X(x), Y(y)) : c.moveTo(X(x), Y(y)); }
+  c.stroke(); c.restore();
+}
+function fillPoly(c, pts, col, alpha = 0.2) {
+  c.save(); c.fillStyle = col; c.globalAlpha = alpha; c.beginPath(); pts.forEach(([x, y], i) => i ? c.lineTo(x, y) : c.moveTo(x, y)); c.closePath(); c.fill(); c.restore();
+}
+function circ(c, x, y, r, col, wd = 1.5, dash = null, a0 = 0, a1 = Math.PI * 2) {
+  c.save(); c.strokeStyle = col; c.lineWidth = wd; if (dash) c.setLineDash(dash); c.beginPath(); c.arc(x, y, Math.max(0, r), a0, a1); c.stroke(); c.restore();
+}
+function waveColor(nm) {
+  let r = 0, g = 0, b = 0;
+  if (nm >= 380 && nm < 440) { r = (440 - nm) / 60; b = 1; } else if (nm >= 440 && nm < 490) { g = (nm - 440) / 50; b = 1; }
+  else if (nm >= 490 && nm < 510) { g = 1; b = (510 - nm) / 20; } else if (nm >= 510 && nm < 580) { r = (nm - 510) / 70; g = 1; }
+  else if (nm >= 580 && nm < 645) { r = 1; g = (645 - nm) / 65; } else if (nm >= 645 && nm <= 780) { r = 1; } else return null;
+  return `rgb(${r * 255 | 0},${g * 255 | 0},${b * 255 | 0})`;
+}
+const nCr = (n, r) => { let v = 1; for (let i = 1; i <= r; i++) v = v * (n - i + 1) / i; return Math.round(v); };
+const sci = x => x === 0 ? '0' : (Math.abs(x) < 1e-3 || Math.abs(x) >= 1e5 ? x.toExponential(2).replace('e', '×10^') : fmt(x, 3));
+
+// ---------- topics ----------
+const TOPICS = [
+{
+  id: 'projectile', subject: 'Physics · Kinematics', title: 'Projectile range',
+  tex: R`R = \dfrac{u^{2}\,\sin 2\theta}{g}`,
+  blurb: 'How far does something go when you throw it at speed u and angle θ?',
+  controls: [
+    { k: 'u', label: 'Launch speed u', min: 5, max: 30, step: 0.5, val: 20, unit: ' m/s' },
+    { k: 'th', label: 'Angle θ', min: 5, max: 85, step: 1, val: 30, unit: '°' },
+    { k: 'g', label: 'Gravity g', min: 1.6, max: 25, step: 0.1, val: 9.8, unit: ' m/s²' },
+  ],
+  readout: p => { const th = p.th * DEG, R = p.u ** 2 * Math.sin(2 * th) / p.g;
+    return [['Range R', fmt(R, 1) + ' m'], ['Max height H', fmt((p.u * Math.sin(th)) ** 2 / (2 * p.g), 1) + ' m'], ['Flight time', fmt(2 * p.u * Math.sin(th) / p.g) + ' s'], ['sin 2θ', fmt(Math.sin(2 * th), 3)]]; },
+  draw(c, w, h, p, t) {
+    gridBg(c, w, h);
+    const u = p.u, g = p.g, pad = 34;
+    const Rmax = u * u / g, Hmax = u * u / (2 * g);
+    const s = Math.min((w - 2 * pad) / Rmax, (h - 2 * pad) / Hmax);
+    const ox = pad, oy = h - pad;
+    line(c, 0, oy, w, oy, C.ink, 2);
+    const path = (thd, col, dash, wdt) => {
+      const th = thd * DEG, T = 2 * u * Math.sin(th) / g;
+      c.save(); c.strokeStyle = col; c.lineWidth = wdt; if (dash) c.setLineDash(dash); c.beginPath();
+      for (let i = 0; i <= 80; i++) { const tt = T * i / 80; const x = u * Math.cos(th) * tt, y = u * Math.sin(th) * tt - g * tt * tt / 2; i ? c.lineTo(ox + x * s, oy - y * s) : c.moveTo(ox, oy); }
+      c.stroke(); c.restore(); return T;
+    };
+    if (Math.abs(p.th - 45) > 0.5) path(90 - p.th, C.muted, [6, 6], 1.5);
+    path(45, C['accent-3'], [2, 5], 1.5);
+    const T = path(p.th, C.accent, null, 3);
+    const th = p.th * DEG, Rr = u * u * Math.sin(2 * th) / g;
+    const frac = Math.min(1, (t % 3.2) / 2.4), tt = frac * T;
+    const bx = ox + u * Math.cos(th) * tt * s, by = oy - (u * Math.sin(th) * tt - g * tt * tt / 2) * s;
+    dot(c, bx, by, 7, C['accent-2']);
+    const vx = u * Math.cos(th), vy = u * Math.sin(th) - g * tt;
+    arrow(c, bx, by, bx + vx * 2.2, by, C['accent-3'], 2);
+    arrow(c, bx, by, bx, by - vy * 2.2, C['accent-4'], 2);
+    line(c, ox + Rr * s, oy - 8, ox + Rr * s, oy + 8, C.ink, 2);
+    text(c, `R = ${fmt(Rr, 1)} m`, ox + Rr * s, oy + 22, C.ink, 13, 'center');
+    text(c, `— your throw (${p.th}°)`, w - 12, 20, C.accent, 12, 'right');
+    text(c, '··· 45° (max range)', w - 12, 38, C['accent-3'], 12, 'right');
+    if (Math.abs(p.th - 45) > 0.5) text(c, `- - ${90 - p.th}° (same range!)`, w - 12, 56, C.muted, 12, 'right');
+    if (w > 620) text(c, 'horizontal v stays constant · vertical v shrinks, flips', 12, 20, C.muted, 12);
+  },
+  insights: [
+    R`Horizontal speed is $u\cos\theta$ and never changes. Time in air is $2u\sin\theta/g$. Range = speed × time = $2u^2\sin\theta\cos\theta/g$, and $2\sin\theta\cos\theta=\sin 2\theta$.`,
+    R`$\sin 2\theta$ peaks at $2\theta=90^\circ$, so $45^\circ$ is the sweet spot: a balance between "going fast sideways" and "staying up long".`,
+    R`$\theta$ and $90^\circ-\theta$ give the same $\sin 2\theta$ → same range. One is a low fast skim, the other a high lob.`,
+    R`$R\propto u^2$: double the speed → four times the range (you go twice as fast <em>and</em> stay up twice as long).`,
+  ],
+  tryit: 'Set θ = 30°, note R. Now set θ = 60°. Then halve g (go to the Moon side) — what happens to every number?',
+  quiz: { q: 'A ball thrown at 25° lands 40 m away. At what other angle, same speed, does it land at the same spot?', opts: ['50°', '65°', '45°', '75°'], a: 1, why: 'sin 2θ is the same for θ and 90° − θ, so 90° − 25° = 65°.' },
+},
+{
+  id: 'shm', subject: 'Physics · Oscillations', title: 'Simple harmonic motion',
+  tex: R`x = A\sin(\omega t + \phi),\quad a = -\omega^{2}x`,
+  blurb: 'SHM is just the shadow of a point going round a circle at constant speed.',
+  controls: [
+    { k: 'A', label: 'Amplitude A', min: 0.2, max: 1, step: 0.05, val: 0.8, unit: '' },
+    { k: 'w', label: 'Angular freq ω', min: 0.5, max: 4, step: 0.1, val: 1.5, unit: ' rad/s' },
+    { k: 'ph', label: 'Phase φ', min: 0, max: 360, step: 5, val: 0, unit: '°' },
+  ],
+  readout: (p, t) => { const th = p.w * t + p.ph * DEG, x = p.A * Math.sin(th);
+    return [['x', fmt(x)], ['v = Aω cos', fmt(p.A * p.w * Math.cos(th))], ['a = −ω²x', fmt(-p.w * p.w * x)], ['Period T = 2π/ω', fmt(2 * Math.PI / p.w) + ' s']]; },
+  live: true,
+  draw(c, w, h, p, t) {
+    gridBg(c, w, h);
+    const r = Math.min(h * 0.38, w * 0.17), cx = r + 30, cy = h / 2;
+    const th = p.w * t + p.ph * DEG, A = p.A * r;
+    c.save(); c.strokeStyle = C.line; c.lineWidth = 1.5; c.beginPath(); c.arc(cx, cy, A, 0, 7); c.stroke(); c.restore();
+    const px = cx + A * Math.cos(th), py = cy - A * Math.sin(th);
+    line(c, cx, cy, px, py, C.muted, 1.5);
+    const ax = cx + r + 34;
+    line(c, ax, cy - r - 10, ax, cy + r + 10, C.ink, 1.5);
+    line(c, px, py, ax, py, C.muted, 1, [4, 4]);
+    line(c, ax, cy, w - 10, cy, C.line, 1);
+    dot(c, px, py, 6, C.accent);
+    // trace
+    const speed = 70;
+    c.save(); c.strokeStyle = C.accent; c.lineWidth = 2.5; c.beginPath();
+    for (let x = ax; x < w - 10; x += 2) { const tt = t - (x - ax) / speed; const y = cy - A * Math.sin(p.w * tt + p.ph * DEG); x === ax ? c.moveTo(x, y) : c.lineTo(x, y); }
+    c.stroke(); c.restore();
+    // mass on axis with velocity & accel arrows
+    const vy = A * p.w * Math.cos(th), ay = -p.w * p.w * A * Math.sin(th);
+    arrow(c, ax - 16, py, ax - 16, py - vy * 0.5, C['accent-3'], 2.5);
+    arrow(c, ax + 16, py, ax + 16, py - ay * 0.25, C['accent-2'], 2.5);
+    dot(c, ax, py, 9, C['accent-4']);
+    text(c, 'v', ax - 30, py - vy * 0.25, C['accent-3'], 13, 'center', 'middle');
+    text(c, 'a', ax + 30, py - ay * 0.12, C['accent-2'], 13, 'center', 'middle');
+    text(c, 'circle (constant speed)', cx, h - 12, C.muted, 12, 'center');
+    text(c, 'its shadow over time →', ax + 10, 20, C.muted, 12);
+  },
+  insights: [
+    R`A point moving round a circle of radius $A$ at angular speed $\omega$ has height $A\sin(\omega t+\phi)$. That shadow <em>is</em> SHM.`,
+    R`Speed is greatest at the centre ($v_{max}=A\omega$) and zero at the ends — watch the green arrow.`,
+    R`Acceleration (orange) always points back to the centre and grows with distance: $a=-\omega^2x$. That restoring "pull back harder the further you go" is the definition of SHM.`,
+    R`Period $T=2\pi/\omega$ doesn't depend on $A$: a bigger swing just goes faster.`,
+  ],
+  tryit: 'Change only A while watching the period readout. Then double ω — how do v_max and a_max change (×2 vs ×4)?',
+  quiz: { q: 'Where is the speed of a particle in SHM maximum?', opts: ['At the extreme positions', 'At the mean position', 'Halfway to the extreme', 'Same everywhere'], a: 1, why: 'v = ω√(A² − x²), largest when x = 0. All the energy is kinetic there.' },
+},
+{
+  id: 'inverse', subject: 'Physics · Electrostatics / Gravitation', title: 'Inverse-square law',
+  tex: R`F = \dfrac{k\,q_1 q_2}{r^{2}}`,
+  blurb: 'Why squared? Because the "influence" spreads over the surface of a sphere, whose area grows as r².',
+  controls: [
+    { k: 'r', label: 'Distance r', min: 1, max: 4, step: 0.05, val: 1.5, unit: '' },
+    { k: 'q', label: 'q₁q₂ (relative)', min: 0.5, max: 3, step: 0.1, val: 1, unit: '' },
+  ],
+  readout: p => [['F (relative)', fmt(p.q / p.r ** 2, 3)], ['Sphere area 4πr²', fmt(4 * Math.PI * p.r ** 2, 1)], ['At 2r, F becomes', fmt(p.q / (2 * p.r) ** 2, 3)]],
+  draw(c, w, h, p) {
+    gridBg(c, w, h);
+    const half = w * 0.5, sx = half * 0.5, sy = h / 2, unit = Math.min(half * 0.5, h * 0.5) / 4.4;
+    const N = Math.round(16 * p.q);
+    for (let i = 0; i < N; i++) { const a = i / N * Math.PI * 2; line(c, sx, sy, sx + Math.cos(a) * 4.3 * unit, sy + Math.sin(a) * 4.3 * unit, C.line, 1.5); }
+    const rp = p.r * unit;
+    c.save(); c.fillStyle = C.accent; c.globalAlpha = 0.12; c.beginPath(); c.arc(sx, sy, rp, 0, 7); c.fill(); c.restore();
+    c.save(); c.strokeStyle = C.accent; c.lineWidth = 2.5; c.beginPath(); c.arc(sx, sy, rp, 0, 7); c.stroke(); c.restore();
+    c.save(); c.strokeStyle = C.muted; c.setLineDash([4, 5]); c.beginPath(); c.arc(sx, sy, rp * 2, 0, 7); c.stroke(); c.restore();
+    dot(c, sx, sy, 8, C['accent-2']);
+    dot(c, sx + rp, sy, 6, C['accent-4']);
+    text(c, `${N} field lines spread over 4πr²`, sx, 22, C.muted, 12, 'center');
+    text(c, 'dashed: 2r → same lines, 4× area', sx, h - 12, C.muted, 12, 'center');
+    // graph
+    const gx = half + 30, gy = h - 34, gw = w - gx - 18, gh = h - 70;
+    line(c, gx, gy, gx + gw, gy, C.ink, 1.5); line(c, gx, gy, gx, gy - gh, C.ink, 1.5);
+    const fmax = 3 / 0.8 ** 2;
+    const X = r => gx + (r - 0.8) / (4.2 - 0.8) * gw, Y = f => gy - Math.min(f / fmax, 1.05) * gh;
+    c.save(); c.strokeStyle = C.accent; c.lineWidth = 2.5; c.beginPath();
+    for (let r = 0.8; r <= 4.2; r += 0.02) { r === 0.8 ? c.moveTo(X(r), Y(p.q / r / r)) : c.lineTo(X(r), Y(p.q / r / r)); }
+    c.stroke(); c.restore();
+    const f = p.q / p.r ** 2;
+    line(c, X(p.r), gy, X(p.r), Y(f), C.muted, 1, [3, 4]);
+    dot(c, X(p.r), Y(f), 6, C['accent-4']);
+    if (p.r * 2 <= 4.2) { dot(c, X(2 * p.r), Y(f / 4), 5, C.muted); text(c, '¼', X(2 * p.r) + 8, Y(f / 4) - 6, C.muted, 13); }
+    text(c, 'F', gx - 6, gy - gh - 6, C.ink, 13, 'right');
+    text(c, 'r →', gx + gw, gy + 18, C.ink, 13, 'right');
+  },
+  insights: [
+    R`A charge (or mass) sends out a fixed number of field lines. At distance $r$ they are shared over a sphere of area $4\pi r^2$.`,
+    R`Field strength = lines per unit area $\propto 1/r^2$. Double $r$ → area ×4 → force ÷4.`,
+    R`Same geometry gives gravity $F=Gm_1m_2/r^2$, light intensity $I=P/4\pi r^2$, and sound intensity.`,
+    R`The force is also proportional to each charge — more charge = more lines (watch the line count change with $q_1q_2$).`,
+  ],
+  tryit: 'Set r = 1, note F. Now go to r = 2 and r = 3. Predict F before you look: 1/4? 1/9?',
+  quiz: { q: 'The distance between two charges is tripled and one charge is doubled. The force becomes…', opts: ['2/3 F', '2/9 F', '6 F', '2/6 F'], a: 1, why: 'Charge ×2, distance² ×9, so F × 2/9.' },
+},
+{
+  id: 'lens', subject: 'Physics · Ray optics', title: 'Lens formula',
+  tex: R`\dfrac{1}{v} - \dfrac{1}{u} = \dfrac{1}{f},\qquad m = \dfrac{v}{u}`,
+  blurb: 'Where does the image form? Two simple rays answer it — and the formula just records where they cross.',
+  controls: [
+    { k: 'u', label: 'Object distance u', min: -65, max: -4, step: 0.5, val: -30, unit: ' cm' },
+    { k: 'f', label: 'Focal length f (− = concave)', min: -25, max: 25, step: 0.5, val: 12, unit: ' cm' },
+  ],
+  readout: p => { const f = Math.abs(p.f) < 0.5 ? 0.5 : p.f, d = p.u + f;
+    if (Math.abs(d) < 1e-6) return [['v', '∞ (rays parallel)'], ['Image', 'at infinity']];
+    const v = p.u * f / d, m = v / p.u;
+    return [['v', fmt(v, 1) + ' cm'], ['m', fmt(m, 2)], ['Image', (v > 0 ? 'real, ' : 'virtual, ') + (m < 0 ? 'inverted, ' : 'erect, ') + (Math.abs(m) > 1 ? 'magnified' : 'diminished')]]; },
+  draw(c, w, h, p) {
+    gridBg(c, w, h);
+    const f = Math.abs(p.f) < 0.5 ? 0.5 : p.f;
+    const s = Math.min(w / 150, h / 34), cx = w / 2, cy = h / 2;
+    const X = x => cx + x * s, Y = y => cy - y * s;
+    line(c, 0, cy, w, cy, C.muted, 1);
+    // lens
+    const lh = h * 0.42;
+    c.save(); c.strokeStyle = C.accent; c.lineWidth = 3; c.beginPath();
+    if (f > 0) { c.ellipse(cx, cy, 8, lh, 0, 0, 7); } else { c.moveTo(cx - 9, cy - lh); c.quadraticCurveTo(cx + 3, cy, cx - 9, cy + lh); c.lineTo(cx + 9, cy + lh); c.quadraticCurveTo(cx - 3, cy, cx + 9, cy - lh); c.closePath(); }
+    c.globalAlpha = .15; c.fillStyle = C.accent; c.fill(); c.globalAlpha = 1; c.stroke(); c.restore();
+    for (const fx of [f, -f]) { dot(c, X(fx), cy, 4, C.ink); text(c, 'F', X(fx), cy + 18, C.ink, 12, 'center'); }
+    for (const fx of [2 * f, -2 * f]) { dot(c, X(fx), cy, 3, C.muted); text(c, '2F', X(fx), cy + 18, C.muted, 11, 'center'); }
+    const ho = 7;
+    arrow(c, X(p.u), cy, X(p.u), Y(ho), C['accent-2'], 3);
+    text(c, 'object', X(p.u), Y(ho) - 8, C['accent-2'], 12, 'center');
+    const d = p.u + f, v = Math.abs(d) < 1e-6 ? Infinity : p.u * f / d, m = v / p.u;
+    // ray 1: parallel → through/away from F
+    line(c, X(p.u), Y(ho), cx, Y(ho), C['accent-3'], 2);
+    const dir1 = f > 0 ? [f, -ho] : [-f, ho];
+    const far = 400;
+    line(c, cx, Y(ho), X(dir1[0] * far), Y(ho + dir1[1] * far), C['accent-3'], 2);
+    // ray 2: through centre
+    const k2 = -ho / (0 - p.u);
+    line(c, X(p.u), Y(ho), X(far), Y(ho + k2 * (far - p.u) * 1 + 0), C['accent-4'], 2);
+    // ray 3: toward F' → parallel (convex, object outside F) only for clarity when real
+    if (isFinite(v)) {
+      const hi = m * ho;
+      if (v < 0) { // virtual: extend backwards
+        line(c, cx, Y(ho), X(v), Y(hi), C['accent-3'], 1.5, [5, 5]);
+        line(c, X(p.u), Y(ho), X(v), Y(hi), C['accent-4'], 1.5, [5, 5]);
+      }
+      c.save(); c.globalAlpha = v < 0 ? 0.55 : 1; arrow(c, X(v), cy, X(v), Y(hi), C.ink, 3, v < 0 ? [5, 4] : null); c.restore();
+      text(c, v < 0 ? 'virtual image' : 'real image', X(v), Y(hi) + (hi > 0 ? -8 : 18), C.ink, 12, 'center');
+    } else text(c, 'image at infinity — rays leave parallel', cx, 22, C.ink, 13, 'center');
+    text(c, 'light →', 12, 20, C.muted, 12);
+  },
+  insights: [
+    R`Ray parallel to the axis bends through the focus. Ray through the centre goes straight. Where they meet is the image — the formula is that intersection written in algebra.`,
+    R`Sign convention: distances measured from the lens, light travels left→right; $u$ is negative, a real image has $v>0$.`,
+    R`Object at $2F$ → image at $2F$, same size. Inside $F$ (convex) the rays never meet on the right; they <em>seem</em> to come from a virtual, magnified image — a magnifying glass.`,
+    R`Concave lens ($f<0$): always virtual, erect, diminished, between $F$ and the lens, no matter where the object is.`,
+  ],
+  tryit: 'With a convex lens, slide the object from far away to 2F, to F, then inside F. Watch the image grow and flip sides.',
+  quiz: { q: 'An object sits between F and a convex lens. The image is…', opts: ['Real, inverted, diminished', 'Real, inverted, magnified', 'Virtual, erect, magnified', 'Virtual, erect, diminished'], a: 2, why: 'u + f < 0 in magnitude terms gives v < 0 (virtual) with m = v/u > 1 — a magnifying glass.' },
+},
+{
+  id: 'gas', subject: 'Chemistry · States of matter', title: 'Ideal gas law',
+  tex: R`PV = nRT`,
+  blurb: 'Pressure is just molecules banging on the walls. Count the bangs and the law falls out.',
+  controls: [
+    { k: 'T', label: 'Temperature T', min: 100, max: 1000, step: 10, val: 300, unit: ' K' },
+    { k: 'N', label: 'Molecules n', min: 10, max: 200, step: 5, val: 50, unit: '' },
+    { k: 'V', label: 'Volume V', min: 0.3, max: 1, step: 0.02, val: 1, unit: '' },
+  ],
+  live: true,
+  readout: p => { const st = gasState; const pred = (p.N / 50) * (p.T / 300) / p.V;
+    return [['P measured', fmt(st.Prel || 0)], ['P predicted nT/V', fmt(pred)], ['PV/(nT) ratio', fmt((st.Prel || 0) / pred)], ['speed ∝ √T', fmt(Math.sqrt(p.T / 300)) + '×']]; },
+  draw(c, w, h, p, t, dt) {
+    const st = gasState, base = 110;
+    const bx = 20, by = 20, fullW = w - 40, bh = h - 40, bw = fullW * p.V;
+    const vmag = base * Math.sqrt(p.T / 300);
+    while (st.parts.length < p.N) { const a = Math.random() * 7; st.parts.push({ x: bx + Math.random() * bw, y: by + Math.random() * bh, vx: Math.cos(a) * vmag, vy: Math.sin(a) * vmag, flash: 0 }); }
+    if (st.parts.length > p.N) st.parts.length = p.N;
+    if (st.T !== p.T) { const k = Math.sqrt(p.T / (st.T || p.T)); for (const q of st.parts) { q.vx *= k; q.vy *= k; } st.T = p.T; }
+    dt = Math.min(dt, 0.03);
+    let imp = 0;
+    for (const q of st.parts) {
+      q.x += q.vx * dt; q.y += q.vy * dt; q.flash = Math.max(0, q.flash - dt * 4);
+      if (q.x < bx) { q.x = 2 * bx - q.x; q.vx = Math.abs(q.vx); imp += 2 * q.vx; q.flash = 1; }
+      if (q.x > bx + bw) { if (q.vx > 0) { imp += 2 * q.vx; q.flash = 1; } q.vx = -Math.abs(q.vx); q.x = Math.min(q.x, bx + bw); }
+      if (q.y < by) { q.y = 2 * by - q.y; q.vy = Math.abs(q.vy); imp += 2 * q.vy; q.flash = 1; }
+      if (q.y > by + bh) { q.y = 2 * (by + bh) - q.y; imp += 2 * Math.abs(q.vy); q.vy = -Math.abs(q.vy); q.flash = 1; }
+    }
+    st.acc = (st.acc || 0) + imp; st.accT = (st.accT || 0) + dt;
+    if (st.accT >= 0.75) {
+      const P = st.acc / (2 * (bw + bh)) / st.accT;
+      st.acc = 0; st.accT = 0;
+      st.P = st.P == null ? P : st.P + (P - st.P) * 0.3;
+      const kTheory = base * base / 300 / 2, Pref = kTheory * 50 * 300 / (fullW * bh);
+      st.Prel = st.P / Pref;
+    }
+    // draw
+    c.save(); c.fillStyle = C.paper; c.fillRect(bx, by, bw, bh); c.restore();
+    c.save(); c.strokeStyle = C.ink; c.lineWidth = 3; c.strokeRect(bx, by, bw, bh); c.restore();
+    line(c, bx + bw + 6, by, bx + bw + 6, by + bh, C.muted, 6);
+    text(c, '◀ piston', bx + bw + 14, by + 16, C.muted, 12);
+    const hot = Math.min(1, (p.T - 100) / 900);
+    for (const q of st.parts) dot(c, q.x, q.y, 4 + q.flash * 2, q.flash > 0.2 ? C['accent-2'] : (hot > 0.5 ? C['accent-4'] : C.accent));
+    text(c, 'orange flash = a wall hit (that is pressure)', bx + 8, by + bh - 8, C.muted, 12);
+  },
+  insights: [
+    R`Each wall hit transfers momentum $2mv$. Pressure = (hits per second × momentum per hit) / wall area.`,
+    R`Raise $T$: molecules move faster ($v\propto\sqrt T$). They hit <em>more often</em> (×$\sqrt T$) and <em>harder</em> (×$\sqrt T$) → $P\propto T$.`,
+    R`More molecules → more hits → $P\propto n$. Squeeze the volume → shorter trips between walls → more hits → $P\propto 1/V$.`,
+    R`Put it together: $P\propto nT/V$, i.e. $PV=nRT$. The ratio readout stays near 1 whatever you do — that constant is $R$.`,
+  ],
+  tryit: 'Keep n fixed and push the piston to half volume. Does P double? Now double T instead — compare.',
+  quiz: { q: 'At constant V and n, a gas is heated from 27 °C to 327 °C. Pressure becomes…', opts: ['12× as large', '2× as large', '1.5× as large', 'unchanged'], a: 1, why: 'Use kelvin: 300 K → 600 K, so P doubles. (Celsius ratios mean nothing here.)' },
+},
+{
+  id: 'decay', subject: 'Chemistry · Kinetics / Nuclear', title: 'First-order decay & half-life',
+  tex: R`N = N_0\,e^{-kt},\qquad t_{1/2} = \dfrac{\ln 2}{k} \approx \dfrac{0.693}{k}`,
+  blurb: 'Every atom has the same small chance to decay each second, no matter how many others are around.',
+  controls: [
+    { k: 'th', label: 'Half-life t½', min: 1, max: 10, step: 0.5, val: 4, unit: ' min' },
+  ],
+  live: true,
+  readout: (p, t) => { const st = decayState; return [['k = 0.693 / t½', fmt(Math.LN2 / p.th, 3) + ' /min'], ['time', fmt(st.simT || 0, 1) + ' min'], ['atoms left', String(st.left ?? 100)], ['N₀e^{−kt}', fmt(100 * Math.exp(-Math.LN2 / p.th * (st.simT || 0)), 1)]]; },
+  draw(c, w, h, p, t) {
+    gridBg(c, w, h);
+    const st = decayState, k = Math.LN2 / p.th, tEnd = 5 * p.th;
+    const loop = 12, ph = t % loop, simT = Math.min(1, ph / 10) * tEnd;
+    st.simT = simT;
+    // atoms grid
+    const side = Math.min(w * 0.42, h - 50), cell = side / 10, gx = 20, gy = (h - side) / 2;
+    let left = 0;
+    for (let i = 0; i < 100; i++) {
+      const tdec = -Math.log(st.U[i]) / k, alive = tdec > simT; if (alive) left++;
+      const x = gx + (i % 10) * cell + cell / 2, y = gy + Math.floor(i / 10) * cell + cell / 2;
+      dot(c, x, y, cell * 0.36, alive ? C.accent : C.line);
+    }
+    st.left = left;
+    // graph
+    const ox = gx + side + 40, oy = h - 34, gw = w - ox - 20, gh = h - 70;
+    line(c, ox, oy, ox + gw, oy, C.ink, 1.5); line(c, ox, oy, ox, oy - gh, C.ink, 1.5);
+    const X = tt => ox + tt / tEnd * gw, Y = n => oy - n / 100 * gh;
+    for (let j = 1; j <= 5; j++) { line(c, X(j * p.th), oy, X(j * p.th), Y(100 / 2 ** j), C.muted, 1, [3, 4]); line(c, ox, Y(100 / 2 ** j), X(j * p.th), Y(100 / 2 ** j), C.muted, 1, [3, 4]); text(c, `${j}t½`, X(j * p.th), oy + 16, C.muted, 11, 'center'); }
+    c.save(); c.strokeStyle = C.accent; c.lineWidth = 2.5; c.beginPath();
+    for (let i = 0; i <= 100; i++) { const tt = tEnd * i / 100; i ? c.lineTo(X(tt), Y(100 * Math.exp(-k * tt))) : c.moveTo(X(0), Y(100)); }
+    c.stroke(); c.restore();
+    dot(c, X(simT), Y(left), 6, C['accent-2']);
+    text(c, '100', ox - 6, Y(100) + 4, C.muted, 11, 'right'); text(c, '50', ox - 6, Y(50) + 4, C.muted, 11, 'right'); text(c, '25', ox - 6, Y(25) + 4, C.muted, 11, 'right');
+    text(c, 'orange = actual count · blue = N₀e^{−kt}', ox + gw, 20, C.muted, 12, 'right');
+  },
+  insights: [
+    R`Rate $\propto$ amount: $dN/dt=-kN$. Twice the atoms → twice as many decays per second, but the same <em>fraction</em> decays.`,
+    R`So the time to lose half is always the same, from 100→50 or 50→25: that's why half-life is constant for first-order processes.`,
+    R`After $n$ half-lives, $N=N_0/2^n$. Set $N_0/2=N_0e^{-kt}$ → $t_{1/2}=\ln 2/k$.`,
+    R`The real count (orange) wobbles around the curve — individual decays are random; the formula is the average.`,
+  ],
+  tryit: 'Watch the dashed lines: each step is the same width but halves the height. Then change t½ — only the time axis stretches.',
+  quiz: { q: 'What fraction of a first-order reactant remains after 3 half-lives?', opts: ['1/3', '1/6', '1/8', '1/9'], a: 2, why: '½ × ½ × ½ = 1/8.' },
+},
+{
+  id: 'derivative', subject: 'Maths · Calculus', title: 'Derivative as slope',
+  tex: R`\dfrac{d}{dx}x^{2} = \lim_{h\to 0}\dfrac{(x+h)^{2}-x^{2}}{h} = 2x`,
+  blurb: 'A derivative is the slope of the curve when you zoom in so far that it looks straight.',
+  controls: [
+    { k: 'x0', label: 'Point x', min: -2.5, max: 2.5, step: 0.05, val: 1, unit: '' },
+    { k: 'h', label: 'Gap h', min: 0.01, max: 2, step: 0.01, val: 1.2, unit: '' },
+  ],
+  readout: p => [['secant slope', fmt(2 * p.x0 + p.h, 3)], ['= 2x + h', `${fmt(2 * p.x0, 2)} + ${fmt(p.h, 2)}`], ['tangent slope 2x', fmt(2 * p.x0, 3)], ['error', fmt(p.h, 3)]],
+  draw(c, w, h, p) {
+    gridBg(c, w, h);
+    const xmin = -3.2, xmax = 3.2, ymin = -1.5, ymax = 9.5;
+    const X = x => (x - xmin) / (xmax - xmin) * w, Y = y => h - (y - ymin) / (ymax - ymin) * h;
+    line(c, X(xmin), Y(0), X(xmax), Y(0), C.muted, 1); line(c, X(0), Y(ymin), X(0), Y(ymax), C.muted, 1);
+    c.save(); c.strokeStyle = C.ink; c.lineWidth = 2.5; c.beginPath();
+    for (let x = xmin; x <= xmax; x += 0.02) { x === xmin ? c.moveTo(X(x), Y(x * x)) : c.lineTo(X(x), Y(x * x)); }
+    c.stroke(); c.restore();
+    const x0 = p.x0, x1 = x0 + p.h, y0 = x0 * x0, y1 = x1 * x1, ms = (y1 - y0) / p.h, mt = 2 * x0;
+    const L = (m, col, dash, wd) => line(c, X(xmin), Y(y0 + m * (xmin - x0)), X(xmax), Y(y0 + m * (xmax - x0)), col, wd, dash);
+    L(mt, C['accent-3'], [6, 5], 2);
+    L(ms, C.accent, null, 2.5);
+    line(c, X(x0), Y(y0), X(x1), Y(y0), C['accent-2'], 2);
+    line(c, X(x1), Y(y0), X(x1), Y(y1), C['accent-4'], 2);
+    text(c, 'h', (X(x0) + X(x1)) / 2, Y(y0) + 16, C['accent-2'], 13, 'center');
+    text(c, 'Δy', X(x1) + 6, (Y(y0) + Y(y1)) / 2, C['accent-4'], 13, 'left', 'middle');
+    dot(c, X(x0), Y(y0), 6, C.ink); dot(c, X(x1), Y(y1), 5, C.accent);
+    text(c, '— secant (through 2 points)', 12, 20, C.accent, 12);
+    text(c, '- - tangent (the derivative)', 12, 38, C['accent-3'], 12);
+    text(c, 'y = x²', X(2.6), Y(6.76) - 10, C.ink, 13, 'right');
+  },
+  insights: [
+    R`Slope between two points is rise/run: $\dfrac{(x+h)^2-x^2}{h}=\dfrac{2xh+h^2}{h}=2x+h$.`,
+    R`The leftover $h$ is the only error. Shrink the gap and the secant swings onto the tangent: slope $\to 2x$.`,
+    R`At $x=0$ the slope is 0 (bottom of the bowl); for negative $x$ it's negative (going downhill).`,
+    R`Every derivative rule is this same move: write the rise/run for a tiny $h$ and drop what vanishes.`,
+  ],
+  tryit: 'Pick any x, then drag h towards 0.01. Watch the blue line lock onto the green one, and the error readout match h.',
+  quiz: { q: 'For y = x², the slope of the secant from x to x + h equals…', opts: ['2x', '2x + h', 'x + h', '2x + 2h'], a: 1, why: '((x+h)² − x²)/h = 2x + h. As h → 0, that becomes 2x.' },
+},
+{
+  id: 'square', subject: 'Maths · Algebra', title: '(a + b)² identity',
+  tex: R`(a+b)^{2} = a^{2} + 2ab + b^{2}`,
+  blurb: 'Draw a square of side a + b. It literally cuts into four pieces.',
+  controls: [
+    { k: 'a', label: 'a', min: 1, max: 8, step: 0.1, val: 5, unit: '' },
+    { k: 'b', label: 'b', min: 0.5, max: 6, step: 0.1, val: 2.5, unit: '' },
+  ],
+  readout: p => [['(a+b)²', fmt((p.a + p.b) ** 2, 2)], ['a²', fmt(p.a * p.a)], ['2ab', fmt(2 * p.a * p.b)], ['b²', fmt(p.b * p.b)], ['a² + b² alone misses', fmt(2 * p.a * p.b)]],
+  draw(c, w, h, p) {
+    gridBg(c, w, h);
+    const S = Math.min(w, h) - 60, s = S / 14, side = (p.a + p.b) * s, x0 = (w - side) / 2, y0 = (h - side) / 2;
+    const A = p.a * s, B = p.b * s;
+    const box = (x, y, ww, hh, col, label) => {
+      c.save(); c.fillStyle = col; c.globalAlpha = 0.28; c.fillRect(x, y, ww, hh); c.globalAlpha = 1; c.strokeStyle = col; c.lineWidth = 2; c.strokeRect(x, y, ww, hh); c.restore();
+      if (ww > 22 && hh > 18) text(c, label, x + ww / 2, y + hh / 2, C.ink, Math.max(12, Math.min(20, Math.min(ww, hh) / 3)), 'center', 'middle');
+    };
+    box(x0, y0, A, A, C.accent, 'a²');
+    box(x0 + A, y0, B, A, C['accent-2'], 'ab');
+    box(x0, y0 + A, A, B, C['accent-2'], 'ab');
+    box(x0 + A, y0 + A, B, B, C['accent-3'], 'b²');
+    text(c, 'a', x0 + A / 2, y0 - 8, C.ink, 14, 'center'); text(c, 'b', x0 + A + B / 2, y0 - 8, C.ink, 14, 'center');
+    text(c, 'a', x0 - 10, y0 + A / 2, C.ink, 14, 'right', 'middle'); text(c, 'b', x0 - 10, y0 + A + B / 2, C.ink, 14, 'right', 'middle');
+  },
+  insights: [
+    R`Area of a square = side². With side $a+b$, the square splits into an $a\times a$, a $b\times b$ and <strong>two</strong> $a\times b$ rectangles.`,
+    R`The classic mistake $(a+b)^2=a^2+b^2$ forgets the two orange strips — the $2ab$.`,
+    R`When $b$ is tiny compared to $a$, $b^2$ is negligible: $(a+b)^2\approx a^2+2ab$. That's the seed of the derivative of $x^2$ (it's $2x$!).`,
+    R`$(a-b)^2=a^2-2ab+b^2$ is the same picture, cutting strips off instead of adding them.`,
+  ],
+  tryit: 'Make b very small. The orange strips dominate the extra area — connect this to the "Derivative" topic.',
+  quiz: { q: '(a + b)² − (a − b)² equals…', opts: ['2ab', '4ab', '2b²', '0'], a: 1, why: '(a² + 2ab + b²) − (a² − 2ab + b²) = 4ab.' },
+},
+// ===================== PHYSICS (more) =====================
+{
+  id: 'motion', subject: 'Physics · Kinematics', title: 'Equations of motion',
+  tex: R`v = u + at,\quad s = ut + \tfrac{1}{2}at^{2},\quad v^{2} = u^{2} + 2as`,
+  blurb: 'All three come from one picture — the velocity–time graph. Slope is acceleration, area is displacement.',
+  controls: [
+    { k: 'u', label: 'Initial velocity u', min: 0, max: 20, step: 0.5, val: 5, unit: ' m/s' },
+    { k: 'a', label: 'Acceleration a', min: -5, max: 5, step: 0.1, val: 2, unit: ' m/s²' },
+    { k: 't', label: 'Time t', min: 1, max: 10, step: 0.1, val: 6, unit: ' s' },
+  ],
+  readout: p => { const v = p.u + p.a * p.t, s = p.u * p.t + 0.5 * p.a * p.t * p.t;
+    return [['v = u + at', fmt(v, 1) + ' m/s'], ['s = area', fmt(s, 1) + ' m'], ['v²', fmt(v * v, 1)], ['u² + 2as', fmt(p.u * p.u + 2 * p.a * s, 1)]]; },
+  draw(c, w, h, p, t) {
+    gridBg(c, w, h);
+    const { X, Y } = axes(c, { x: 46, y: 16, w: w - 64, h: h - 44 }, [0, 10], [-50, 70], 't (s) →', 'v (m/s)');
+    const v = p.u + p.a * p.t;
+    fillPoly(c, [[X(0), Y(0)], [X(0), Y(p.u)], [X(p.t), Y(v)], [X(p.t), Y(0)]], C.accent, 0.22);
+    fillPoly(c, [[X(0), Y(0)], [X(0), Y(p.u)], [X(p.t), Y(p.u)], [X(p.t), Y(0)]], C['accent-3'], 0.12);
+    line(c, X(0), Y(p.u), X(10), Y(p.u + p.a * 10), C.muted, 1, [4, 4]);
+    line(c, X(0), Y(p.u), X(p.t), Y(v), C.accent, 3);
+    line(c, X(0), Y(p.u), X(p.t), Y(p.u), C['accent-3'], 1.5, [3, 3]);
+    line(c, X(p.t), Y(p.u), X(p.t), Y(v), C['accent-4'], 2.5);
+    text(c, 'at', X(p.t) + 8, (Y(p.u) + Y(v)) / 2, C['accent-4'], 14, 'left', 'middle');
+    text(c, 'u', X(0) - 8, Y(p.u), C.ink, 14, 'right', 'middle');
+    text(c, 'rectangle = ut', X(p.t / 2), (Y(0) + Y(p.u)) / 2, C['accent-3'], 12, 'center', 'middle');
+    text(c, 'triangle = ½at²', X(p.t * 0.66), (Y(p.u) + Y(v)) / 2 + (p.a >= 0 ? 6 : -6), C.accent, 12, 'center', 'middle');
+    const tt = (t % 4) / 4 * p.t; dot(c, X(tt), Y(p.u + p.a * tt), 6, C['accent-2']);
+  },
+  insights: [
+    R`Constant acceleration means the $v$–$t$ graph is a straight line with slope $a$. Starting at $u$, after time $t$ it reaches $v=u+at$.`,
+    R`Displacement is the area under the graph: a rectangle $ut$ plus a triangle $\tfrac12\cdot t\cdot at$ → $s=ut+\tfrac12at^2$.`,
+    R`Area is also (average velocity) × time $=\tfrac{u+v}{2}t$. Eliminate $t$ using $t=(v-u)/a$ and you get $v^2=u^2+2as$.`,
+    R`Negative $a$ tilts the line down; once it crosses the axis the object is moving backwards and that area counts negative.`,
+  ],
+  tryit: 'Set a negative (braking). Find the t where the line hits v = 0 — that is the stopping time. Check v² = u² + 2as there.',
+  quiz: { q: 'A car at 20 m/s brakes at 5 m/s². Stopping distance?', opts: ['20 m', '40 m', '80 m', '4 m'], a: 1, why: '0 = 20² − 2·5·s → s = 400/10 = 40 m. (Triangle area ½·4 s·20 m/s.)' },
+},
+{
+  id: 'pendulum', subject: 'Physics · Oscillations', title: 'Simple pendulum',
+  tex: R`T = 2\pi\sqrt{\dfrac{L}{g}}`,
+  blurb: 'Why does the mass not matter, and why does a longer string swing slower?',
+  controls: [
+    { k: 'L', label: 'Length L', min: 0.2, max: 2, step: 0.05, val: 1, unit: ' m' },
+    { k: 'g', label: 'Gravity g', min: 1.6, max: 25, step: 0.1, val: 9.8, unit: ' m/s²' },
+    { k: 'th', label: 'Release angle θ₀', min: 5, max: 40, step: 1, val: 20, unit: '°' },
+  ],
+  readout: p => [['T', fmt(2 * Math.PI * Math.sqrt(p.L / p.g)) + ' s'], ['ω = √(g/L)', fmt(Math.sqrt(p.g / p.L)) + ' rad/s'], ['v at bottom', fmt(Math.sqrt(2 * p.g * p.L * (1 - Math.cos(p.th * DEG)))) + ' m/s']],
+  draw(c, w, h, p, t) {
+    gridBg(c, w, h);
+    const om = Math.sqrt(p.g / p.L), th0 = p.th * DEG, th = th0 * Math.cos(om * t);
+    const px = w * 0.36, py = 22, Lp = (h - 64) * p.L / 2;
+    line(c, px - 50, py, px + 50, py, C.ink, 4);
+    line(c, px, py, px, py + Lp + 20, C.line, 1, [4, 4]);
+    circ(c, px, py, Lp, C.line, 1.5, [4, 5], Math.PI / 2 - th0, Math.PI / 2 + th0);
+    const bx = px + Lp * Math.sin(th), by = py + Lp * Math.cos(th);
+    line(c, px, py, bx, by, C.ink, 2);
+    dot(c, bx, by, 13, C.accent);
+    // restoring force component
+    const fs = 60 * Math.sin(th);
+    arrow(c, bx, by, bx - fs * Math.cos(th), by + fs * Math.sin(th), C['accent-2'], 2.5);
+    text(c, 'restoring pull ∝ sin θ', 12, h - 12, C['accent-2'], 12);
+    // energy bars
+    const tot = 1 - Math.cos(th0), pe = 1 - Math.cos(th), ke = tot - pe, bh = h - 80, x0 = w * 0.68, bw = Math.min(44, w * 0.07);
+    [['PE', pe / tot, C['accent-4']], ['KE', ke / tot, C['accent-3']], ['Total', 1, C.muted]].forEach(([lb, f, col], i) => {
+      const x = x0 + i * (bw + 14);
+      c.save(); c.fillStyle = C.chip || C.line; c.globalAlpha = .4; c.fillRect(x, 30, bw, bh); c.restore();
+      c.save(); c.fillStyle = col; c.fillRect(x, 30 + bh * (1 - f), bw, bh * f); c.restore();
+      text(c, lb, x + bw / 2, h - 30, C.ink, 12, 'center', 'top');
+    });
+  },
+  insights: [
+    R`Gravity's sideways pull on the bob is $mg\sin\theta\approx mg\theta$ — proportional to displacement, so it's SHM with $\omega^2=g/L$.`,
+    R`Mass cancels: heavier bob, bigger pull, but also more inertia. Same reason all objects fall together.`,
+    R`Longer $L$ → for the same arc the angle is smaller → weaker pull → slower. $T\propto\sqrt L$: 4× the length doubles the period.`,
+    R`Energy sloshes between PE (top) and KE (bottom) while the total stays fixed — watch the bars.`,
+  ],
+  tryit: 'Quadruple L (0.5 → 2 m) and check the period doubles. Then change θ₀ — T does not move (for small angles).',
+  quiz: { q: 'A pendulum clock is taken to the Moon (g ÷ 6). Its period becomes…', opts: ['6× longer', '√6× longer', '6× shorter', 'unchanged'], a: 1, why: 'T ∝ 1/√g, so dividing g by 6 multiplies T by √6 ≈ 2.45.' },
+},
+{
+  id: 'circular', subject: 'Physics · Circular motion', title: 'Centripetal acceleration',
+  tex: R`a_c = \dfrac{v^{2}}{r} = \omega^{2} r`,
+  blurb: 'Speed is constant, yet it accelerates — because the direction of velocity keeps turning.',
+  controls: [
+    { k: 'v', label: 'Speed v', min: 1, max: 10, step: 0.1, val: 4, unit: ' m/s' },
+    { k: 'r', label: 'Radius r', min: 1, max: 5, step: 0.1, val: 3, unit: ' m' },
+  ],
+  readout: p => [['a = v²/r', fmt(p.v * p.v / p.r) + ' m/s²'], ['ω = v/r', fmt(p.v / p.r) + ' rad/s'], ['Period 2πr/v', fmt(2 * Math.PI * p.r / p.v) + ' s']],
+  draw(c, w, h, p, t) {
+    gridBg(c, w, h);
+    const cx = w * 0.34, cy = h / 2, Rp = Math.min(h * 0.42, w * 0.28) * p.r / 5;
+    const ang = (p.v / p.r) * t * 0.6, dA = 0.5, vs = 9;
+    circ(c, cx, cy, Rp, C.line, 2);
+    dot(c, cx, cy, 4, C.ink);
+    const P = a => [cx + Rp * Math.cos(a), cy - Rp * Math.sin(a)], V = a => [-Math.sin(a) * p.v * vs, -Math.cos(a) * p.v * vs];
+    const [x1, y1] = P(ang), [vx1, vy1] = V(ang), [x2, y2] = P(ang + dA), [vx2, vy2] = V(ang + dA);
+    c.save(); c.globalAlpha = .35; dot(c, x2, y2, 7, C.accent); arrow(c, x2, y2, x2 + vx2, y2 + vy2, C.accent, 2); c.restore();
+    dot(c, x1, y1, 8, C.accent);
+    arrow(c, x1, y1, x1 + vx1, y1 + vy1, C.accent, 2.5);
+    const ac = p.v * p.v / p.r * 4;
+    arrow(c, x1, y1, x1 + (cx - x1) / Rp * ac, y1 + (cy - y1) / Rp * ac, C['accent-2'], 3);
+    text(c, 'v', x1 + vx1 + 8, y1 + vy1, C.accent, 14);
+    text(c, 'a → centre', 12, 20, C['accent-2'], 12);
+    // velocity triangle inset
+    const ox = w * 0.78, oy = h / 2;
+    text(c, 'velocities tail-to-tail', ox, 22, C.muted, 12, 'center');
+    arrow(c, ox, oy, ox + vx1, oy + vy1, C.accent, 2.5);
+    c.save(); c.globalAlpha = .5; arrow(c, ox, oy, ox + vx2, oy + vy2, C.accent, 2.5); c.restore();
+    arrow(c, ox + vx1, oy + vy1, ox + vx2, oy + vy2, C['accent-2'], 3);
+    text(c, 'Δv points to centre', ox, h - 14, C['accent-2'], 12, 'center');
+  },
+  insights: [
+    R`Velocity is a vector. Turning it, even without changing its length, is a change $\Delta v$ — so there is acceleration.`,
+    R`Put the two velocity arrows tail-to-tail: $\Delta v$ points toward the centre (orange) — hence "centre-seeking".`,
+    R`In time $\Delta t$ the velocity turns by angle $\omega\Delta t$, so $|\Delta v|\approx v\,\omega\Delta t$ → $a=v\omega=v^2/r$.`,
+    R`Double the speed → turns twice as fast <em>and</em> each turn changes a vector twice as long → $a\times4$.`,
+  ],
+  tryit: 'Double v and watch the orange arrow quadruple. Then double r at the same v — the arrow halves.',
+  quiz: { q: 'A car takes a turn at twice the speed. The friction needed becomes…', opts: ['2×', '4×', '½×', 'same'], a: 1, why: 'Required force mv²/r ∝ v², so 2× speed needs 4× friction.' },
+},
+{
+  id: 'snell', subject: 'Physics · Ray optics', title: "Snell's law & TIR",
+  tex: R`n_1 \sin\theta_1 = n_2 \sin\theta_2,\qquad \sin\theta_c = \dfrac{n_2}{n_1}`,
+  blurb: 'Light slows down in denser media, so it bends — like a marching band stepping from road onto mud at an angle.',
+  controls: [
+    { k: 'th', label: 'Incident angle θ₁', min: 0, max: 89, step: 1, val: 40, unit: '°' },
+    { k: 'n1', label: 'Top medium n₁', min: 1, max: 2.5, step: 0.01, val: 1, unit: '' },
+    { k: 'n2', label: 'Bottom medium n₂', min: 1, max: 2.5, step: 0.01, val: 1.5, unit: '' },
+  ],
+  readout: p => { const s = p.n1 * Math.sin(p.th * DEG) / p.n2;
+    return [['θ₂', s <= 1 ? fmt(Math.asin(s) / DEG, 1) + '°' : 'none (TIR)'], ['n₁ sin θ₁', fmt(p.n1 * Math.sin(p.th * DEG), 3)], ['critical θc', p.n1 > p.n2 ? fmt(Math.asin(p.n2 / p.n1) / DEG, 1) + '°' : '— (n₁ < n₂)'], ['speed ratio v₂/v₁', fmt(p.n1 / p.n2, 3)]]; },
+  draw(c, w, h, p) {
+    const cx = w / 2, cy = h / 2, L = Math.min(w, h) * 0.46;
+    c.save(); c.fillStyle = C.accent; c.globalAlpha = 0.05 + (p.n1 - 1) * 0.12; c.fillRect(0, 0, w, cy); c.globalAlpha = 0.05 + (p.n2 - 1) * 0.12; c.fillRect(0, cy, w, h - cy); c.restore();
+    line(c, 0, cy, w, cy, C.ink, 2);
+    line(c, cx, cy - L, cx, cy + L, C.muted, 1, [5, 5]);
+    text(c, `n₁ = ${p.n1}`, 12, 22, C.ink, 13); text(c, `n₂ = ${p.n2}`, 12, h - 12, C.ink, 13);
+    const t1 = p.th * DEG, s = p.n1 * Math.sin(t1) / p.n2;
+    arrow(c, cx - L * Math.sin(t1), cy - L * Math.cos(t1), cx, cy, C['accent-2'], 3);
+    if (s <= 1) {
+      const t2 = Math.asin(s);
+      arrow(c, cx, cy, cx + L * Math.sin(t2), cy + L * Math.cos(t2), C['accent-2'], 3);
+      c.save(); c.globalAlpha = .3; arrow(c, cx, cy, cx + L * Math.sin(t1), cy - L * Math.cos(t1), C['accent-2'], 2); c.restore();
+      circ(c, cx, cy, 40, C['accent-3'], 1.5, null, Math.PI / 2 - t2, Math.PI / 2);
+      text(c, `θ₂ = ${fmt(t2 / DEG, 1)}°`, cx + 10, cy + 60, C['accent-3'], 13);
+    } else {
+      arrow(c, cx, cy, cx + L * Math.sin(t1), cy - L * Math.cos(t1), C['accent-2'], 3);
+      text(c, 'TOTAL INTERNAL REFLECTION', cx, cy + 30, C['accent-4'], 15, 'center');
+    }
+    circ(c, cx, cy, 40, C.accent, 1.5, null, -Math.PI / 2 - t1, -Math.PI / 2);
+    text(c, `θ₁ = ${p.th}°`, cx - 10, cy - 50, C.accent, 13, 'right');
+    if (p.n1 > p.n2) { const tc = Math.asin(p.n2 / p.n1); line(c, cx, cy, cx - L * Math.sin(tc), cy - L * Math.cos(tc), C['accent-4'], 1.5, [3, 4]); text(c, 'critical', cx - L * Math.sin(tc) - 4, cy - L * Math.cos(tc), C['accent-4'], 12, 'right'); }
+  },
+  insights: [
+    R`Light travels at $c/n$. Entering a slower medium at an angle, one side of the beam slows first, so the beam swings toward the normal.`,
+    R`Matching the wavefronts across the boundary gives $\sin\theta_1/v_1=\sin\theta_2/v_2$, i.e. $n_1\sin\theta_1=n_2\sin\theta_2$.`,
+    R`Going from dense to rare ($n_1>n_2$) the ray bends away. At $\theta_c$ it skims along the surface ($\theta_2=90^\circ$).`,
+    R`Beyond $\theta_c$ no refracted ray exists — all light reflects. That's how optical fibres and diamonds' sparkle work.`,
+  ],
+  tryit: 'Swap the media: set n₁ = 1.5, n₂ = 1. Increase θ₁ until the ray vanishes below — read the critical angle (≈ 41.8°).',
+  quiz: { q: 'Critical angle for glass (n = 1.5) to air is about…', opts: ['30°', '41.8°', '48.6°', '60°'], a: 1, why: 'sin θc = 1/1.5 = 0.667 → θc ≈ 41.8°.' },
+},
+{
+  id: 'doppler', subject: 'Physics · Waves', title: 'Doppler effect',
+  tex: R`f' = f\,\dfrac{v}{v \mp v_s}`,
+  blurb: 'A moving source squashes its own wavefronts in front and stretches them behind.',
+  controls: [
+    { k: 'r', label: 'Source speed vₛ / v', min: 0, max: 0.95, step: 0.01, val: 0.5, unit: '' },
+    { k: 'f', label: 'Emitted frequency f', min: 200, max: 1000, step: 10, val: 440, unit: ' Hz' },
+  ],
+  readout: p => [['f′ ahead = f/(1−vₛ/v)', fmt(p.f / (1 - p.r), 0) + ' Hz'], ['f′ behind = f/(1+vₛ/v)', fmt(p.f / (1 + p.r), 0) + ' Hz'], ['λ ahead', fmt(1 - p.r, 2) + ' λ'], ['λ behind', fmt(1 + p.r, 2) + ' λ']],
+  draw(c, w, h, p, t) {
+    gridBg(c, w, h);
+    const cs = 60, L = 8, tau = t % L, P = 0.45, vs = p.r * cs, cy = h / 2, sx0 = w / 2 - vs * L / 2, maxR = Math.hypot(w, h);
+    for (let k = 0; k * P <= tau; k++) {
+      const te = k * P, rad = cs * (tau - te); if (rad > maxR) continue;
+      c.save(); c.globalAlpha = Math.max(0.15, 1 - rad / (w * 0.7)); circ(c, sx0 + vs * te, cy, rad, C.accent, 2); c.restore();
+    }
+    const sx = sx0 + vs * tau;
+    dot(c, sx, cy, 9, C['accent-2']);
+    if (vs > 0) arrow(c, sx, cy, sx + 30 + vs, cy, C['accent-2'], 2.5);
+    dot(c, w - 22, cy, 7, C['accent-3']); text(c, `hears ${fmt(p.f / (1 - p.r), 0)} Hz`, w - 14, cy - 16, C['accent-3'], 12, 'right');
+    dot(c, 22, cy, 7, C['accent-4']); text(c, `hears ${fmt(p.f / (1 + p.r), 0)} Hz`, 14, cy - 16, C['accent-4'], 12, 'left');
+  },
+  insights: [
+    R`Each wavefront is a circle centred where the source <em>was</em> when it emitted it. The source chases its own waves.`,
+    R`Ahead, crests are packed closer: $\lambda'=(v-v_s)/f$. Sound still moves at $v$, so $f'=v/\lambda'=f\,v/(v-v_s)$ — higher pitch.`,
+    R`Behind, they spread: $f'=f\,v/(v+v_s)$ — lower pitch. The "neeee–owww" of a passing car.`,
+    R`As $v_s\to v$ the crests pile into a wall: the sonic boom.`,
+  ],
+  tryit: 'Slide vₛ/v up toward 0.95 and watch the fronts crowd into a shock in front of the source.',
+  quiz: { q: 'A source moves toward you at half the speed of sound, emitting 400 Hz. You hear…', opts: ['200 Hz', '600 Hz', '800 Hz', '267 Hz'], a: 2, why: 'f′ = 400 · v/(v − v/2) = 400 × 2 = 800 Hz.' },
+},
+{
+  id: 'ydse', subject: 'Physics · Wave optics', title: "Young's double slit",
+  tex: R`\beta = \dfrac{\lambda D}{d}`,
+  blurb: 'Two slits make two copies of the wave. Where crests meet crests: bright. Crest meets trough: dark.',
+  controls: [
+    { k: 'lam', label: 'Wavelength λ', min: 400, max: 700, step: 5, val: 550, unit: ' nm' },
+    { k: 'd', label: 'Slit gap d', min: 0.15, max: 1, step: 0.01, val: 0.4, unit: ' mm' },
+    { k: 'D', label: 'Screen distance D', min: 0.5, max: 2, step: 0.05, val: 1, unit: ' m' },
+  ],
+  readout: p => { const b = p.lam * p.D / p.d * 1e-3; return [['fringe width β', fmt(b, 3) + ' mm'], ['angular width λ/d', sci(p.lam * 1e-9 / (p.d * 1e-3)) + ' rad'], ['bright fringes in ±8 mm', String(2 * Math.floor(8 / b) + 1)]]; },
+  draw(c, w, h, p, t) {
+    gridBg(c, w, h);
+    const cy = h / 2, bx = w * 0.1, gap = 8 + p.d * 34, col = waveColor(p.lam) || C.accent;
+    line(c, bx, 10, bx, cy - gap - 3, C.ink, 4); line(c, bx, cy - gap + 3, bx, cy + gap - 3, C.ink, 4); line(c, bx, cy + gap + 3, bx, h - 10, C.ink, 4);
+    const sxr = w * 0.5, lp = 6 + (p.lam - 400) / 300 * 14, phase = (t * 25) % lp;
+    c.save(); c.beginPath(); c.rect(bx, 0, sxr - bx, h); c.clip();
+    for (const sy of [cy - gap, cy + gap]) for (let r = phase; r < sxr; r += lp) { c.save(); c.globalAlpha = 0.35 * (1 - r / sxr); circ(c, bx, sy, r, col, 1.5, null, -Math.PI / 2, Math.PI / 2); c.restore(); }
+    c.restore();
+    line(c, sxr, 8, sxr, h - 8, C.ink, 2);
+    const b = p.lam * p.D / p.d * 1e-3, pxmm = (h - 20) / 16;
+    for (let y = 10; y < h - 10; y++) { const I = Math.cos(Math.PI * ((y - cy) / pxmm) / b) ** 2; c.save(); c.globalAlpha = I; c.fillStyle = col; c.fillRect(sxr + 4, y, w * 0.07, 1); c.restore(); }
+    const gx = sxr + w * 0.09, gw = w - gx - 14;
+    c.save(); c.strokeStyle = C.ink; c.lineWidth = 2; c.beginPath();
+    for (let y = 10; y < h - 10; y++) { const I = Math.cos(Math.PI * ((y - cy) / pxmm) / b) ** 2; y === 10 ? c.moveTo(gx + I * gw, y) : c.lineTo(gx + I * gw, y); }
+    c.stroke(); c.restore();
+    line(c, gx + gw * 0.5, cy, gx + gw * 0.5, cy - b * pxmm, C['accent-2'], 2.5);
+    text(c, 'β', gx + gw * 0.5 + 6, cy - b * pxmm / 2, C['accent-2'], 14, 'left', 'middle');
+    text(c, 'intensity', gx, 20, C.muted, 12);
+  },
+  insights: [
+    R`At a point $y$ on the screen, the path difference between the two slits is $\Delta\approx d\,y/D$.`,
+    R`Bright where $\Delta=n\lambda$ → $y_n=n\lambda D/d$. Neighbouring brights are $\beta=\lambda D/d$ apart.`,
+    R`Bigger $\lambda$ or farther screen → wider fringes. Slits closer together → wider fringes (they look like one source).`,
+    R`Intensity goes as $\cos^2(\pi y/\beta)$ — energy isn't destroyed at dark fringes, it's moved to the bright ones.`,
+  ],
+  tryit: 'Switch from blue (450 nm) to red (650 nm): fringes widen. Then halve d — they double.',
+  quiz: { q: 'The whole YDSE apparatus is immersed in water (n = 4/3). Fringe width…', opts: ['increases to 4/3 β', 'decreases to 3/4 β', 'unchanged', 'becomes zero'], a: 1, why: 'λ in water = λ/n, so β = λD/(nd) shrinks to 3β/4.' },
+},
+{
+  id: 'standing', subject: 'Physics · Waves', title: 'Standing waves on a string',
+  tex: R`f_n = \dfrac{n\,v}{2L},\qquad \lambda_n = \dfrac{2L}{n}`,
+  blurb: 'A string fixed at both ends can only hold waves that fit a whole number of half-wavelengths.',
+  controls: [
+    { k: 'n', label: 'Harmonic n', min: 1, max: 8, step: 1, val: 3, unit: '' },
+    { k: 'L', label: 'String length L', min: 0.5, max: 2, step: 0.05, val: 1, unit: ' m' },
+    { k: 'v', label: 'Wave speed v', min: 50, max: 400, step: 5, val: 200, unit: ' m/s' },
+  ],
+  live: true,
+  readout: p => [['λ = 2L/n', fmt(2 * p.L / p.n) + ' m'], ['f = nv/2L', fmt(p.n * p.v / (2 * p.L), 1) + ' Hz'], ['fundamental f₁', fmt(p.v / (2 * p.L), 1) + ' Hz'], ['nodes', String(p.n + 1)]],
+  draw(c, w, h, p, t) {
+    gridBg(c, w, h);
+    const x0 = 30, x1 = 30 + (w - 60) * p.L / 2, cy = h / 2, A = h * 0.32, om = 2 * Math.PI * 0.6;
+    line(c, x0, cy - A - 10, x0, cy + A + 10, C.ink, 5); line(c, x1, cy - A - 10, x1, cy + A + 10, C.ink, 5);
+    const S = s => Math.sin(p.n * Math.PI * s);
+    for (const sg of [1, -1]) { c.save(); c.strokeStyle = C.line; c.lineWidth = 1.5; c.setLineDash([4, 4]); c.beginPath(); for (let i = 0; i <= 200; i++) { const s = i / 200; i ? c.lineTo(x0 + s * (x1 - x0), cy - sg * A * S(s)) : c.moveTo(x0, cy); } c.stroke(); c.restore(); }
+    c.save(); c.strokeStyle = C.accent; c.lineWidth = 3; c.beginPath();
+    for (let i = 0; i <= 300; i++) { const s = i / 300; const y = cy - A * S(s) * Math.cos(om * t); i ? c.lineTo(x0 + s * (x1 - x0), y) : c.moveTo(x0, y); }
+    c.stroke(); c.restore();
+    for (let k = 0; k <= p.n; k++) dot(c, x0 + k / p.n * (x1 - x0), cy, 5, C['accent-2']);
+    for (let k = 0; k < p.n; k++) text(c, 'A', x0 + (k + 0.5) / p.n * (x1 - x0), cy + A + 22, C['accent-3'], 12, 'center');
+    text(c, '● nodes (never move)   A = antinodes', 12, 20, C.muted, 12);
+  },
+  insights: [
+    R`Both ends must be nodes. So the string must hold exactly $n$ half-wavelengths: $L=n\lambda/2$.`,
+    R`Wave speed is fixed by the string ($v=\sqrt{T/\mu}$), so $f=v/\lambda=nv/2L$. Only these frequencies "fit".`,
+    R`The allowed frequencies are whole multiples of $f_1=v/2L$: harmonics. That's why a guitar note has overtones.`,
+    R`Shorter string (press a fret) or tighter string (raise $v$) → higher pitch.`,
+  ],
+  tryit: 'Step n from 1 to 4 and count nodes (n + 1) and loops (n). Halve L — every frequency doubles.',
+  quiz: { q: 'A string vibrates in its 3rd harmonic. Number of nodes (including ends)?', opts: ['2', '3', '4', '6'], a: 2, why: 'n loops need n + 1 nodes → 4.' },
+},
+{
+  id: 'rc', subject: 'Physics · Current electricity', title: 'RC charging',
+  tex: R`q = Q\left(1 - e^{-t/RC}\right),\qquad i = I_0\,e^{-t/RC}`,
+  blurb: 'A capacitor fills fast at first, then slower and slower — the fuller it is, the harder it pushes back.',
+  controls: [
+    { k: 'R', label: 'Resistance R', min: 1, max: 10, step: 0.5, val: 5, unit: ' kΩ' },
+    { k: 'C', label: 'Capacitance C', min: 10, max: 100, step: 5, val: 100, unit: ' µF' },
+  ],
+  live: true,
+  readout: (p, t) => { const tau = p.R * p.C * 1e-3, tt = Math.min(t % 6, 5);
+    return [['τ = RC', fmt(tau, 3) + ' s'], ['t', fmt(tt, 1) + ' s'], ['q/Q', fmt(100 * (1 - Math.exp(-tt / tau)), 1) + '%'], ['i/I₀', fmt(100 * Math.exp(-tt / tau), 1) + '%']]; },
+  draw(c, w, h, p, t) {
+    gridBg(c, w, h);
+    const tau = p.R * p.C * 1e-3, tt = Math.min(t % 6, 5);
+    const { X, Y } = axes(c, { x: 46, y: 18, w: w - 64, h: h - 46 }, [0, 5], [0, 1.08], 't (s) →', '');
+    plot(c, x => 1 - Math.exp(-x / tau), 0, 5, X, Y, C.accent, 3);
+    plot(c, x => Math.exp(-x / tau), 0, 5, X, Y, C['accent-2'], 2.5, [6, 5]);
+    if (tau <= 5) { line(c, X(tau), Y(0), X(tau), Y(0.632), C.muted, 1, [3, 4]); line(c, X(0), Y(0.632), X(tau), Y(0.632), C.muted, 1, [3, 4]); text(c, 'τ', X(tau), Y(0) + 16, C.ink, 13, 'center'); text(c, '63%', X(0) - 6, Y(0.632) + 4, C.muted, 11, 'right'); }
+    dot(c, X(tt), Y(1 - Math.exp(-tt / tau)), 6, C.accent); dot(c, X(tt), Y(Math.exp(-tt / tau)), 6, C['accent-2']);
+    text(c, '— charge q/Q', w - 14, 24, C.accent, 12, 'right'); text(c, '- - current i/I₀', w - 14, 42, C['accent-2'], 12, 'right');
+  },
+  insights: [
+    R`Current $i=(V-q/C)/R$: the battery pushes, the capacitor's own voltage pushes back. More charge → less current → slower filling.`,
+    R`"Rate ∝ what's left to fill" is the same equation as radioactive decay, so the gap closes exponentially.`,
+    R`After one time constant $\tau=RC$ the capacitor is 63% full; after $5\tau$ it's 99.3% — "practically full".`,
+    R`Bigger $R$ (narrower pipe) or bigger $C$ (bigger tank) → slower.`,
+  ],
+  tryit: 'Halve R: the curve squeezes left by exactly 2×. The shape never changes — only the time scale.',
+  quiz: { q: 'What fraction of the final charge is on a capacitor after t = 2RC?', opts: ['63%', '86%', '95%', '99%'], a: 1, why: '1 − e⁻² ≈ 1 − 0.135 = 0.865.' },
+},
+// ===================== CHEMISTRY (more) =====================
+{
+  id: 'arrhenius', subject: 'Chemistry · Kinetics', title: 'Arrhenius equation',
+  tex: R`k = A\,e^{-E_a/RT}`,
+  blurb: 'Only molecules with energy above Eₐ react. A small rise in T fattens that high-energy tail a lot.',
+  controls: [
+    { k: 'T', label: 'Temperature T', min: 250, max: 600, step: 5, val: 300, unit: ' K' },
+    { k: 'Ea', label: 'Activation energy Eₐ', min: 20, max: 120, step: 1, val: 50, unit: ' kJ/mol' },
+  ],
+  readout: p => { const RT = 8.314e-3 * p.T, f = Math.exp(-p.Ea / RT), f10 = Math.exp(-p.Ea / (8.314e-3 * (p.T + 10)));
+    return [['RT', fmt(RT, 2) + ' kJ/mol'], ['fraction ≥ Eₐ ≈ e^(−Eₐ/RT)', sci(f)], ['k(T+10)/k(T)', fmt(f10 / f, 2) + '×']]; },
+  draw(c, w, h, p) {
+    gridBg(c, w, h);
+    const half = w * 0.52, Emax = p.Ea * 1.35, lo = -30;
+    const lf = (E, T) => { const RT = 8.314e-3 * T; return Math.log10(2 / Math.sqrt(Math.PI) * RT ** -1.5 * Math.sqrt(E)) - E / RT / Math.LN10; };
+    const { X, Y } = axes(c, { x: 40, y: 18, w: half - 54, h: h - 46 }, [0, Emax], [lo, 0.5], 'E →', 'log₁₀ f(E)');
+    const pts = [[X(p.Ea), Y(lo)]]; for (let i = 0; i <= 60; i++) { const E = p.Ea + (Emax - p.Ea) * i / 60; pts.push([X(E), Y(Math.max(lo, lf(E, p.T)))]); } pts.push([X(Emax), Y(lo)]);
+    fillPoly(c, pts, C['accent-2'], 0.25);
+    plot(c, E => Math.max(lo, lf(E, p.T)), 0.05, Emax, X, Y, C.accent, 2.5);
+    plot(c, E => Math.max(lo, lf(E, p.T + 10)), 0.05, Emax, X, Y, C['accent-3'], 2, [5, 4]);
+    line(c, X(p.Ea), Y(lo), X(p.Ea), Y(0.5), C['accent-2'], 2);
+    text(c, 'Eₐ', X(p.Ea) + 4, Y(0.2), C['accent-2'], 13);
+    text(c, '— T   - - T+10 K', half - 16, h - 34, C.muted, 11, 'right');
+    // Arrhenius plot
+    const lnA = Math.log(1e13), lk = T => lnA - p.Ea * 1000 / (8.314 * T);
+    const y0 = lk(250), y1 = lk(600);
+    const g = axes(c, { x: half + 30, y: 18, w: w - half - 46, h: h - 46 }, [1000 / 600, 1000 / 250], [Math.min(y0, y1) - 2, Math.max(y0, y1) + 2], '1000/T →', 'ln k');
+    plot(c, x => lk(1000 / x), 1000 / 600, 1000 / 250, g.X, g.Y, C.accent, 2.5);
+    dot(c, g.X(1000 / p.T), g.Y(lk(p.T)), 6, C['accent-2']);
+    text(c, 'slope = −Eₐ/R', g.X(3), g.Y(lk(1000 / 3)) - 12, C.muted, 12, 'center');
+  },
+  insights: [
+    R`Molecular energies follow a distribution with a long tail. Only the fraction above $E_a$, roughly $e^{-E_a/RT}$, can react.`,
+    R`The left plot uses a log scale: the tail beyond $E_a$ is tiny, but raising $T$ by just 10 K lifts it noticeably.`,
+    R`For typical $E_a\approx 50$ kJ/mol near room temperature, +10 K roughly doubles $k$ — the old rule of thumb.`,
+    R`Take logs: $\ln k=\ln A-\dfrac{E_a}{R}\cdot\dfrac1T$. A straight line whose slope gives $E_a$ (right plot).`,
+  ],
+  tryit: 'At T = 300 K, compare the "k(T+10)/k(T)" readout for Eₐ = 20 vs 100. Which reactions are more temperature-sensitive?',
+  quiz: { q: 'A plot of ln k vs 1/T has slope −6000 K. Eₐ is about…', opts: ['6 kJ/mol', '50 kJ/mol', '6000 kJ/mol', '0.72 kJ/mol'], a: 1, why: 'Slope = −Eₐ/R → Eₐ = 6000 × 8.314 ≈ 49.9 kJ/mol.' },
+},
+{
+  id: 'buffer', subject: 'Chemistry · Ionic equilibrium', title: 'Henderson–Hasselbalch',
+  tex: R`\mathrm{pH} = \mathrm{p}K_a + \log\dfrac{[\mathrm{A^-}]}{[\mathrm{HA}]}`,
+  blurb: 'pH is set by the ratio of base to acid. Equal amounts → pH = pKₐ.',
+  controls: [
+    { k: 'pKa', label: 'pKₐ', min: 2, max: 12, step: 0.01, val: 4.76, unit: '' },
+    { k: 'lr', label: 'log([A⁻]/[HA])', min: -2, max: 2, step: 0.05, val: 0, unit: '' },
+  ],
+  readout: p => { const a = 1 / (1 + 10 ** -p.lr); return [['pH', fmt(p.pKa + p.lr, 2)], ['[A⁻]/[HA]', fmt(10 ** p.lr, 2)], ['% as A⁻', fmt(a * 100, 1) + '%'], ['buffer zone', Math.abs(p.lr) <= 1 ? 'yes (within ±1)' : 'weak']]; },
+  draw(c, w, h, p) {
+    gridBg(c, w, h);
+    const a = 1 / (1 + 10 ** -p.lr), nA = Math.round(a * 100);
+    const side = Math.min(w * 0.36, h - 60), cell = side / 10, gx = 20, gy = 30;
+    for (let i = 0; i < 100; i++) dot(c, gx + (i % 10) * cell + cell / 2, gy + Math.floor(i / 10) * cell + cell / 2, cell * 0.36, i < nA ? C['accent-2'] : C.accent);
+    text(c, `● A⁻ ${nA}   ● HA ${100 - nA}`, gx, 20, C.muted, 12);
+    const bx = gx + side + 40, b = { x: bx, y: 18, w: w - bx - 18, h: h - 64 };
+    const { X, Y } = axes(c, b, [0, 1], [0, 14], 'fraction A⁻ →', 'pH');
+    c.save(); c.fillStyle = C['accent-3']; c.globalAlpha = .12; c.fillRect(b.x, Y(p.pKa + 1), b.w, Y(p.pKa - 1) - Y(p.pKa + 1)); c.restore();
+    plot(c, x => Math.min(14, Math.max(0, p.pKa + Math.log10(x / (1 - x)))), 0.002, 0.998, X, Y, C.accent, 3, null, 300);
+    line(c, X(0), Y(p.pKa), X(0.5), Y(p.pKa), C.muted, 1, [3, 4]); line(c, X(0.5), Y(0), X(0.5), Y(p.pKa), C.muted, 1, [3, 4]);
+    dot(c, X(a), Y(p.pKa + p.lr), 7, C['accent-2']);
+    text(c, 'flat = buffer region', X(0.5), Y(p.pKa + 1) - 6, C['accent-3'], 12, 'center');
+    const gr = c.createLinearGradient(b.x, 0, b.x + b.w, 0); ['#d7263d', '#f46036', '#f9c80e', '#2bb673', '#1b98e0', '#5b3c88'].forEach((col, i) => gr.addColorStop(i / 5, col));
+    c.save(); c.fillStyle = gr; c.fillRect(b.x, h - 26, b.w, 10); c.restore();
+    const pm = b.x + (p.pKa + p.lr) / 14 * b.w; arrow(c, pm, h - 38, pm, h - 26, C.ink, 2);
+    text(c, '0', b.x, h - 4, C.muted, 10, 'center'); text(c, '7', b.x + b.w / 2, h - 4, C.muted, 10, 'center'); text(c, '14', b.x + b.w, h - 4, C.muted, 10, 'center');
+  },
+  insights: [
+    R`From $K_a=\dfrac{[\mathrm{H^+}][\mathrm{A^-}]}{[\mathrm{HA}]}$, take $-\log$ of both sides and rearrange. That's the whole derivation.`,
+    R`Half-neutralised ($[\mathrm{A^-}]=[\mathrm{HA}]$) → $\log 1=0$ → $\mathrm{pH}=\mathrm{p}K_a$. The dashed lines mark it.`,
+    R`Near the middle the curve is flat: adding a bit of acid or base shifts the ratio slightly but pH barely moves. That's buffering.`,
+    R`Every ×10 in the ratio is just +1 pH. Outside ratio 0.1–10 the buffer is exhausted.`,
+  ],
+  tryit: 'Set pKₐ = 4.76 (acetic acid). Move the ratio from 1:1 to 10:1 — how many pH units did it change?',
+  quiz: { q: 'A buffer has [A⁻] = 10 × [HA] and pKₐ = 4.76. pH = ?', opts: ['3.76', '4.76', '5.76', '14.76'], a: 2, why: 'pH = 4.76 + log 10 = 5.76.' },
+},
+{
+  id: 'bohr', subject: 'Chemistry · Atomic structure', title: 'Bohr model & spectra',
+  tex: R`E_n = -\dfrac{13.6\,Z^{2}}{n^{2}}\ \text{eV},\qquad \dfrac{1}{\lambda} = R Z^{2}\!\left(\dfrac{1}{n_f^{2}} - \dfrac{1}{n_i^{2}}\right)`,
+  blurb: 'Electrons live on energy "shelves". Dropping a shelf releases a photon carrying exactly the gap.',
+  controls: [
+    { k: 'ni', label: 'From level nᵢ', min: 1, max: 7, step: 1, val: 3, unit: '' },
+    { k: 'nf', label: 'To level n_f', min: 1, max: 7, step: 1, val: 2, unit: '' },
+    { k: 'Z', label: 'Atomic number Z', min: 1, max: 3, step: 1, val: 1, unit: '' },
+  ],
+  readout: p => {
+    if (p.ni === p.nf) return [['transition', 'none — pick different levels']];
+    const lo = Math.min(p.ni, p.nf), hi = Math.max(p.ni, p.nf), dE = 13.6 * p.Z ** 2 * (1 / lo ** 2 - 1 / hi ** 2), lam = 1e9 / (1.097e7 * p.Z ** 2 * (1 / lo ** 2 - 1 / hi ** 2));
+    const ser = ['Lyman', 'Balmer', 'Paschen', 'Brackett', 'Pfund', 'Humphreys'][lo - 1];
+    return [[p.nf < p.ni ? 'emission' : 'absorption', `${p.ni} → ${p.nf}`], ['ΔE', fmt(dE, 2) + ' eV'], ['λ', fmt(lam, 1) + ' nm'], ['series', ser + (p.Z === 1 ? '' : '-like')], ['region', lam < 380 ? 'ultraviolet' : lam > 750 ? 'infrared' : 'visible']];
+  },
+  live: true,
+  draw(c, w, h, p, t) {
+    gridBg(c, w, h);
+    const top = Math.max(p.ni, p.nf), cx = w * 0.2, cy = h / 2, maxR = Math.min(w * 0.18, h * 0.44), k = maxR / (top * top);
+    dot(c, cx, cy, 6, C['accent-2']);
+    for (let n = 1; n <= top; n++) circ(c, cx, cy, k * n * n, n === p.ni || n === p.nf ? C.accent : C.line, n === p.ni || n === p.nf ? 2 : 1);
+    const a = t * 1.5, ri = k * p.ni * p.ni, rf = k * p.nf * p.nf;
+    const ph = (t % 2) / 2, rr = ri + (rf - ri) * Math.min(1, ph * 2);
+    dot(c, cx + rr * Math.cos(a), cy - rr * Math.sin(a), 5, C.ink);
+    // energy levels
+    const lx = w * 0.45, rx = w - 20, E = n => -13.6 * p.Z ** 2 / n ** 2, Emin = E(1);
+    const Y = e => 16 + (h - 36) * (e / Emin);
+    for (let n = 1; n <= 7; n++) { line(c, lx, Y(E(n)), rx, Y(E(n)), n === p.ni || n === p.nf ? C.ink : C.line, n === p.ni || n === p.nf ? 2 : 1); if (n <= 4 || n === p.ni || n === p.nf) text(c, `n=${n}  ${fmt(E(n), 2)} eV`, rx, Y(E(n)) - 4, C.muted, 11, 'right'); }
+    line(c, lx, Y(0), rx, Y(0), C.muted, 1, [3, 3]);
+    if (p.ni !== p.nf) {
+      const ax = lx + (rx - lx) * 0.25;
+      arrow(c, ax, Y(E(p.ni)), ax, Y(E(p.nf)), C.accent, 3);
+      const lo = Math.min(p.ni, p.nf), hi = Math.max(p.ni, p.nf), lam = 1e9 / (1.097e7 * p.Z ** 2 * (1 / lo ** 2 - 1 / hi ** 2));
+      const col = waveColor(lam) || C['accent-4'], ym = (Y(E(p.ni)) + Y(E(p.nf))) / 2;
+      c.save(); c.strokeStyle = col; c.lineWidth = 2.5; c.beginPath();
+      for (let i = 0; i <= 120; i++) { const x = ax + 10 + i; const y = ym + 7 * Math.sin(i / 120 * Math.PI * 2 * 6 - t * 8); i ? c.lineTo(x, y) : c.moveTo(x, y); }
+      c.stroke(); c.restore();
+      text(c, `${fmt(lam, 0)} nm ${lam < 380 ? '(UV)' : lam > 750 ? '(IR)' : ''}`, ax + 136, ym + 4, C.ink, 13);
+    }
+  },
+  insights: [
+    R`Bohr: angular momentum comes in units of $\hbar$, so only certain orbits are allowed, with radius $\propto n^2/Z$ and energy $\propto -Z^2/n^2$.`,
+    R`Levels crowd together near the top ($E\to0$ as $n\to\infty$). The gap $1\to2$ is huge; $6\to7$ is tiny.`,
+    R`A jump emits one photon with $h\nu=\Delta E$. Big jumps → short wavelength (UV, Lyman); jumps to $n=2$ → visible (Balmer).`,
+    R`$Z^2$ scaling: He⁺ ($Z=2$) has every energy ×4, every wavelength ÷4.`,
+  ],
+  tryit: 'Fix n_f = 2 and step nᵢ = 3, 4, 5, 6: the four visible Balmer lines (red, cyan, blue, violet).',
+  quiz: { q: 'Which transition in hydrogen emits the shortest wavelength?', opts: ['3 → 2', '4 → 2', '2 → 1', '5 → 3'], a: 2, why: '2 → 1 has the largest energy gap (10.2 eV), so the shortest λ (121.6 nm, UV).' },
+},
+// ===================== MATHS (more) =====================
+{
+  id: 'trig', subject: 'Maths · Trigonometry', title: 'Unit circle: sin²θ + cos²θ = 1',
+  tex: R`\sin^{2}\theta + \cos^{2}\theta = 1,\qquad \tan\theta = \dfrac{\sin\theta}{\cos\theta}`,
+  blurb: 'sin and cos are just the coordinates of a point on a circle of radius 1.',
+  controls: [ { k: 'th', label: 'Angle θ', min: 0, max: 360, step: 1, val: 35, unit: '°' } ],
+  readout: p => { const a = p.th * DEG, s = Math.sin(a), co = Math.cos(a); return [['sin θ', fmt(s, 3)], ['cos θ', fmt(co, 3)], ['tan θ', Math.abs(co) < 1e-6 ? '∞' : fmt(s / co, 3)], ['sin² + cos²', fmt(s * s + co * co, 3)]]; },
+  draw(c, w, h, p) {
+    gridBg(c, w, h);
+    const R0 = Math.min(h * 0.4, w * 0.22), cx = R0 + 34, cy = h / 2, a = p.th * DEG, px = cx + R0 * Math.cos(a), py = cy - R0 * Math.sin(a);
+    line(c, cx - R0 - 20, cy, cx + R0 + 20, cy, C.muted, 1); line(c, cx, cy - R0 - 14, cx, cy + R0 + 14, C.muted, 1);
+    circ(c, cx, cy, R0, C.line, 2);
+    const ta = Math.tan(a);
+    if (Math.abs(ta) < 1.6) { line(c, cx, cy, cx + R0, cy - R0 * ta, C['accent-3'], 1, [3, 4]); line(c, cx + R0, cy, cx + R0, cy - R0 * ta, C['accent-3'], 3); text(c, 'tan', cx + R0 + 6, cy - R0 * ta / 2, C['accent-3'], 12, 'left', 'middle'); }
+    line(c, cx, cy, px, cy, C.accent, 4); line(c, px, cy, px, py, C['accent-2'], 4);
+    line(c, cx, cy, px, py, C.ink, 2); dot(c, px, py, 6, C.ink);
+    circ(c, cx, cy, 22, C.ink, 1.5, null, -a, 0);
+    text(c, 'cos', (cx + px) / 2, cy + (py < cy ? 16 : -8), C.accent, 12, 'center'); text(c, 'sin', px + (px > cx ? 6 : -6), (cy + py) / 2, C['accent-2'], 12, px > cx ? 'left' : 'right', 'middle');
+    text(c, '1', (cx + px) / 2 - 8, (cy + py) / 2 - 4, C.ink, 13, 'right');
+    [['S', -1, -1], ['A', 1, -1], ['T', -1, 1], ['C', 1, 1]].forEach(([s, dx, dy]) => text(c, s, cx + dx * (R0 + 12), cy + dy * (R0 + 4), C.muted, 13, 'center', 'middle'));
+    const gx = cx + R0 + 60, gw = w - gx - 14;
+    if (gw > 120) {
+      const { X, Y } = axes(c, { x: gx, y: 20, w: gw, h: h - 40 }, [0, 360], [-1.2, 1.2], 'θ →', '');
+      plot(c, x => Math.sin(x * DEG), 0, 360, X, Y, C['accent-2'], 2.5); plot(c, x => Math.cos(x * DEG), 0, 360, X, Y, C.accent, 2.5);
+      line(c, X(p.th), Y(-1.2), X(p.th), Y(1.2), C.muted, 1, [3, 4]);
+      dot(c, X(p.th), Y(Math.sin(a)), 5, C['accent-2']); dot(c, X(p.th), Y(Math.cos(a)), 5, C.accent);
+    }
+  },
+  insights: [
+    R`On a circle of radius 1, the point at angle $\theta$ is $(\cos\theta,\sin\theta)$. The legs of the triangle are $\cos\theta$ and $\sin\theta$, the hypotenuse is 1.`,
+    R`Pythagoras on that triangle <em>is</em> $\sin^2\theta+\cos^2\theta=1$. Divide by $\cos^2$ or $\sin^2$ to get the other two identities.`,
+    R`Signs per quadrant follow from coordinates: All positive, then Sin, then Tan, then Cos (ASTC, anticlockwise from top-right).`,
+    R`$\tan\theta$ is the height where the radius line meets the vertical tangent at $x=1$ — that's literally why it's called tangent.`,
+  ],
+  tryit: 'Go to 90°: tan shoots off to infinity. Then compare 30° and 150° — same sin, opposite cos.',
+  quiz: { q: 'If sin θ = 3/5 and θ is in the 2nd quadrant, cos θ = ?', opts: ['4/5', '−4/5', '3/4', '−3/4'], a: 1, why: 'cos² = 1 − 9/25 = 16/25 → ±4/5, negative in quadrant II.' },
+},
+{
+  id: 'ap', subject: 'Maths · Sequences', title: 'Sum of an AP',
+  tex: R`S_n = \dfrac{n}{2}\bigl(2a + (n-1)d\bigr) = \dfrac{n}{2}(a + l)`,
+  blurb: "Gauss's trick: write the sum forwards and backwards, and every column adds to the same thing.",
+  controls: [
+    { k: 'a', label: 'First term a', min: 1, max: 6, step: 1, val: 2, unit: '' },
+    { k: 'd', label: 'Common difference d', min: 0, max: 3, step: 1, val: 1, unit: '' },
+    { k: 'n', label: 'Number of terms n', min: 2, max: 12, step: 1, val: 6, unit: '' },
+  ],
+  readout: p => { const l = p.a + (p.n - 1) * p.d; return [['last term l', String(l)], ['each column a + l', String(p.a + l)], ['rectangle n(a+l)', String(p.n * (p.a + l))], ['S = half of it', String(p.n * (p.a + l) / 2)]]; },
+  draw(c, w, h, p) {
+    gridBg(c, w, h);
+    const l = p.a + (p.n - 1) * p.d, tot = p.a + l, u = Math.min((w - 80) / p.n, (h - 50) / tot), x0 = (w - p.n * u) / 2, yb = h - 26;
+    for (let k = 0; k < p.n; k++) {
+      const hk = p.a + k * p.d, hc = tot - hk, x = x0 + k * u;
+      for (let j = 0; j < hk; j++) { c.save(); c.fillStyle = C.accent; c.globalAlpha = .55; c.fillRect(x + 1, yb - (j + 1) * u + 1, u - 2, u - 2); c.restore(); }
+      for (let j = 0; j < hc; j++) { c.save(); c.fillStyle = C['accent-2']; c.globalAlpha = .3; c.fillRect(x + 1, yb - (hk + j + 1) * u + 1, u - 2, u - 2); c.restore(); }
+      text(c, String(hk), x + u / 2, yb + 16, C.accent, 12, 'center');
+    }
+    c.save(); c.strokeStyle = C.ink; c.lineWidth = 2; c.strokeRect(x0, yb - tot * u, p.n * u, tot * u); c.restore();
+    text(c, '■ the AP   ■ same AP flipped', 12, 18, C.muted, 12);
+  },
+  insights: [
+    R`Write $S=a+(a+d)+\dots+l$ and underneath $S=l+(l-d)+\dots+a$. Each column adds to $a+l$.`,
+    R`Picture it: the staircase plus its upside-down copy makes an $n\times(a+l)$ rectangle. So $2S=n(a+l)$.`,
+    R`Substitute $l=a+(n-1)d$ to get $S_n=\tfrac n2\bigl(2a+(n-1)d\bigr)$.`,
+    R`Special case $1+2+\dots+n=\tfrac{n(n+1)}2$ — a staircase of half a rectangle.`,
+  ],
+  tryit: 'Set a = 1, d = 1 and count the blue squares for n = 10: it should be 55.',
+  quiz: { q: 'Sum of 3 + 7 + 11 + … to 10 terms?', opts: ['210', '195', '230', '390'], a: 0, why: 'l = 3 + 9·4 = 39; S = 10/2 · (3 + 39) = 210.' },
+},
+{
+  id: 'gp', subject: 'Maths · Sequences', title: 'Infinite GP',
+  tex: R`S_\infty = a + ar + ar^{2} + \cdots = \dfrac{a}{1 - r},\quad |r| < 1`,
+  blurb: 'Infinitely many pieces can add up to something finite — if each piece is a fixed fraction of the last.',
+  controls: [ { k: 'r', label: 'Ratio r', min: 0.1, max: 0.9, step: 0.01, val: 0.5, unit: '' } ],
+  live: true,
+  readout: (p, t) => { const n = Math.min(20, Math.floor((t % 10) / 0.4) + 1), Sn = (1 - p.r ** n) / (1 - p.r), S = 1 / (1 - p.r);
+    return [['terms shown', String(n)], ['Sₙ', fmt(Sn, 4)], ['S∞ = 1/(1−r)', fmt(S, 4)], ['gap left', fmt(S - Sn, 4)]]; },
+  draw(c, w, h, p, t) {
+    gridBg(c, w, h);
+    const S = 1 / (1 - p.r), x0 = 24, W0 = w - 48, X = v => x0 + v / S * W0, n = Math.min(20, Math.floor((t % 10) / 0.4) + 1);
+    const cols = [C.accent, C['accent-2'], C['accent-3'], C['accent-4']];
+    const y1 = h * 0.28, y2 = h * 0.6, bh = h * 0.16;
+    c.save(); c.strokeStyle = C.ink; c.setLineDash([4, 4]); c.strokeRect(X(0), y1, W0, bh); c.restore();
+    let s = 0;
+    for (let k = 0; k < n; k++) { const term = p.r ** k; c.save(); c.fillStyle = cols[k % 4]; c.globalAlpha = .6; c.fillRect(X(s), y1, X(s + term) - X(s), bh); c.restore(); if (k < 3 && X(s + term) - X(s) > 26) text(c, ['a', 'ar', 'ar²'][k], (X(s) + X(s + term)) / 2, y1 + bh / 2, C.ink, 13, 'center', 'middle'); s += term; }
+    text(c, 'S = a + ar + ar² + …', x0, y1 - 8, C.ink, 13);
+    text(c, `→ ${fmt(S, 3)}`, X(S), y1 - 8, C.ink, 13, 'right');
+    // r·S bar, shifted by a
+    s = 1;
+    for (let k = 1; k < n; k++) { const term = p.r ** k; c.save(); c.fillStyle = cols[k % 4]; c.globalAlpha = .35; c.fillRect(X(s), y2, X(s + term) - X(s), bh); c.restore(); s += term; }
+    c.save(); c.strokeStyle = C.accent; c.lineWidth = 2; c.strokeRect(X(0), y2, X(1) - X(0), bh); c.restore();
+    text(c, 'a', (X(0) + X(1)) / 2, y2 + bh / 2, C.accent, 14, 'center', 'middle');
+    text(c, 'S = a + r·S  (the tail is just S shrunk by r)', x0, y2 + bh + 20, C.muted, 12);
+  },
+  insights: [
+    R`Multiply the series by $r$: $rS=ar+ar^2+\dots$ — that's $S$ without its first term. So $S-rS=a$.`,
+    R`Hence $S=\dfrac{a}{1-r}$. The bottom bar shows it: after the first piece $a$, the rest is a scaled copy of the whole.`,
+    R`Works only if $|r|<1$: the pieces shrink to zero. With $r\ge1$ they never shrink and the sum blows up.`,
+    R`$r=\tfrac12$: $1+\tfrac12+\tfrac14+\dots=2$. Each step covers half of the remaining gap.`,
+  ],
+  tryit: 'Try r = 0.9: it takes many more terms to get close (S∞ = 10). Then r = 0.1: almost done after two terms.',
+  quiz: { q: '0.333… = 3/10 + 3/100 + … equals…', opts: ['3/10', '1/3', '3/9.9', '1'], a: 1, why: 'a = 0.3, r = 0.1 → 0.3/0.9 = 1/3.' },
+},
+{
+  id: 'integral', subject: 'Maths · Calculus', title: 'Integral as area',
+  tex: R`\int_{0}^{b} x^{2}\,dx = \lim_{n\to\infty}\sum_{i=1}^{n} \left(\tfrac{ib}{n}\right)^{2}\tfrac{b}{n} = \dfrac{b^{3}}{3}`,
+  blurb: 'Chop the area into thin strips, add them up, and let the strips get infinitely thin.',
+  controls: [
+    { k: 'b', label: 'Upper limit b', min: 1, max: 3, step: 0.05, val: 2, unit: '' },
+    { k: 'n', label: 'Strips n', min: 2, max: 80, step: 1, val: 6, unit: '' },
+  ],
+  readout: p => { const sum = (p.b ** 3 / p.n ** 3) * p.n * (p.n + 1) * (2 * p.n + 1) / 6, ex = p.b ** 3 / 3; return [['strip sum', fmt(sum, 4)], ['exact b³/3', fmt(ex, 4)], ['error', fmt(sum - ex, 4)], ['error × n', fmt((sum - ex) * p.n, 3)]]; },
+  draw(c, w, h, p) {
+    gridBg(c, w, h);
+    const { X, Y } = axes(c, { x: 40, y: 16, w: w - 60, h: h - 42 }, [0, 3.2], [0, 10], 'x →', 'y = x²');
+    const dx = p.b / p.n;
+    for (let i = 1; i <= p.n; i++) { const xl = (i - 1) * dx, xr = i * dx, y = xr * xr; c.save(); c.fillStyle = C.accent; c.globalAlpha = .25; c.fillRect(X(xl), Y(y), X(xr) - X(xl), Y(0) - Y(y)); c.globalAlpha = 1; c.strokeStyle = C.accent; c.lineWidth = p.n > 40 ? 0.5 : 1; c.strokeRect(X(xl), Y(y), X(xr) - X(xl), Y(0) - Y(y)); c.restore(); }
+    const pts = [[X(0), Y(0)]]; for (let i = 0; i <= 80; i++) { const x = p.b * i / 80; pts.push([X(x), Y(x * x)]); } pts.push([X(p.b), Y(0)]);
+    fillPoly(c, pts, C['accent-3'], 0.25);
+    plot(c, x => x * x, 0, 3.15, X, Y, C.ink, 2.5);
+    line(c, X(p.b), Y(0), X(p.b), Y(10), C['accent-2'], 1.5, [4, 4]); text(c, 'b', X(p.b), Y(0) + 16, C['accent-2'], 13, 'center');
+    text(c, '■ strips (overshoot)  ■ true area', 50, 22, C.muted, 12);
+  },
+  insights: [
+    R`Each strip has width $b/n$ and height $(ib/n)^2$. Sum: $\dfrac{b^3}{n^3}\sum i^2=\dfrac{b^3}{n^3}\cdot\dfrac{n(n+1)(2n+1)}{6}$.`,
+    R`As $n\to\infty$, $\dfrac{(n+1)(2n+1)}{6n^2}\to\dfrac13$. So the area is exactly $b^3/3$.`,
+    R`The overshoot is the little triangles on top; their total shrinks like $1/n$ (watch "error × n" settle).`,
+    R`This is why integration is anti-differentiation: $\dfrac{d}{db}\dfrac{b^3}{3}=b^2$ — adding one more thin strip of height $b^2$.`,
+  ],
+  tryit: 'Fix b = 3 (exact area 9). Raise n from 2 to 80 and watch the sum approach 9.',
+  quiz: { q: '∫₀³ x² dx = ?', opts: ['3', '9', '27', '6'], a: 1, why: 'b³/3 = 27/3 = 9.' },
+},
+{
+  id: 'ellipse', subject: 'Maths · Conic sections', title: 'Ellipse: PF₁ + PF₂ = 2a',
+  tex: R`\dfrac{x^{2}}{a^{2}} + \dfrac{y^{2}}{b^{2}} = 1,\quad PF_1 + PF_2 = 2a,\quad b^{2} = a^{2}(1 - e^{2})`,
+  blurb: 'Tie a string to two pins, pull it tight with a pencil, and trace: that is an ellipse.',
+  controls: [
+    { k: 'e', label: 'Eccentricity e', min: 0, max: 0.95, step: 0.01, val: 0.6, unit: '' },
+    { k: 'th', label: 'Point P (parameter θ)', min: 0, max: 360, step: 1, val: 60, unit: '°' },
+  ],
+  readout: p => { const ct = Math.cos(p.th * DEG), d1 = 1 + p.e * ct, d2 = 1 - p.e * ct; return [['PF₁', fmt(d1, 3) + ' a'], ['PF₂', fmt(d2, 3) + ' a'], ['sum', fmt(d1 + d2, 3) + ' a'], ['b / a', fmt(Math.sqrt(1 - p.e * p.e), 3)], ['foci at ±ae', fmt(p.e, 2) + ' a']]; },
+  draw(c, w, h, p) {
+    gridBg(c, w, h);
+    const cx = w / 2, cy = h / 2, A = Math.min(w * 0.42, h * 0.44), B = A * Math.sqrt(1 - p.e * p.e), F = A * p.e;
+    line(c, cx - A - 20, cy, cx + A + 20, cy, C.muted, 1); line(c, cx, cy - B - 14, cx, cy + B + 14, C.muted, 1);
+    c.save(); c.strokeStyle = C.ink; c.lineWidth = 2.5; c.beginPath(); c.ellipse(cx, cy, A, B, 0, 0, 7); c.stroke(); c.restore();
+    const a = p.th * DEG, px = cx + A * Math.cos(a), py = cy - B * Math.sin(a);
+    line(c, cx - F, cy, px, py, C.accent, 3); line(c, cx + F, cy, px, py, C['accent-2'], 3);
+    dot(c, cx - F, cy, 6, C.accent); dot(c, cx + F, cy, 6, C['accent-2']); dot(c, px, py, 7, C.ink);
+    text(c, 'F₂', cx - F, cy + 18, C.accent, 13, 'center'); text(c, 'F₁', cx + F, cy + 18, C['accent-2'], 13, 'center'); text(c, 'P', px + 8, py - 8, C.ink, 14);
+    if (p.e > 0.05) { const dxp = A / p.e; for (const s of [-1, 1]) if (dxp < w / 2) line(c, cx + s * dxp, 10, cx + s * dxp, h - 10, C['accent-4'], 1.5, [5, 5]); if (A / p.e < w / 2) text(c, 'directrix x = a/e', cx + A / p.e - 6, 20, C['accent-4'], 11, 'right'); }
+    text(c, `a`, cx + A / 2, cy - 6, C.muted, 12, 'center'); text(c, 'b', cx + 6, cy - B / 2, C.muted, 12);
+  },
+  insights: [
+    R`The string has fixed length $2a$, so $PF_1+PF_2=2a$ everywhere. At the end of the major axis this is obvious: $(a-c)+(a+c)$.`,
+    R`At the top of the minor axis each distance is $a$, so $b^2+c^2=a^2$ with $c=ae$ → $b^2=a^2(1-e^2)$.`,
+    R`$e=0$: both pins at the centre → a circle. $e\to1$: pins near the ends → a squashed ellipse.`,
+    R`Focal distances are $a\pm ex$ — that comes from the directrix definition $PF=e\cdot PM$.`,
+  ],
+  tryit: 'Drag P all the way round: the two coloured lengths trade off but always add to 2a. Then push e toward 0.95.',
+  quiz: { q: 'For x²/25 + y²/9 = 1, the distance between the foci is…', opts: ['4', '8', '6', '10'], a: 1, why: 'c² = 25 − 9 = 16 → c = 4, foci 2c = 8 apart.' },
+},
+{
+  id: 'sinx', subject: 'Maths · Limits', title: 'lim sin x / x = 1',
+  tex: R`\lim_{x\to 0}\dfrac{\sin x}{x} = 1,\qquad \cos x \le \dfrac{\sin x}{x} \le 1`,
+  blurb: 'For small angles, the arc, the half-chord and the tangent all become the same length.',
+  controls: [ { k: 'x', label: 'Angle x (radians)', min: 0.05, max: 1.4, step: 0.01, val: 0.9, unit: '' } ],
+  readout: p => [['sin x', fmt(Math.sin(p.x), 4)], ['x (arc)', fmt(p.x, 4)], ['tan x', fmt(Math.tan(p.x), 4)], ['sin x / x', fmt(Math.sin(p.x) / p.x, 4)]],
+  draw(c, w, h, p) {
+    gridBg(c, w, h);
+    const R0 = Math.min(w * 0.6, h - 50), ox = Math.max(30, (w - R0) / 2 - 40), oy = h - 24, x = p.x;
+    const Ax = ox + R0, Px = ox + R0 * Math.cos(x), Py = oy - R0 * Math.sin(x), Ty = oy - R0 * Math.tan(x);
+    c.save(); c.beginPath(); c.rect(0, 0, w, h); c.clip();
+    fillPoly(c, [[ox, oy], [Ax, oy], [Ax, Ty]], C['accent-3'], 0.12);
+    c.save(); c.fillStyle = C['accent-2']; c.globalAlpha = .2; c.beginPath(); c.moveTo(ox, oy); c.arc(ox, oy, R0, -x, 0); c.closePath(); c.fill(); c.restore();
+    fillPoly(c, [[ox, oy], [Ax, oy], [Px, Py]], C.accent, 0.3);
+    circ(c, ox, oy, R0, C.line, 1.5, null, -Math.PI / 2, 0);
+    line(c, ox, oy, Ax, oy, C.ink, 2); line(c, ox, oy, Ax, Ty, C.ink, 1.5);
+    line(c, Px, oy, Px, Py, C.accent, 3); line(c, Ax, oy, Ax, Ty, C['accent-3'], 3);
+    circ(c, ox, oy, R0, C['accent-2'], 3.5, null, -x, 0);
+    c.restore();
+    text(c, 'sin x', Px - 6, (oy + Py) / 2, C.accent, 13, 'right', 'middle');
+    text(c, 'tan x', Ax + 6, Math.max(14, (oy + Ty) / 2), C['accent-3'], 13, 'left', 'middle');
+    text(c, 'arc x', ox + R0 * Math.cos(x / 2) + 8, oy - R0 * Math.sin(x / 2), C['accent-2'], 13);
+    text(c, 'O', ox - 8, oy + 4, C.ink, 13, 'right');
+  },
+  insights: [
+    R`Three nested areas: triangle $\tfrac12\sin x$ ≤ sector $\tfrac12 x$ ≤ big triangle $\tfrac12\tan x$.`,
+    R`Divide by $\tfrac12\sin x$ and flip: $\cos x\le\dfrac{\sin x}{x}\le 1$.`,
+    R`As $x\to0$, $\cos x\to1$, so the ratio is squeezed to 1 (sandwich theorem).`,
+    R`This is why $\sin x\approx x$ for small angles (in <strong>radians</strong>) — used in the pendulum, YDSE and small-angle optics.`,
+  ],
+  tryit: 'Shrink x towards 0.05 — the three lengths become nearly equal, and sin x / x → 1.0000.',
+  quiz: { q: 'lim (x→0) sin 3x / x = ?', opts: ['1', '3', '1/3', '0'], a: 1, why: 'sin 3x / x = 3 · (sin 3x)/(3x) → 3 · 1.' },
+},
+// ===================== BATCH 3 · PHYSICS =====================
+{
+  id: 'rolling', subject: 'Physics · Rotational motion', title: 'Rolling down an incline',
+  tex: R`a = \dfrac{g\sin\theta}{1 + \dfrac{I}{mR^{2}}}`,
+  blurb: 'A rolling object has to spend part of its energy on spinning, so it speeds up more slowly than a sliding block.',
+  controls: [ { k: 'th', label: 'Incline angle θ', min: 5, max: 60, step: 1, val: 30, unit: '°' } ],
+  live: true,
+  readout: p => { const g = 9.8 * Math.sin(p.th * DEG); return [['block (no friction)', fmt(g) + ' m/s²'], ['solid sphere', fmt(g / 1.4)], ['disc', fmt(g / 1.5)], ['hollow sphere', fmt(g / (5 / 3))], ['ring', fmt(g / 2)]]; },
+  draw(c, w, h, p, t) {
+    gridBg(c, w, h);
+    const ROLL = [['Block (slides)', 0], ['Solid sphere  I = ⅖mR²', 0.4], ['Disc  I = ½mR²', 0.5], ['Hollow sphere  I = ⅔mR²', 2 / 3], ['Ring  I = mR²', 1]];
+    const th = p.th * DEG, gs = 9.8 * Math.sin(th), Ld = 5;
+    const iw0 = Math.min(130, w * 0.2), ih = Math.min(iw0 * Math.tan(th), h * 0.55), iw = ih / Math.tan(th), ix = 16, iy = h - 24;
+    fillPoly(c, [[ix, iy], [ix + iw, iy], [ix, iy - ih]], C.accent, 0.18);
+    line(c, ix, iy - ih, ix + iw, iy, C.ink, 2); line(c, ix, iy, ix + iw, iy, C.ink, 2);
+    circ(c, ix + iw, iy, 26, C.ink, 1.5, null, Math.PI, Math.PI + th);
+    text(c, `${p.th}°`, ix + iw - 32, iy - 6, C.ink, 12, 'right');
+    const lx = ix + Math.max(iw, 60) + 30, lw = w - lx - 26, lh = (h - 30) / ROLL.length;
+    const tSlow = Math.sqrt(2 * Ld * 2 / gs), sim = Math.min((t % 5.5) / 4, 1) * tSlow;
+    line(c, lx + lw, 8, lx + lw, h - 8, C['accent-2'], 2, [5, 4]);
+    text(c, 'bottom', lx + lw, h - 2, C['accent-2'], 11, 'center');
+    ROLL.forEach(([name, k], i) => {
+      const a = gs / (1 + k), s = Math.min(Ld, 0.5 * a * sim * sim), y = 16 + lh * (i + 0.6), rad = Math.min(lh * 0.26, 14), x = lx + rad + s / Ld * (lw - rad);
+      line(c, lx, y + rad, lx + lw, y + rad, C.line, 1.5);
+      text(c, name, lx, y - rad - 4, C.muted, 11);
+      if (k === 0) { c.save(); c.fillStyle = C.ink; c.fillRect(x - rad, y - rad, rad * 2, rad * 2); c.restore(); }
+      else {
+        const col = [C.accent, C['accent-3'], C['accent-4'], C['accent-2']][i - 1], rot = s / Ld * (lw - rad) / rad;
+        if (k === 1) circ(c, x, y, rad - 2, col, 4); else if (k === 2 / 3) circ(c, x, y, rad - 1.5, col, 3); else dot(c, x, y, rad, col);
+        line(c, x, y, x + rad * Math.cos(rot), y + rad * Math.sin(rot), k === 1 || k === 2 / 3 ? col : C.paper, 2);
+      }
+    });
+  },
+  insights: [
+    R`Energy: $mgh=\tfrac12mv^2+\tfrac12I\omega^2$, and rolling without slipping means $\omega=v/R$. So $mgh=\tfrac12mv^2\left(1+\dfrac{I}{mR^2}\right)$.`,
+    R`The bigger $I/mR^2$, the more energy goes into spin and the less into forward speed. Mass and radius cancel out — only the shape matters.`,
+    R`Ring (all mass at the rim, $I/mR^2=1$) is slowest: exactly half of $g\sin\theta$. Solid sphere (mass near centre) wins among rollers.`,
+    R`A frictionless block doesn't spin at all, so it gets the full $g\sin\theta$.`,
+  ],
+  tryit: 'Predict the finishing order before you watch. Then change θ — the order never changes, only the time.',
+  quiz: { q: 'A ring, a disc and a solid sphere roll from rest down the same incline. Which reaches the bottom first?', opts: ['Ring', 'Disc', 'Solid sphere', 'All together'], a: 2, why: 'Smallest I/mR² (0.4) → largest acceleration g sinθ/1.4.' },
+},
+{
+  id: 'orbit', subject: 'Physics · Gravitation', title: 'Orbital & escape velocity',
+  tex: R`v_o = \sqrt{\dfrac{GM}{r}},\qquad v_e = \sqrt{\dfrac{2GM}{r}} = \sqrt2\,v_o`,
+  blurb: 'An orbit is falling around the planet and always missing. Throw a bit faster and you never come back.',
+  controls: [ { k: 'f', label: 'Launch speed v / vₒ', min: 0.45, max: 1.6, step: 0.01, val: 1, unit: '' } ],
+  live: true,
+  readout: p => { const E = p.f * p.f / 2 - 1, a = 1 / (2 - p.f * p.f);
+    const kind = p.f < 0.62 ? 'crashes into planet' : Math.abs(p.f - 1) < 0.005 ? 'circle' : p.f < Math.SQRT2 ? 'ellipse' : 'escapes (parabola/hyperbola)';
+    return [['v / vₑ', fmt(p.f / Math.SQRT2, 3)], ['energy E', E < 0 ? fmt(E, 3) + ' (bound)' : '+' + fmt(E, 3) + ' (free)'], ['path', kind], ['period / circular', E < 0 ? fmt(a ** 1.5, 2) + '×' : '—']]; },
+  draw(c, w, h, p, t) {
+    const st = this.st || (this.st = {});
+    if (st.key !== p.f) {
+      st.key = p.f; let x = 1, y = 0, vx = 0, vy = p.f, tt = 0, fate = 'orbit', n = 0; const dt = 0.002, pts = [[x, y]];
+      const a = 1 / (2 - p.f * p.f), tmax = a > 0 && a < 12 ? 2 * Math.PI * a ** 1.5 : 40;
+      while (tt < tmax) {
+        let r3 = Math.hypot(x, y) ** 3; vx -= x / r3 * dt / 2; vy -= y / r3 * dt / 2; x += vx * dt; y += vy * dt;
+        r3 = Math.hypot(x, y) ** 3; vx -= x / r3 * dt / 2; vy -= y / r3 * dt / 2; tt += dt;
+        if (++n % 10 === 0) pts.push([x, y]);
+        const r = Math.hypot(x, y); if (r < 0.3) { fate = 'crash'; pts.push([x, y]); break; } if (r > 14) { fate = 'escape'; break; }
+      }
+      st.pts = pts; st.dur = tt; st.fate = fate;
+      st.R = Math.min(7, Math.max(1.5, ...pts.map(q => Math.hypot(q[0], q[1]))) * 1.08);
+    }
+    gridBg(c, w, h);
+    const cx = w / 2, cy = h / 2, s = Math.min(w, h) / 2 / st.R;
+    dot(c, cx, cy, 0.3 * s, C['accent-3']);
+    circ(c, cx, cy, s, C.muted, 1, [4, 5]);
+    circ(c, cx, cy, s * 2, C.line, 1, [2, 6]);
+    c.save(); c.strokeStyle = C.accent; c.lineWidth = 2; c.beginPath(); st.pts.forEach(([x, y], i) => i ? c.lineTo(cx + x * s, cy - y * s) : c.moveTo(cx + x * s, cy - y * s)); c.stroke(); c.restore();
+    const simT = (t * 1.6) % (st.dur + 1.2), idx = Math.min(st.pts.length - 1, Math.floor(Math.min(1, simT / st.dur) * (st.pts.length - 1)));
+    const [sx, sy] = st.pts[idx]; dot(c, cx + sx * s, cy - sy * s, 6, C['accent-2']);
+    arrow(c, cx + s, cy, cx + s, cy - p.f * 40, C['accent-4'], 2.5);
+    text(c, 'launch', cx + s + 6, cy - 10, C['accent-4'], 12);
+    text(c, st.fate === 'crash' ? 'too slow — falls in' : st.fate === 'escape' ? 'escaped! (v ≥ √2 vₒ)' : p.f < 1 ? 'launch point is the far end (apogee)' : p.f > 1.005 ? 'launch point is the near end (perigee)' : 'perfect circle', 12, 20, C.ink, 13);
+    text(c, 'dashed: r and 2r', 12, h - 12, C.muted, 12);
+  },
+  insights: [
+    R`Circular orbit: gravity supplies the centripetal force, $\dfrac{GMm}{r^2}=\dfrac{mv^2}{r}$ → $v_o=\sqrt{GM/r}$.`,
+    R`Escape: kinetic energy must cancel the (negative) potential energy, $\tfrac12mv^2=\dfrac{GMm}{r}$ → $v_e=\sqrt{2GM/r}=\sqrt2\,v_o$.`,
+    R`In between, total energy is still negative, so the satellite stays bound but on an ellipse — farther away on the other side.`,
+    R`Kepler III: period grows like $a^{3/2}$ (semi-major axis), which is why bigger ellipses take much longer.`,
+  ],
+  tryit: 'Start at 1.0, then 1.2, 1.35, 1.41, 1.42. Watch the ellipse stretch until it never closes.',
+  quiz: { q: 'Escape velocity from Earth is 11.2 km/s. Orbital speed just above the surface is about…', opts: ['5.6 km/s', '7.9 km/s', '11.2 km/s', '15.8 km/s'], a: 1, why: 'vₒ = vₑ/√2 = 11.2/1.414 ≈ 7.9 km/s.' },
+},
+{
+  id: 'bernoulli', subject: 'Physics · Fluids', title: 'Continuity & Bernoulli',
+  tex: R`A_1 v_1 = A_2 v_2,\qquad P + \tfrac12\rho v^{2} = \text{constant}`,
+  blurb: 'Squeeze a pipe and the water speeds up. The energy for that speed comes out of the pressure.',
+  controls: [
+    { k: 'r', label: 'Narrowing A₂ / A₁', min: 0.25, max: 1, step: 0.01, val: 0.5, unit: '' },
+    { k: 'v', label: 'Inlet speed v₁', min: 0.5, max: 3, step: 0.1, val: 1.5, unit: ' m/s' },
+    { k: 'P', label: 'Inlet pressure P₁', min: 10, max: 120, step: 1, val: 60, unit: ' kPa' },
+  ],
+  live: true,
+  readout: p => { const v2 = p.v / p.r, dP = 0.5 * 1000 * (v2 * v2 - p.v * p.v) / 1000; return [['v₂ = v₁A₁/A₂', fmt(v2) + ' m/s'], ['ΔP = ½ρ(v₂² − v₁²)', fmt(dP, 1) + ' kPa'], ['P₂', fmt(p.P - dP, 1) + ' kPa' + (p.P - dP < 0 ? ' (!)' : '')]]; },
+  draw(c, w, h, p, t, dt) {
+    gridBg(c, w, h);
+    const st = this.st || (this.st = { parts: [] });
+    const cy = h * 0.66, H1 = Math.min(h * 0.26, 80), H2 = H1 * p.r, x1 = w * 0.38, x2 = w * 0.58;
+    const hh = x => { if (x <= x1) return H1; if (x >= x2) return H2; const s = (x - x1) / (x2 - x1); return H1 + (H2 - H1) * s * s * (3 - 2 * s); };
+    const pts = []; for (let x = 0; x <= w; x += 4) pts.push([x, cy - hh(x)]); for (let x = w; x >= 0; x -= 4) pts.push([x, cy + hh(x)]);
+    fillPoly(c, pts, C.accent, 0.1);
+    plot(c, x => cy - hh(x), 0, w, x => x, y => y, C.ink, 2.5, null, 150); plot(c, x => cy + hh(x), 0, w, x => x, y => y, C.ink, 2.5, null, 150);
+    if (!st.parts.length) for (let i = 0; i < 80; i++) st.parts.push({ x: Math.random() * w, f: (Math.random() * 2 - 1) * 0.85 });
+    const step = Math.min(dt, 0.05);
+    for (const q of st.parts) { q.x += p.v * 40 * H1 / hh(q.x) * step; if (q.x > w) q.x -= w; dot(c, q.x, cy + q.f * hh(q.x), 2.6, C.accent); }
+    const v2 = p.v / p.r, P2 = p.P - 0.5 * (v2 * v2 - p.v * p.v);
+    const tube = (x, P, lab, left) => {
+      const top = 14, base = cy - hh(x), maxH = base - top - 4, hp = Math.max(0, Math.min(1, P / 120)) * maxH;
+      c.save(); c.strokeStyle = C.ink; c.lineWidth = 2; c.strokeRect(x - 8, top, 16, base - top); c.fillStyle = C['accent-2']; c.globalAlpha = .7; c.fillRect(x - 7, base - hp, 14, hp); c.restore();
+      text(c, `${lab} ${fmt(P, 1)} kPa`, left ? x - 14 : x + 14, base - hp, C['accent-2'], 12, left ? 'right' : 'left', 'middle');
+    };
+    tube(w * 0.16, p.P, 'P₁'); tube(w * 0.8, P2, 'P₂', true);
+    if (P2 < 0) text(c, 'pressure would go negative → cavitation!', w / 2, 20, C['accent-4'], 13, 'center');
+  },
+  insights: [
+    R`Water is (nearly) incompressible: the volume per second $Av$ entering must leave. Half the area → twice the speed.`,
+    R`To speed up, the fluid must be pushed from behind: pressure is higher upstream and drops in the narrow part.`,
+    R`Bernoulli is energy conservation per unit volume: pressure energy $P$ + kinetic energy $\tfrac12\rho v^2$ (+ $\rho gh$ if height changes) stays constant.`,
+    R`Fast flow = low pressure: why a shower curtain blows inward, how a venturi meter or a perfume atomiser works.`,
+  ],
+  tryit: 'Squeeze A₂/A₁ from 1 to 0.5 to 0.25. Speed goes ×2, ×4 — but the pressure drop goes ×4, ×16 (it depends on v²).',
+  quiz: { q: 'Water flows at 2 m/s through a pipe that narrows to one-third the area. The new speed is…', opts: ['2/3 m/s', '6 m/s', '18 m/s', '2√3 m/s'], a: 1, why: 'A₁v₁ = A₂v₂ → v₂ = 2 × 3 = 6 m/s.' },
+},
+{
+  id: 'magnetic', subject: 'Physics · Magnetism', title: 'Charge in a magnetic field',
+  tex: R`\vec F = q\,\vec v\times\vec B,\qquad r = \dfrac{mv}{qB},\qquad T = \dfrac{2\pi m}{qB}`,
+  blurb: 'The magnetic force is always sideways to the motion, so it can only turn the charge — never speed it up.',
+  controls: [
+    { k: 'v', label: 'Speed v', min: 1, max: 10, step: 0.1, val: 5, unit: '' },
+    { k: 'B', label: 'Field B', min: 0.5, max: 3, step: 0.05, val: 1.5, unit: '' },
+    { k: 'qm', label: 'Charge/mass q/m', min: 0.5, max: 3, step: 0.05, val: 1, unit: '' },
+    { k: 'sg', label: 'Charge sign (−1 / +1)', min: -1, max: 1, step: 2, val: 1, unit: '' },
+  ],
+  live: true,
+  readout: p => [['r = mv/qB', fmt(p.v / (p.qm * p.B), 2)], ['T = 2πm/qB', fmt(2 * Math.PI / (p.qm * p.B), 2)], ['T depends on v?', 'no'], ['curves', p.sg > 0 ? 'up (+)' : 'down (−)']],
+  draw(c, w, h, p, t) {
+    gridBg(c, w, h);
+    const xb = w * 0.32, cy = h / 2;
+    c.save(); c.fillStyle = C['accent-4']; c.globalAlpha = .06; c.fillRect(xb, 0, w - xb, h); c.restore();
+    for (let x = xb + 18; x < w; x += 34) for (let y = 16; y < h; y += 34) text(c, '×', x, y, C.muted, 13, 'center', 'middle');
+    text(c, 'B into screen', w - 10, h - 8, C.muted, 12, 'right');
+    line(c, xb, 0, xb, h, C['accent-4'], 1.5, [5, 5]);
+    const s = p.sg, r = 16 * p.v / (p.qm * p.B), L0 = xb - 20, speed = 40 + p.v * 14;
+    const total = L0 + Math.PI * r + L0, d = (t * speed) % (total + 60);
+    c.save(); c.beginPath(); c.rect(0, 0, w, h); c.clip();
+    line(c, 20, cy, xb, cy, C.muted, 1.5, [4, 4]);
+    circ(c, xb, cy - s * r, r, C.muted, 1.5, [4, 4], -Math.PI / 2, Math.PI / 2);
+    line(c, xb, cy - 2 * s * r, 20, cy - 2 * s * r, C.muted, 1.5, [4, 4]);
+    line(c, xb, cy, xb, cy - 2 * s * r, C['accent-4'], 1, [2, 3]);
+    text(c, '2r', xb - 6, cy - s * r, C['accent-4'], 12, 'right', 'middle');
+    let x, y, vx, vy, inField = false;
+    if (d < L0) { x = 20 + d; y = cy; vx = 1; vy = 0; }
+    else if (d < L0 + Math.PI * r) { const ph = (d - L0) / r; x = xb + r * Math.sin(ph); y = cy - s * r * (1 - Math.cos(ph)); vx = Math.cos(ph); vy = -s * Math.sin(ph); inField = true; }
+    else { const e = Math.min(d - L0 - Math.PI * r, L0); x = xb - e; y = cy - 2 * s * r; vx = -1; vy = 0; }
+    dot(c, x, y, 8, s > 0 ? C['accent-2'] : C.accent);
+    text(c, s > 0 ? '+' : '−', x, y + 1, C.paper, 13, 'center', 'middle');
+    arrow(c, x, y, x + vx * 34, y + vy * 34, C['accent-3'], 2.5);
+    if (inField) { const fx = xb - x, fy = cy - s * r - y, L = Math.hypot(fx, fy) || 1; arrow(c, x, y, x + fx / L * 30, y + fy / L * 30, C['accent-4'], 2.5); }
+    c.restore();
+    text(c, '→ v   → F (always ⟂ v)', 12, 20, C.muted, 12);
+  },
+  insights: [
+    R`$\vec F=q\vec v\times\vec B$ is perpendicular to $\vec v$, so it does no work: speed stays constant, only direction changes → uniform circular motion.`,
+    R`Set $qvB=\dfrac{mv^2}{r}$ → $r=\dfrac{mv}{qB}$. Faster or heavier → bigger circle; stronger field or more charge → tighter.`,
+    R`Period $T=2\pi r/v=2\pi m/(qB)$ — the $v$ cancels! That's the principle of the cyclotron.`,
+    R`Opposite charges curve opposite ways (flip the sign slider). Mass spectrometers sort ions this way.`,
+  ],
+  tryit: 'Double v: the circle doubles but the time per half-turn stays the same. Then flip the sign.',
+  quiz: { q: 'A proton and an α-particle (4m, 2e) enter a field with the same speed. Ratio rα : rp is…', opts: ['1 : 1', '2 : 1', '4 : 1', '1 : 2'], a: 1, why: 'r ∝ m/q: α has 4m/2e = 2× the proton’s m/q.' },
+},
+{
+  id: 'photo', subject: 'Physics · Modern physics', title: 'Photoelectric effect',
+  tex: R`K_{max} = h\nu - \phi,\qquad h\nu_0 = \phi`,
+  blurb: 'Light comes in packets. One photon kicks one electron — so colour decides if electrons escape, brightness only decides how many.',
+  controls: [
+    { k: 'lam', label: 'Wavelength λ', min: 150, max: 700, step: 5, val: 400, unit: ' nm' },
+    { k: 'phi', label: 'Work function φ', min: 1.8, max: 6, step: 0.05, val: 2.3, unit: ' eV' },
+    { k: 'I', label: 'Intensity (photons/s)', min: 1, max: 10, step: 1, val: 5, unit: '' },
+  ],
+  live: true,
+  readout: p => { const E = 1240 / p.lam, K = E - p.phi; return [['photon E = 1240/λ', fmt(E) + ' eV'], ['K_max', K > 0 ? fmt(K) + ' eV' : 'no emission'], ['stopping potential', K > 0 ? fmt(K) + ' V' : '—'], ['threshold λ₀', fmt(1240 / p.phi, 0) + ' nm']]; },
+  draw(c, w, h, p, t, dt) {
+    gridBg(c, w, h);
+    const st = this.st || (this.st = { ph: [], el: [], acc: 0 });
+    dt = Math.min(dt, 0.05);
+    const E = 1240 / p.lam, K = E - p.phi, col = waveColor(p.lam) || C['accent-4'];
+    const px0 = w * 0.05, px1 = w * 0.46, py = h - 34;
+    c.save(); c.fillStyle = C.muted; c.fillRect(px0, py, px1 - px0, 12); c.restore();
+    text(c, `metal, φ = ${p.phi} eV`, (px0 + px1) / 2, py + 26, C.ink, 12, 'center');
+    st.acc += dt * p.I * 3;
+    while (st.acc > 1) { st.acc--; const tx = px0 + 60 + Math.random() * (px1 - px0 - 70); st.ph.push({ x: tx - 130, y: 10, tx }); }
+    st.ph = st.ph.filter(q => {
+      const dx = q.tx - q.x, dy = py - q.y, L = Math.hypot(dx, dy); if (L < 6) { if (K > 0) { const an = (Math.random() - 0.5) * 2; st.el.push({ x: q.tx, y: py, vx: Math.sin(an), vy: -Math.cos(an), sp: 40 + 70 * Math.sqrt(K) }); } return false; }
+      q.x += dx / L * 260 * dt; q.y += dy / L * 260 * dt;
+      c.save(); c.strokeStyle = col; c.lineWidth = 2; c.beginPath(); for (let i = 0; i <= 12; i++) { const u = i / 12, bx = q.x - dx / L * 20 * u, by = q.y - dy / L * 20 * u, o = 4 * Math.sin(u * 12); i ? c.lineTo(bx + dy / L * o, by - dx / L * o) : c.moveTo(bx, by); } c.stroke(); c.restore();
+      return true;
+    });
+    st.el = st.el.filter(e => { e.x += e.vx * e.sp * dt; e.y += e.vy * e.sp * dt; dot(c, e.x, e.y, 4, C.ink); return e.y > -10 && e.x > -10 && e.x < w * 0.5; });
+    if (K <= 0) text(c, 'photons absorbed, no electrons escape', (px0 + px1) / 2, 30, C['accent-4'], 13, 'center');
+    const { X, Y } = axes(c, { x: w * 0.55, y: 16, w: w * 0.42, h: h - 44 }, [0, 20], [-1, 8], 'ν (10¹⁴ Hz) →', 'K_max (eV)');
+    const nu0 = p.phi / 0.41357;
+    line(c, X(nu0), Y(0), X(20), Y(0.41357 * 20 - p.phi), C.accent, 2.5);
+    line(c, X(0), Y(0), X(nu0), Y(0), C.accent, 2.5);
+    dot(c, X(nu0), Y(0), 4, C.ink); text(c, 'ν₀', X(nu0), Y(0) + 16, C.ink, 12, 'center');
+    const nu = 3000 / p.lam; dot(c, X(nu), Y(Math.max(0, 0.41357 * nu - p.phi)), 7, C['accent-2']);
+    text(c, 'slope = h (same for every metal)', X(10), Y(7.4), C.muted, 11, 'center');
+  },
+  insights: [
+    R`Each photon carries $E=h\nu$. It gives all of it to one electron. Getting out of the metal costs $\phi$; the rest is kinetic energy.`,
+    R`Below the threshold frequency $\nu_0=\phi/h$ nothing escapes — however bright the light. Waves can't explain this; photons can.`,
+    R`Brighter light = more photons = more electrons (more current), but each still has the same $K_{max}$.`,
+    R`The $K_{max}$ vs $\nu$ line has slope $h$ for every metal; only the intercept ($\phi$) changes. Handy: $E(\text{eV})\approx1240/\lambda(\text{nm})$.`,
+  ],
+  tryit: 'Set λ = 600 nm (red) and max intensity — nothing. Now λ = 400 nm at intensity 1 — electrons fly.',
+  quiz: { q: 'Doubling the intensity of light (above threshold) will…', opts: ['double K_max', 'double the photocurrent', 'halve the stopping potential', 'change the threshold'], a: 1, why: 'More photons → more electrons; each photon’s energy (and K_max) is unchanged.' },
+},
+{
+  id: 'collision', subject: 'Physics · Momentum', title: '1-D collisions',
+  tex: R`v_1 = \dfrac{(m_1 - e\,m_2)\,u_1}{m_1+m_2},\qquad v_2 = \dfrac{m_1(1+e)\,u_1}{m_1+m_2}`,
+  blurb: 'Momentum is always conserved. How bouncy the collision is (e) decides how much kinetic energy survives.',
+  controls: [
+    { k: 'm1', label: 'Mass m₁ (moving)', min: 1, max: 10, step: 0.5, val: 2, unit: ' kg' },
+    { k: 'm2', label: 'Mass m₂ (at rest)', min: 1, max: 10, step: 0.5, val: 5, unit: ' kg' },
+    { k: 'u', label: 'Speed u₁', min: 1, max: 5, step: 0.1, val: 3, unit: ' m/s' },
+    { k: 'e', label: 'Restitution e', min: 0, max: 1, step: 0.05, val: 1, unit: '' },
+  ],
+  live: true,
+  readout: p => { const M = p.m1 + p.m2, v1 = (p.m1 - p.e * p.m2) * p.u / M, v2 = p.m1 * (1 + p.e) * p.u / M, K0 = 0.5 * p.m1 * p.u ** 2, K1 = 0.5 * p.m1 * v1 * v1 + 0.5 * p.m2 * v2 * v2;
+    return [['v₁', fmt(v1) + ' m/s'], ['v₂', fmt(v2) + ' m/s'], ['p before/after', `${fmt(p.m1 * p.u, 1)} / ${fmt(p.m1 * v1 + p.m2 * v2, 1)}`], ['KE lost', fmt(100 * (1 - K1 / K0), 1) + '%']]; },
+  draw(c, w, h, p, t) {
+    gridBg(c, w, h);
+    const M = p.m1 + p.m2, v1 = (p.m1 - p.e * p.m2) * p.u / M, v2 = p.m1 * (1 + p.e) * p.u / M, k = 38;
+    const s1 = 18 + 12 * Math.cbrt(p.m1), s2 = 18 + 12 * Math.cbrt(p.m2), ty = h * 0.42;
+    const x10 = 20 + s1 / 2, x20 = w * 0.55, tc = (x20 - s2 / 2 - x10 - s1 / 2) / (p.u * k), tau = t % (tc + 4);
+    let x1, x2; if (tau < tc) { x1 = x10 + p.u * k * tau; x2 = x20; } else { const d = tau - tc; x1 = x20 - s2 / 2 - s1 / 2 + v1 * k * d; x2 = x20 + v2 * k * d; }
+    line(c, 0, ty, w, ty, C.ink, 2);
+    c.save(); c.beginPath(); c.rect(0, 0, w, h); c.clip();
+    c.save(); c.fillStyle = C.accent; c.fillRect(x1 - s1 / 2, ty - s1, s1, s1); c.fillStyle = C['accent-2']; c.fillRect(x2 - s2 / 2, ty - s2, s2, s2); c.restore();
+    text(c, `${p.m1}`, x1, ty - s1 / 2, C.paper, 12, 'center', 'middle'); text(c, `${p.m2}`, x2, ty - s2 / 2, C.paper, 12, 'center', 'middle');
+    const after = tau >= tc, va = after ? v1 : p.u, vb = after ? v2 : 0;
+    if (Math.abs(va) > 0.05) arrow(c, x1, ty - s1 - 10, x1 + va * 14, ty - s1 - 10, C.accent, 2.5);
+    if (Math.abs(vb) > 0.05) arrow(c, x2, ty - s2 - 10, x2 + vb * 14, ty - s2 - 10, C['accent-2'], 2.5);
+    c.restore();
+    const K0 = 0.5 * p.m1 * p.u ** 2, K1 = 0.5 * p.m1 * v1 * v1 + 0.5 * p.m2 * v2 * v2, P0 = p.m1 * p.u;
+    const by = h - 18, bh = h * 0.3, bw = Math.min(46, w * 0.08), bx = w / 2 - 2.5 * bw;
+    [['p before', 1, C['accent-3']], ['p after', (p.m1 * v1 + p.m2 * v2) / P0, C['accent-3']], ['KE before', 1, C['accent-4']], ['KE after', K1 / K0, C['accent-4']]].forEach(([lb, f, col], i) => {
+      const x = bx + i * (bw * 1.3) + (i > 1 ? bw * 0.6 : 0);
+      c.save(); c.fillStyle = col; c.globalAlpha = i % 2 ? 0.9 : 0.45; c.fillRect(x, by - bh * f, bw, bh * f); c.restore();
+      text(c, lb, x + bw / 2, by + 13, C.muted, 10, 'center');
+    });
+  },
+  insights: [
+    R`No outside push → total momentum $m_1u_1=m_1v_1+m_2v_2$ is always conserved (green bars equal).`,
+    R`Restitution $e=\dfrac{\text{speed of separation}}{\text{speed of approach}}$: $e=1$ perfectly elastic, $e=0$ they stick together.`,
+    R`Elastic with equal masses: the moving one stops dead and the other takes all its velocity (Newton's cradle).`,
+    R`Light hitting heavy bounces back ($v_1<0$); heavy hitting light keeps going and the light one shoots off at up to $2u_1$.`,
+  ],
+  tryit: 'Make m₁ = m₂ with e = 1: a perfect hand-off. Then set e = 0 and see how much KE vanishes.',
+  quiz: { q: 'A 2 kg ball at 6 m/s sticks to a 4 kg ball at rest. Common velocity?', opts: ['2 m/s', '3 m/s', '4 m/s', '6 m/s'], a: 0, why: 'Momentum 12 kg·m/s shared by 6 kg → 2 m/s.' },
+},
+{
+  id: 'beats', subject: 'Physics · Waves', title: 'Beats',
+  tex: R`f_{beat} = |f_1 - f_2|`,
+  blurb: 'Two notes with nearly the same pitch drift in and out of step — loud, quiet, loud — at the difference frequency.',
+  controls: [
+    { k: 'f1', label: 'Frequency f₁', min: 4, max: 16, step: 0.1, val: 10, unit: ' Hz' },
+    { k: 'f2', label: 'Frequency f₂', min: 4, max: 16, step: 0.1, val: 11, unit: ' Hz' },
+  ],
+  live: true,
+  readout: p => [['beat frequency', fmt(Math.abs(p.f1 - p.f2), 1) + ' Hz'], ['you hear pitch', fmt((p.f1 + p.f2) / 2, 2) + ' Hz'], ['time per beat', Math.abs(p.f1 - p.f2) > 0.01 ? fmt(1 / Math.abs(p.f1 - p.f2), 2) + ' s' : '∞']],
+  draw(c, w, h, p, t) {
+    gridBg(c, w, h);
+    const tw = 2, lanes = [[h * 0.15, h * 0.09, x => Math.sin(2 * Math.PI * p.f1 * x), C.accent, 'f₁'], [h * 0.37, h * 0.09, x => Math.sin(2 * Math.PI * p.f2 * x), C['accent-2'], 'f₂'], [h * 0.72, h * 0.12, x => Math.sin(2 * Math.PI * p.f1 * x) + Math.sin(2 * Math.PI * p.f2 * x), C.ink, 'sum']];
+    for (const [cy, A, f, col, lb] of lanes) {
+      line(c, 30, cy, w - 10, cy, C.line, 1);
+      c.save(); c.strokeStyle = col; c.lineWidth = 2; c.beginPath();
+      for (let x = 30; x <= w - 10; x += 1.5) { const tt = t * 0.25 + (x - 30) / (w - 40) * tw; const y = cy - A * f(tt); x === 30 ? c.moveTo(x, y) : c.lineTo(x, y); }
+      c.stroke(); c.restore();
+      text(c, lb, 6, cy, col, 12, 'left', 'middle');
+    }
+    const [cy, A] = lanes[2];
+    for (const sg of [1, -1]) plot(c, x => cy - sg * 2 * A * Math.cos(Math.PI * (p.f1 - p.f2) * (t * 0.25 + (x - 30) / (w - 40) * tw)), 30, w - 10, x => x, y => y, C['accent-4'], 1.5, [5, 4], 200);
+    text(c, 'envelope = 2cos(π Δf t)  (slowed down)', w - 10, h - 8, C['accent-4'], 12, 'right');
+  },
+  insights: [
+    R`$\sin a+\sin b=2\cos\dfrac{a-b}{2}\sin\dfrac{a+b}{2}$: a fast wave at the average frequency inside a slow envelope.`,
+    R`Loudness peaks whenever the envelope hits $+$ or $-$ max, which happens $|f_1-f_2|$ times per second (twice per envelope cycle).`,
+    R`Musicians tune by ear this way: as two strings approach the same pitch, the beats slow and vanish.`,
+    R`Beats are only heard clearly when $|f_1-f_2|$ is small (less than ~10 Hz).`,
+  ],
+  tryit: 'Bring f₂ slowly toward f₁: the beats slow down and stop when they match.',
+  quiz: { q: 'A 256 Hz fork gives 4 beats/s with a string. Loading the fork with wax makes it 6 beats/s. String frequency?', opts: ['252 Hz', '260 Hz', '262 Hz', '250 Hz'], a: 0, why: 'Wax lowers the fork. Beats increase only if the string is below the fork: 256 − 4 = 252 Hz.' },
+},
+// ===================== BATCH 3 · CHEMISTRY =====================
+{
+  id: 'nernst', subject: 'Chemistry · Electrochemistry', title: 'Nernst equation',
+  tex: R`E = E^\circ - \dfrac{0.0591}{n}\log Q \quad(\text{at }298\text{ K})`,
+  blurb: 'A battery runs down because as products build up, Q grows and the voltage drops — until E = 0 at equilibrium.',
+  controls: [
+    { k: 'E0', label: 'Standard E°', min: -1, max: 1.5, step: 0.01, val: 1.1, unit: ' V' },
+    { k: 'n', label: 'Electrons n', min: 1, max: 3, step: 1, val: 2, unit: '' },
+    { k: 'lq', label: 'log Q', min: -6, max: 6, step: 0.1, val: 0, unit: '' },
+  ],
+  readout: p => { const E = p.E0 - 0.0591 / p.n * p.lq; return [['E', fmt(E, 3) + ' V'], ['ΔG = −nFE', fmt(-p.n * 96.485 * E, 1) + ' kJ/mol'], ['log K = nE°/0.0591', fmt(p.n * p.E0 / 0.0591, 1)], ['reaction', E > 0 ? 'spontaneous →' : E < 0 ? 'runs backwards ←' : 'at equilibrium']]; },
+  draw(c, w, h, p) {
+    gridBg(c, w, h);
+    const E = p.E0 - 0.0591 / p.n * p.lq, R0 = Math.min(w * 0.16, h * 0.42), dx = w * 0.2, dy = h * 0.7;
+    circ(c, dx, dy, R0, C.ink, 3, null, Math.PI, 2 * Math.PI);
+    const ang = v => Math.PI + (v + 1.5) / 3.5 * Math.PI;
+    for (const v of [-1, 0, 1, 2]) { const a = ang(v); line(c, dx + (R0 - 8) * Math.cos(a), dy + (R0 - 8) * Math.sin(a), dx + R0 * Math.cos(a), dy + R0 * Math.sin(a), C.ink, 2); text(c, `${v} V`, dx + (R0 + 14) * Math.cos(a), dy + (R0 + 14) * Math.sin(a), C.muted, 11, 'center', 'middle'); }
+    const a = ang(Math.max(-1.5, Math.min(2, E)));
+    arrow(c, dx, dy, dx + (R0 - 12) * Math.cos(a), dy + (R0 - 12) * Math.sin(a), E >= 0 ? C['accent-3'] : C['accent-4'], 3);
+    dot(c, dx, dy, 6, C.ink); text(c, `${fmt(E, 3)} V`, dx, dy + 24, C.ink, 15, 'center');
+    const { X, Y } = axes(c, { x: w * 0.44, y: 16, w: w * 0.53, h: h - 44 }, [-6, 6], [-1.5, 2], 'log Q →', 'E (V)');
+    plot(c, x => p.E0 - 0.0591 / p.n * x, -6, 6, X, Y, C.accent, 2.5);
+    dot(c, X(p.lq), Y(E), 7, C['accent-2']);
+    line(c, X(0), Y(p.E0), X(0) - 8, Y(p.E0), C.ink, 2); text(c, 'E°', X(0) - 10, Y(p.E0), C.ink, 12, 'right', 'middle');
+    text(c, `slope = −0.0591/${p.n} V per decade`, X(0), Y(-1.3), C.muted, 12, 'center');
+  },
+  insights: [
+    R`$\Delta G=\Delta G^\circ+RT\ln Q$ and $\Delta G=-nFE$. Divide through by $-nF$ and convert to $\log_{10}$ at 298 K → the Nernst equation.`,
+    R`At $Q=1$ (all standard), $E=E^\circ$. As products pile up $Q$ rises and $E$ falls — a cell "running down".`,
+    R`Each ×10 in $Q$ costs $0.0591/n$ V: just 30 mV for a 2-electron reaction. Voltage is surprisingly insensitive to concentration.`,
+    R`When $E$ hits 0 the cell is dead: equilibrium, $Q=K$, so $\log K=nE^\circ/0.0591$ — huge for a Daniell cell ($\approx 37$).`,
+  ],
+  tryit: 'Daniell cell: E° = 1.10, n = 2. Push log Q from 0 to +6 — the voltage only drops by ~0.18 V.',
+  quiz: { q: 'For Zn|Zn²⁺(0.01 M)||Cu²⁺(1 M)|Cu, E° = 1.10 V. E = ?', opts: ['1.04 V', '1.10 V', '1.16 V', '1.13 V'], a: 2, why: 'Q = [Zn²⁺]/[Cu²⁺] = 0.01, so log Q = −2. E = 1.10 − (0.0591/2)(−2) = 1.10 + 0.059 ≈ 1.16 V.' },
+},
+{
+  id: 'raoult', subject: 'Chemistry · Solutions', title: "Raoult's law",
+  tex: R`P = x_A P_A^\circ + x_B P_B^\circ,\qquad y_A = \dfrac{x_A P_A^\circ}{P}`,
+  blurb: 'Each liquid only gets to evaporate from its share of the surface, so its vapour pressure is scaled by its mole fraction.',
+  controls: [
+    { k: 'PA', label: 'Pure A vapour pressure P°A', min: 10, max: 120, step: 1, val: 90, unit: ' kPa' },
+    { k: 'PB', label: 'Pure B vapour pressure P°B', min: 10, max: 120, step: 1, val: 30, unit: ' kPa' },
+    { k: 'x', label: 'Mole fraction of A, xA', min: 0, max: 1, step: 0.01, val: 0.4, unit: '' },
+  ],
+  readout: p => { const pa = p.x * p.PA, pb = (1 - p.x) * p.PB, P = pa + pb; return [['pA', fmt(pa, 1) + ' kPa'], ['pB', fmt(pb, 1) + ' kPa'], ['total P', fmt(P, 1) + ' kPa'], ['A in vapour, yA', fmt(P ? pa / P : 0, 3)]]; },
+  draw(c, w, h, p) {
+    gridBg(c, w, h);
+    const sw = Math.min(110, w * 0.18), sx = 18, sy = h * 0.5, sh = h * 0.42, n = 40;
+    c.save(); c.strokeStyle = C.ink; c.lineWidth = 2; c.strokeRect(sx, 12, sw, h - 24); c.restore();
+    line(c, sx, sy, sx + sw, sy, C.ink, 1.5, [4, 3]);
+    for (let i = 0; i < n; i++) { const isA = i < Math.round(p.x * n); dot(c, sx + 8 + (i % 8) * (sw - 16) / 7, sy + 10 + Math.floor(i / 8) * (sh - 20) / 4, 4, isA ? C.accent : C['accent-2']); }
+    const P = p.x * p.PA + (1 - p.x) * p.PB, ya = P ? p.x * p.PA / P : 0, nv = Math.round(P / 120 * 20);
+    for (let i = 0; i < nv; i++) { const isA = i < Math.round(ya * nv); dot(c, sx + 10 + ((i * 37) % (sw - 20)), 22 + ((i * 53) % (sy - 40)), 3.5, isA ? C.accent : C['accent-2']); }
+    text(c, 'vapour', sx + sw / 2, sy - 6, C.muted, 11, 'center'); text(c, 'liquid', sx + sw / 2, h - 16, C.muted, 11, 'center');
+    const gx = sx + sw + 50;
+    const { X, Y } = axes(c, { x: gx, y: 16, w: w - gx - 18, h: h - 44 }, [0, 1], [0, 125], 'xA →', 'P (kPa)');
+    plot(c, x => x * p.PA, 0, 1, X, Y, C.accent, 2, [5, 4]); plot(c, x => (1 - x) * p.PB, 0, 1, X, Y, C['accent-2'], 2, [5, 4]);
+    plot(c, x => x * p.PA + (1 - x) * p.PB, 0, 1, X, Y, C.ink, 3);
+    line(c, X(p.x), Y(0), X(p.x), Y(125), C.muted, 1, [3, 4]);
+    dot(c, X(p.x), Y(p.x * p.PA), 5, C.accent); dot(c, X(p.x), Y((1 - p.x) * p.PB), 5, C['accent-2']); dot(c, X(p.x), Y(P), 6, C.ink);
+    text(c, 'pA', X(1) - 4, Y(p.PA) - 6, C.accent, 12, 'right'); text(c, 'pB', X(0) + 6, Y(p.PB) - 6, C['accent-2'], 12); text(c, 'total', X(0.5), Y(0.5 * (p.PA + p.PB)) - 8, C.ink, 12, 'center');
+  },
+  insights: [
+    R`Only molecules at the surface can escape. If a fraction $x_A$ of them are A, A escapes $x_A$ times as often as when pure → $p_A=x_AP_A^\circ$.`,
+    R`Total pressure (Dalton) is the sum: a straight line between $P_B^\circ$ and $P_A^\circ$.`,
+    R`The vapour is richer in the more volatile liquid ($y_A>x_A$ if $P_A^\circ>P_B^\circ$) — the basis of fractional distillation.`,
+    R`Real solutions deviate: A–B attractions weaker than A–A/B–B → positive deviation (curve bulges up); stronger → negative.`,
+  ],
+  tryit: 'With P°A = 90, P°B = 30 and xA = 0.4, compare xA with yA in the readout. The vapour is much richer in A.',
+  quiz: { q: 'Benzene (P° = 75 torr) and toluene (P° = 22 torr) are mixed with x(benzene) = 0.4. Total vapour pressure?', opts: ['43.2 torr', '48.5 torr', '30 torr', '97 torr'], a: 0, why: '0.4·75 + 0.6·22 = 30 + 13.2 = 43.2 torr.' },
+},
+{
+  id: 'graham', subject: 'Chemistry · States of matter', title: "Graham's law of effusion",
+  tex: R`\dfrac{r_1}{r_2} = \sqrt{\dfrac{M_2}{M_1}}`,
+  blurb: 'At the same temperature every gas has the same average KE, so lighter molecules move faster and find the hole more often.',
+  controls: [
+    { k: 'M1', label: 'Molar mass gas 1 (top)', min: 2, max: 100, step: 1, val: 2, unit: ' g/mol' },
+    { k: 'M2', label: 'Molar mass gas 2 (bottom)', min: 2, max: 100, step: 1, val: 32, unit: ' g/mol' },
+  ],
+  live: true,
+  readout(p) { const st = this.st || {}, cn = st.cnt || [0, 0]; return [['predicted r₁/r₂', fmt(Math.sqrt(p.M2 / p.M1), 2)], ['measured r₁/r₂', cn[1] > 3 ? fmt(cn[0] / cn[1], 2) : '…'], ['escaped', `${cn[0]} vs ${cn[1]}`], ['speed ratio', fmt(Math.sqrt(p.M2 / p.M1), 2) + '×']]; },
+  draw(c, w, h, p, t, dt) {
+    gridBg(c, w, h);
+    const st = this.st || (this.st = {}), key = p.M1 + ',' + p.M2;
+    const mk = M => Array.from({ length: 30 }, () => { const a = Math.random() * 7; return { u: Math.random(), v: Math.random(), dx: Math.cos(a), dy: Math.sin(a), sp: 420 / Math.sqrt(M) }; });
+    if (st.key !== key) { st.key = key; st.g = [mk(p.M1), mk(p.M2)]; st.cnt = [0, 0]; }
+    dt = Math.min(dt, 0.05);
+    const NAMES = { 2: 'H₂', 4: 'He', 16: 'CH₄', 28: 'N₂', 32: 'O₂', 44: 'CO₂', 71: 'Cl₂' };
+    const bx = 20, bw = w * 0.56;
+    [[16, h / 2 - 8, p.M1, C.accent], [h / 2 + 8, h - 16, p.M2, C['accent-2']]].forEach(([y0, y1, M, col], gi) => {
+      const bh = y1 - y0;
+      c.save(); c.strokeStyle = C.ink; c.lineWidth = 2.5; c.beginPath(); c.moveTo(bx + bw, y0 + bh * 0.4); c.lineTo(bx + bw, y0); c.lineTo(bx, y0); c.lineTo(bx, y1); c.lineTo(bx + bw, y1); c.lineTo(bx + bw, y0 + bh * 0.6); c.stroke(); c.restore();
+      for (const q of st.g[gi]) {
+        q.u += q.dx * q.sp * dt / bw; q.v += q.dy * q.sp * dt / bh;
+        if (q.u < 0) { q.u = -q.u; q.dx = Math.abs(q.dx); }
+        if (q.v < 0) { q.v = -q.v; q.dy = Math.abs(q.dy); } if (q.v > 1) { q.v = 2 - q.v; q.dy = -Math.abs(q.dy); }
+        if (q.u > 1) { if (q.v > 0.4 && q.v < 0.6) { st.cnt[gi]++; q.u = 0.02; q.v = Math.random(); } else { q.u = 2 - q.u; q.dx = -Math.abs(q.dx); } }
+        dot(c, bx + q.u * bw, y0 + q.v * bh, 4, col);
+      }
+      const rate = st.cnt[gi], bmax = Math.max(st.cnt[0], st.cnt[1], 1), bxx = bx + bw + 30, maxW = w - bxx - 20;
+      c.save(); c.fillStyle = col; c.globalAlpha = .7; c.fillRect(bxx, y0 + bh * 0.35, maxW * rate / bmax, bh * 0.3); c.restore();
+      text(c, `${NAMES[M] || 'M = ' + M} · escaped ${rate}`, bxx, y0 + bh * 0.3, C.ink, 12);
+    });
+  },
+  insights: [
+    R`Same temperature → same average KE: $\tfrac12M_1\bar v_1^2=\tfrac12M_2\bar v_2^2$ → $\bar v\propto1/\sqrt M$.`,
+    R`Escape rate through a tiny hole is proportional to how often molecules hit it, i.e. to their speed. Hence $r\propto1/\sqrt M$.`,
+    R`H₂ vs O₂: masses differ 16×, but rates only $\sqrt{16}=4$×.`,
+    R`Used to separate U-235 from U-238 (as UF₆) — the rates differ by just 0.4%, so it takes thousands of stages.`,
+  ],
+  tryit: 'Leave it on H₂ vs O₂ for ~20 s and compare measured with predicted (4.0). Then set both masses equal.',
+  quiz: { q: 'A gas effuses half as fast as O₂ (M = 32). Its molar mass is…', opts: ['16', '64', '128', '8'], a: 2, why: 'r ratio ½ = √(32/M) → M = 32 × 4 = 128.' },
+},
+{
+  id: 'orders', subject: 'Chemistry · Kinetics', title: 'Zero, first & second order',
+  tex: R`\text{rate} = k[A]^n:\quad t_{1/2} = \dfrac{[A]_0}{2k},\ \dfrac{0.693}{k},\ \dfrac{1}{k[A]_0}`,
+  blurb: 'How fast a reaction slows down as reactant is used up depends on the order. The half-life tells you which order you have.',
+  controls: [
+    { k: 'A0', label: 'Initial [A]₀', min: 0.5, max: 2, step: 0.05, val: 1, unit: ' M' },
+    { k: 'k', label: 'Rate constant k', min: 0.05, max: 0.5, step: 0.01, val: 0.2, unit: '' },
+  ],
+  readout: p => [['t½ zero order', fmt(p.A0 / (2 * p.k), 2) + ' (∝ [A]₀)'], ['t½ first order', fmt(Math.LN2 / p.k, 2) + ' (no [A]₀)'], ['t½ second order', fmt(1 / (p.k * p.A0), 2) + ' (∝ 1/[A]₀)']],
+  draw(c, w, h, p) {
+    gridBg(c, w, h);
+    const { X, Y } = axes(c, { x: 46, y: 16, w: w - 66, h: h - 44 }, [0, 16], [0, 2.1], 't →', '[A]');
+    const F = [[t => Math.max(0, p.A0 - p.k * t), p.A0 / (2 * p.k), C['accent-2'], 'zero'], [t => p.A0 * Math.exp(-p.k * t), Math.LN2 / p.k, C.accent, 'first'], [t => p.A0 / (1 + p.k * p.A0 * t), 1 / (p.k * p.A0), C['accent-3'], 'second']];
+    line(c, X(0), Y(p.A0 / 2), X(16), Y(p.A0 / 2), C.muted, 1, [3, 4]); text(c, '[A]₀/2', X(16), Y(p.A0 / 2) - 6, C.muted, 11, 'right');
+    F.forEach(([f, th, col, lb], i) => {
+      plot(c, f, 0, 16, X, Y, col, 2.5);
+      if (th <= 16) { line(c, X(th), Y(0), X(th), Y(p.A0 / 2), col, 1, [2, 3]); dot(c, X(th), Y(p.A0 / 2), 5, col); }
+      text(c, `— ${lb} order`, w - 22, 22 + i * 18, col, 12, 'right');
+    });
+  },
+  insights: [
+    R`Zero order: rate is constant ($k$), so $[A]$ falls in a straight line. Half-life $\propto[A]_0$ — more stuff takes longer to halve.`,
+    R`First order: rate $\propto[A]$, a fixed fraction disappears per unit time → exponential, constant half-life.`,
+    R`Second order: rate $\propto[A]^2$ drops off sharply as $A$ runs low, giving a long tail. $t_{1/2}\propto1/[A]_0$.`,
+    R`Lab trick: double $[A]_0$ and see if $t_{1/2}$ doubles (0), stays (1) or halves (2).`,
+  ],
+  tryit: 'Raise [A]₀ from 1 to 2 and watch the three half-life dots: one moves right, one stays, one moves left.',
+  quiz: { q: 'Doubling [A]₀ halves the half-life. The reaction order is…', opts: ['0', '1', '2', '3'], a: 2, why: 't½ = 1/(k[A]₀) for second order, so doubling [A]₀ halves it.' },
+},
+// ===================== BATCH 3 · MATHS =====================
+{
+  id: 'binomial', subject: 'Maths · Binomial theorem', title: "Binomial theorem & Pascal's triangle",
+  tex: R`(a+b)^{n} = \sum_{r=0}^{n} \binom{n}{r} a^{\,n-r} b^{\,r}`,
+  blurb: 'Expanding (a+b)ⁿ means picking a or b from each of n brackets. ⁿCᵣ counts the ways to pick b exactly r times.',
+  controls: [ { k: 'n', label: 'Power n', min: 1, max: 12, step: 1, val: 5, unit: '' } ],
+  readout: p => {
+    const n = p.n, sup = s => String(s).split('').map(d => '⁰¹²³⁴⁵⁶⁷⁸⁹'[d]).join(''), pw = (v, e) => e === 0 ? '' : e === 1 ? v : v + sup(e);
+    const term = r => { const k = nCr(n, r); return (k === 1 ? '' : k) + pw('a', n - r) + pw('b', r); };
+    const terms = []; for (let r = 0; r <= Math.min(n, 2); r++) terms.push(term(r));
+    return [['expansion', terms.join(' + ') + (n > 2 ? ' + …' : '')], ['number of terms', String(n + 1)], ['sum of coefficients', `2${sup(n)} = ${2 ** n}`], ['largest ⁿCᵣ', String(nCr(n, Math.floor(n / 2)))]];
+  },
+  draw(c, w, h, p) {
+    gridBg(c, w, h);
+    const n = p.n, lw = w * 0.56, rowH = Math.min(30, (h - 24) / (n + 1)), colW = Math.min(44, (lw - 10) / (n + 1.2)), fs = Math.max(8, Math.min(15, colW * 0.42)), y0 = Math.max(10, (h - (n + 1) * rowH) / 2);
+    for (let i = 0; i <= n; i++) for (let j = 0; j <= i; j++) {
+      const x = lw / 2 + (j - i / 2) * colW, y = y0 + i * rowH + rowH / 2;
+      if (i === n) { c.save(); c.fillStyle = C['accent-2']; c.globalAlpha = .18; c.beginPath(); c.arc(x, y, Math.min(colW, rowH) * 0.48, 0, 7); c.fill(); c.restore(); }
+      text(c, String(nCr(i, j)), x, y, i === n ? C.ink : C.muted, fs, 'center', 'middle');
+    }
+    if (n >= 2) { const i = Math.min(n, 4), j = 1, x = lw / 2 + (j - i / 2) * colW, y = y0 + i * rowH + rowH / 2; c.save(); c.strokeStyle = C['accent-3']; c.lineWidth = 1.5; c.beginPath(); c.moveTo(x - colW / 2, y - rowH); c.lineTo(x, y); c.lineTo(x + colW / 2, y - rowH); c.stroke(); c.restore(); }
+    const bx = lw + 16, bw = (w - bx - 14) / (n + 1), mx = nCr(n, Math.floor(n / 2)), bh = h - 50;
+    for (let r = 0; r <= n; r++) {
+      const v = nCr(n, r), hh = v / mx * bh;
+      c.save(); c.fillStyle = C.accent; c.globalAlpha = .7; c.fillRect(bx + r * bw + 1, h - 28 - hh, bw - 2, hh); c.restore();
+      if (bw > 13) text(c, String(r), bx + r * bw + bw / 2, h - 12, C.muted, 11, 'center');
+    }
+    text(c, 'ⁿCᵣ for r = 0…n', bx, 16, C.muted, 12);
+  },
+  insights: [
+    R`Write $(a+b)^n$ as $n$ brackets. Each term of the expansion picks $a$ or $b$ from every bracket; picking $b$ exactly $r$ times can happen in $\binom nr$ ways.`,
+    R`Pascal's rule $\binom nr=\binom{n-1}{r-1}+\binom{n-1}{r}$: each number is the sum of the two above it (green "V").`,
+    R`Put $a=b=1$: the coefficients add up to $2^n$ — every bracket independently gives one of two choices.`,
+    R`Symmetry $\binom nr=\binom n{n-r}$, and the middle term is the biggest. For large $n$ the bars approach a bell curve.`,
+  ],
+  tryit: 'Step n from 1 to 12 and watch the bar chart turn into a bell curve. Check that each row sums to 2ⁿ.',
+  quiz: { q: 'The coefficient of x³ in (1 + x)⁷ is…', opts: ['21', '35', '7', '343'], a: 1, why: '⁷C₃ = 7·6·5 / 3! = 35.' },
+},
+{
+  id: 'complex', subject: 'Maths · Complex numbers', title: 'Multiplying complex numbers',
+  tex: R`z_1 z_2 = r_1 r_2\, e^{i(\theta_1+\theta_2)}\qquad |z_1z_2| = |z_1||z_2|,\ \arg(z_1z_2) = \arg z_1 + \arg z_2`,
+  blurb: 'Multiplying by a complex number means: stretch by its length and rotate by its angle.',
+  controls: [
+    { k: 'r1', label: '|z₁|', min: 0.5, max: 2, step: 0.05, val: 1.2, unit: '' },
+    { k: 't1', label: 'arg z₁', min: 0, max: 360, step: 1, val: 30, unit: '°' },
+    { k: 'r2', label: '|z₂|', min: 0.5, max: 2, step: 0.05, val: 1.5, unit: '' },
+    { k: 't2', label: 'arg z₂', min: 0, max: 360, step: 1, val: 60, unit: '°' },
+  ],
+  readout: p => { const cx = (r, t) => `${fmt(r * Math.cos(t * DEG))} ${Math.sin(t * DEG) < 0 ? '−' : '+'} ${fmt(Math.abs(r * Math.sin(t * DEG)))}i`, ang = (p.t1 + p.t2) % 360;
+    return [['z₁', cx(p.r1, p.t1)], ['z₂', cx(p.r2, p.t2)], ['z₁z₂', cx(p.r1 * p.r2, ang)], ['|z₁z₂|', `${p.r1} × ${p.r2} = ${fmt(p.r1 * p.r2)}`], ['arg', `${p.t1}° + ${p.t2}° = ${fmt(ang, 0)}°`]]; },
+  draw(c, w, h, p) {
+    gridBg(c, w, h);
+    const cx = w / 2, cy = h / 2, s = Math.min(w, h) / 2 / 4.3;
+    line(c, 0, cy, w, cy, C.muted, 1.5); line(c, cx, 0, cx, h, C.muted, 1.5);
+    text(c, 'Re', w - 8, cy - 6, C.muted, 12, 'right'); text(c, 'Im', cx + 6, 14, C.muted, 12);
+    circ(c, cx, cy, s, C.line, 1.5, [4, 4]);
+    const V = (r, t) => [cx + r * s * Math.cos(t * DEG), cy - r * s * Math.sin(t * DEG)];
+    const z1 = V(p.r1, p.t1), z2 = V(p.r2, p.t2), z3 = V(p.r1 * p.r2, p.t1 + p.t2);
+    circ(c, cx, cy, 22, C.accent, 2, null, -p.t1 * DEG, 0);
+    circ(c, cx, cy, 30, C['accent-2'], 2, null, -(p.t1 + p.t2) * DEG, -p.t1 * DEG);
+    circ(c, cx, cy, 38, C['accent-3'], 1.5, [3, 3], -(p.t1 + p.t2) * DEG, 0);
+    arrow(c, cx, cy, ...z1, C.accent, 3); arrow(c, cx, cy, ...z2, C['accent-2'], 3); arrow(c, cx, cy, ...z3, C['accent-3'], 3.5);
+    text(c, 'z₁', z1[0] + 6, z1[1] - 6, C.accent, 14); text(c, 'z₂', z2[0] + 6, z2[1] - 6, C['accent-2'], 14); text(c, 'z₁z₂', z3[0] + 6, z3[1] - 6, C['accent-3'], 14);
+    text(c, 'dashed circle: |z| = 1', 10, h - 10, C.muted, 12);
+  },
+  insights: [
+    R`In polar form $z=r(\cos\theta+i\sin\theta)=re^{i\theta}$. Multiplying: $r_1e^{i\theta_1}\cdot r_2e^{i\theta_2}=r_1r_2e^{i(\theta_1+\theta_2)}$.`,
+    R`So lengths multiply and angles add. Multiplying by $i$ (length 1, angle 90°) is just a quarter-turn.`,
+    R`Expanding $(\cos\theta_1+i\sin\theta_1)(\cos\theta_2+i\sin\theta_2)$ gives exactly the $\cos(\theta_1+\theta_2)$ and $\sin(\theta_1+\theta_2)$ formulas.`,
+    R`Repeat it: $z^n=r^ne^{in\theta}$ — De Moivre's theorem. The $n$-th roots of unity sit equally spaced on the unit circle.`,
+  ],
+  tryit: 'Set |z₂| = 1 and arg z₂ = 90° — the product is z₁ rotated a quarter-turn (multiplying by i).',
+  quiz: { q: 'If |z| = 2 and arg z = 30°, then z³ has…', opts: ['|z³| = 6, arg 90°', '|z³| = 8, arg 90°', '|z³| = 8, arg 30°', '|z³| = 6, arg 30°'], a: 1, why: 'Lengths multiply: 2³ = 8. Angles add: 3 × 30° = 90°.' },
+},
+{
+  id: 'quadratic', subject: 'Maths · Quadratic equations', title: 'Quadratic formula & discriminant',
+  tex: R`x = \dfrac{-b \pm \sqrt{D}}{2a},\qquad D = b^{2} - 4ac`,
+  blurb: 'The roots sit symmetrically on either side of the vertex. The discriminant says how far apart they are — or that they don\'t exist.',
+  controls: [
+    { k: 'a', label: 'a', min: -2, max: 2, step: 0.1, val: 1, unit: '' },
+    { k: 'b', label: 'b', min: -6, max: 6, step: 0.1, val: -2, unit: '' },
+    { k: 'c', label: 'c', min: -6, max: 6, step: 0.1, val: -3, unit: '' },
+  ],
+  readout: p => {
+    const a = Math.abs(p.a) < 0.05 ? 0.1 : p.a, D = p.b * p.b - 4 * a * p.c, vx = -p.b / (2 * a);
+    const roots = D >= 0 ? `${fmt(vx - Math.sqrt(D) / (2 * a))}, ${fmt(vx + Math.sqrt(D) / (2 * a))}` : `${fmt(vx)} ± ${fmt(Math.sqrt(-D) / (2 * Math.abs(a)))}i`;
+    return [['D', fmt(D, 2) + (D > 0 ? ' → 2 real roots' : D === 0 ? ' → 1 repeated root' : ' → complex roots')], ['roots', roots], ['vertex x = −b/2a', fmt(vx)], ['sum −b/a, product c/a', `${fmt(-p.b / a)}, ${fmt(p.c / a)}`]];
+  },
+  draw(c, w, h, p) {
+    gridBg(c, w, h);
+    const a = Math.abs(p.a) < 0.05 ? 0.1 : p.a, D = p.b * p.b - 4 * a * p.c, vx = -p.b / (2 * a), vy = -D / (4 * a);
+    const { X, Y } = axes(c, { x: 10, y: 10, w: w - 20, h: h - 20 }, [-8, 8], [-10, 10], 'x', 'y');
+    c.save(); c.beginPath(); c.rect(0, 0, w, h); c.clip();
+    plot(c, x => a * x * x + p.b * x + p.c, -8, 8, X, Y, C.accent, 3, null, 300);
+    line(c, X(vx), Y(-10), X(vx), Y(10), C.muted, 1, [4, 4]);
+    dot(c, X(vx), Y(vy), 6, C['accent-4']);
+    if (D >= 0) { const d = Math.sqrt(D) / (2 * Math.abs(a)); line(c, X(vx - d), Y(0), X(vx + d), Y(0), C['accent-2'], 4); dot(c, X(vx - d), Y(0), 7, C['accent-2']); dot(c, X(vx + d), Y(0), 7, C['accent-2']); text(c, '√D / 2|a|', X(vx + d / 2), Y(0) + (vy > 0 ? 18 : -10), C['accent-2'], 12, 'center'); }
+    else text(c, 'D < 0: the parabola never touches the x-axis', w / 2, 24, C['accent-4'], 13, 'center');
+    c.restore();
+    text(c, 'vertex', X(vx) + 8, Y(vy) + (a > 0 ? 16 : -8), C['accent-4'], 12);
+  },
+  insights: [
+    R`Complete the square: $ax^2+bx+c=a\left(x+\dfrac{b}{2a}\right)^2-\dfrac{D}{4a}$. The vertex is at $x=-\dfrac b{2a}$, height $-\dfrac D{4a}$.`,
+    R`Setting it to zero: $\left(x+\dfrac b{2a}\right)^2=\dfrac D{4a^2}$ → roots at the vertex $\pm\dfrac{\sqrt D}{2a}$. That's the whole formula.`,
+    R`$D>0$: two crossings. $D=0$: the vertex just touches the axis. $D<0$: no real crossing — roots are complex conjugates.`,
+    R`Sum of roots $=-b/a$ (twice the vertex $x$), product $=c/a$ — no need to solve to know these.`,
+  ],
+  tryit: 'Slowly raise c until the two orange roots merge (D = 0) and then disappear. Watch the vertex cross the axis.',
+  quiz: { q: 'For which k does x² + kx + 9 = 0 have equal roots?', opts: ['k = ±3', 'k = ±6', 'k = ±9', 'k = 0'], a: 1, why: 'D = k² − 36 = 0 → k = ±6.' },
+},
+{
+  id: 'dot', subject: 'Maths · Vectors', title: 'Dot product as projection',
+  tex: R`\vec a\cdot\vec b = |\vec a||\vec b|\cos\theta = a_x b_x + a_y b_y`,
+  blurb: 'The dot product asks: how much of b points along a? Multiply that shadow by the length of a.',
+  controls: [
+    { k: 'A', label: '|a|', min: 1, max: 5, step: 0.1, val: 4, unit: '' },
+    { k: 'B', label: '|b|', min: 1, max: 5, step: 0.1, val: 3, unit: '' },
+    { k: 'th', label: 'Angle θ', min: 0, max: 180, step: 1, val: 50, unit: '°' },
+  ],
+  readout: p => { const al = 15 * DEG, be = al + p.th * DEG, ax = p.A * Math.cos(al), ay = p.A * Math.sin(al), bx = p.B * Math.cos(be), by = p.B * Math.sin(be);
+    return [['|a||b|cos θ', fmt(p.A * p.B * Math.cos(p.th * DEG), 3)], ['aₓbₓ + a_yb_y', fmt(ax * bx + ay * by, 3)], ['shadow of b on a', fmt(p.B * Math.cos(p.th * DEG), 3)], ['sign', p.th < 90 ? '+ (same way)' : p.th > 90 ? '− (opposite)' : '0 (perpendicular)']]; },
+  draw(c, w, h, p) {
+    gridBg(c, w, h);
+    const ox = w * 0.42, oy = h * 0.66, s = Math.min(w, h) / 11, al = 15 * DEG, be = al + p.th * DEG;
+    const P = (r, a) => [ox + r * s * Math.cos(a), oy - r * s * Math.sin(a)];
+    const [ex1, ey1] = P(-6, al), [ex2, ey2] = P(7, al); line(c, ex1, ey1, ex2, ey2, C.line, 1, [4, 4]);
+    const pr = p.B * Math.cos(p.th * DEG), F = P(pr, al), Bt = P(p.B, be), At = P(p.A, al);
+    line(c, ...Bt, ...F, C.muted, 1.5, [3, 4]);
+    line(c, ox, oy, ...F, pr >= 0 ? C['accent-3'] : C['accent-4'], 7);
+    arrow(c, ox, oy, ...At, C.accent, 3); arrow(c, ox, oy, ...Bt, C['accent-2'], 3);
+    circ(c, ox, oy, 26, C.ink, 1.5, null, -be, -al);
+    text(c, 'a', At[0] + 6, At[1] - 6, C.accent, 15); text(c, 'b', Bt[0] + 6, Bt[1] - 6, C['accent-2'], 15);
+    text(c, 'θ', ox + 34 * Math.cos((al + be) / 2), oy - 34 * Math.sin((al + be) / 2), C.ink, 13, 'center', 'middle');
+    text(c, `shadow = |b| cos θ = ${fmt(pr, 2)}`, 12, 20, pr >= 0 ? C['accent-3'] : C['accent-4'], 13);
+  },
+  insights: [
+    R`Drop a perpendicular from the tip of $\vec b$ onto $\vec a$. The shadow has length $|\vec b|\cos\theta$. Multiply by $|\vec a|$.`,
+    R`Perpendicular vectors cast no shadow → $\vec a\cdot\vec b=0$. That's the standard test for perpendicularity.`,
+    R`Past 90° the shadow points backwards → negative dot product.`,
+    R`Physics: work $W=\vec F\cdot\vec s$ — only the part of the force along the motion does work.`,
+  ],
+  tryit: 'Sweep θ from 0° to 180°: the green shadow shrinks to nothing at 90° and turns red (negative) beyond.',
+  quiz: { q: 'Angle between a = i + j and b = i − j is…', opts: ['0°', '45°', '90°', '180°'], a: 2, why: 'a · b = 1 − 1 = 0, so they are perpendicular.' },
+},
+{
+  id: 'slide', subject: 'Maths · Logarithms', title: 'log(ab) = log a + log b',
+  tex: R`\log(ab) = \log a + \log b,\qquad \log\dfrac ab = \log a - \log b,\qquad \log a^n = n\log a`,
+  blurb: 'Logs turn multiplication into addition. A slide rule does it by literally adding two lengths.',
+  controls: [
+    { k: 'a', label: 'a', min: 1, max: 10, step: 0.05, val: 2, unit: '' },
+    { k: 'b', label: 'b', min: 1, max: 10, step: 0.05, val: 3, unit: '' },
+  ],
+  readout: p => [['log a', fmt(Math.log10(p.a), 4)], ['log b', fmt(Math.log10(p.b), 4)], ['sum', fmt(Math.log10(p.a) + Math.log10(p.b), 4)], ['10^sum = a·b', fmt(p.a * p.b, 3)]],
+  draw(c, w, h, p) {
+    gridBg(c, w, h);
+    const x0 = 20, D = (w - 40) / 2, ty = h * 0.42, bh = 46;
+    const XT = v => x0 + Math.log10(v) * D, off = Math.log10(p.a) * D, XB = v => x0 + off + Math.log10(v) * D;
+    c.save(); c.fillStyle = C.paper; c.strokeStyle = C.ink; c.lineWidth = 1.5; c.fillRect(x0, ty - bh, 2 * D, bh); c.strokeRect(x0, ty - bh, 2 * D, bh); c.restore();
+    c.save(); c.fillStyle = C.accent; c.globalAlpha = .1; c.fillRect(x0 + off, ty, D, bh); c.globalAlpha = 1; c.strokeStyle = C.accent; c.lineWidth = 1.5; c.strokeRect(x0 + off, ty, D, bh); c.restore();
+    const ticks = []; for (let d = 1; d < 100; d *= 10) for (let m = 1; m < 10; m += 0.5) ticks.push([d * m, m % 1 === 0]); ticks.push([100, true]);
+    for (const [v, big] of ticks) { const x = XT(v); line(c, x, ty, x, ty - (big ? 14 : 7), C.ink, 1); if (big && (v < 10 || v % 10 === 0) && (D > 200 || [1, 2, 5, 10, 20, 50, 100].includes(v))) text(c, String(v), x, ty - 18, C.ink, 11, 'center'); }
+    for (let m = 1; m <= 10; m += 0.5) { const x = XB(m), big = m % 1 === 0; line(c, x, ty, x, ty + (big ? 14 : 7), C.accent, 1); if (big && (D > 200 || [1, 2, 5, 10].includes(m))) text(c, String(m), x, ty + 26, C.accent, 11, 'center'); }
+    line(c, XT(p.a), ty - bh - 8, XT(p.a), ty + bh + 4, C.accent, 2);
+    line(c, XT(p.a * p.b), ty - bh - 8, XT(p.a * p.b), ty + bh + 4, C['accent-2'], 2.5);
+    text(c, `a = ${p.a}`, XT(p.a), ty - bh - 12, C.accent, 12, 'center');
+    text(c, `ab = ${fmt(p.a * p.b, 2)}`, XT(p.a * p.b), ty - bh - 12, C['accent-2'], 12, 'center');
+    const by = ty + bh + 22;
+    arrow(c, x0, by, XT(p.a), by, C.accent, 2.5); arrow(c, XT(p.a), by, XT(p.a * p.b), by, C['accent-2'], 2.5);
+    text(c, 'log a', (x0 + XT(p.a)) / 2, by + 16, C.accent, 12, 'center'); text(c, 'log b', (XT(p.a) + XT(p.a * p.b)) / 2, by + 16, C['accent-2'], 12, 'center');
+    text(c, 'fixed scale (1–100)', x0, 16, C.muted, 12); text(c, 'sliding scale: its 1 sits on a; read ab above b', w - 20, h - 8, C.accent, 12, 'right');
+  },
+  insights: [
+    R`$\log$ answers "10 to what power?". Since $10^m\cdot10^n=10^{m+n}$, the powers (logs) add when the numbers multiply.`,
+    R`On a log scale, distance from 1 is $\log x$. Put two such lengths end to end and you land at $\log a+\log b=\log(ab)$.`,
+    R`Every ×10 is the same distance, so 1→10 and 10→100 look identical — the scale "compresses" big numbers.`,
+    R`$\log a^n=n\log a$: multiplying $a$ by itself $n$ times = laying $n$ copies of the length $\log a$.`,
+  ],
+  tryit: 'Set a = 2 and b = 5: the product lands exactly on 10, one full decade. Try a = 4, b = 2.5.',
+  quiz: { q: 'If log 2 = 0.301 and log 3 = 0.477, log 12 = ?', opts: ['0.778', '1.079', '1.255', '0.903'], a: 1, why: 'log 12 = log 4 + log 3 = 2(0.301) + 0.477 = 1.079.' },
+},
+{
+  id: 'elimit', subject: 'Maths · Limits', title: 'e = lim (1 + 1/n)ⁿ',
+  tex: R`e = \lim_{n\to\infty}\left(1 + \dfrac1n\right)^{n} \approx 2.71828`,
+  blurb: '₹1 at 100% interest for a year. Compound more and more often — the money approaches e, never more.',
+  controls: [ { k: 'n', label: 'Compounding periods n', min: 1, max: 60, step: 1, val: 4, unit: '' } ],
+  readout: p => { const v = (1 + 1 / p.n) ** p.n; return [['(1 + 1/n)ⁿ', fmt(v, 5)], ['e', '2.71828'], ['gap', fmt(Math.E - v, 5)], ['gap × n', fmt((Math.E - v) * p.n, 3) + ' (→ e/2)']]; },
+  draw(c, w, h, p) {
+    gridBg(c, w, h);
+    const half = w * 0.55, n = p.n;
+    const { X, Y } = axes(c, { x: 40, y: 16, w: half - 56, h: h - 44 }, [0, 1], [0.9, 2.85], 'year →', '₹');
+    line(c, X(0), Y(Math.E), X(1), Y(Math.E), C['accent-3'], 1.5, [5, 4]); text(c, 'e', X(1) + 4, Y(Math.E), C['accent-3'], 13, 'left', 'middle');
+    plot(c, t => Math.exp(t), 0, 1, X, Y, C['accent-3'], 2);
+    c.save(); c.strokeStyle = C.accent; c.lineWidth = 2.5; c.beginPath(); c.moveTo(X(0), Y(1));
+    for (let k = 1; k <= n; k++) { const v0 = (1 + 1 / n) ** (k - 1), v1 = (1 + 1 / n) ** k; c.lineTo(X(k / n), Y(v0)); c.lineTo(X(k / n), Y(v1)); }
+    c.stroke(); c.restore();
+    text(c, '— compounding steps', X(0) + 6, Y(2.75), C.accent, 12); text(c, '— continuous eᵗ', X(0) + 6, Y(2.6), C['accent-3'], 12);
+    const g = axes(c, { x: half + 30, y: 16, w: w - half - 46, h: h - 44 }, [0, 60], [1.9, 2.8], 'n →', '');
+    line(c, g.X(0), g.Y(Math.E), g.X(60), g.Y(Math.E), C['accent-3'], 1.5, [5, 4]);
+    for (let k = 1; k <= 60; k++) dot(c, g.X(k), g.Y((1 + 1 / k) ** k), k === n ? 6 : 2.5, k === n ? C['accent-2'] : C.accent);
+    text(c, '(1 + 1/n)ⁿ', g.X(30), g.Y(2.05), C.muted, 12, 'center');
+  },
+  insights: [
+    R`Split the year into $n$ periods at rate $1/n$ each: after the year you have $(1+1/n)^n$. More frequent compounding pays interest on interest sooner.`,
+    R`But each slice gets smaller, so the gains shrink: $n=1$ gives 2, $n=12$ gives 2.613, $n\to\infty$ gives $e=2.71828\ldots$`,
+    R`Continuous compounding grows at a rate equal to its current value: $\dfrac{dy}{dt}=y$ → $y=e^t$. That's what makes $e$ special.`,
+    R`Standard limit: $\lim_{x\to0}(1+x)^{1/x}=e$, and more generally $\lim(1+a/n)^n=e^a$.`,
+  ],
+  tryit: 'Compare n = 1, 2, 12 (monthly), 52 (weekly). Most of the gain arrives by about n = 12.',
+  quiz: { q: 'lim (x→0) (1 + 3x)^(1/x) = ?', opts: ['e', '3e', 'e³', '1'], a: 2, why: '(1 + 3x)^(1/x) = [(1 + 3x)^(1/(3x))]³ → e³.' },
+},
+];
+{
+  const ORDER = ['Physics', 'Chemistry', 'Maths'];
+  TOPICS.sort((a, b) => ORDER.indexOf(a.subject.split(' · ')[0]) - ORDER.indexOf(b.subject.split(' · ')[0]));
+}
+
+// ---------- state ----------
+const gasState = { parts: [], T: 300, P: null, Prel: 0 };
+const decayState = { U: Array.from({ length: 100 }, () => Math.random() * 0.999 + 0.0005), simT: 0, left: 100 };
+const params = {}; for (const tp of TOPICS) { params[tp.id] = {}; for (const ct of tp.controls) params[tp.id][ct.k] = ct.val; }
+let done = new Set(); try { done = new Set(JSON.parse(localStorage.getItem('fi-done') || '[]')); } catch (e) {}
+let cur = 0; try { const i = TOPICS.findIndex(x => x.id === (location.hash.slice(1) || localStorage.getItem('fi-cur'))); if (i >= 0) cur = i; } catch (e) {}
+
+// ---------- KaTeX ----------
+function tex(s, el, display = false) {
+  if (window.katex) { try { katex.render(s, el, { displayMode: display, throwOnError: false }); return; } catch (e) {} }
+  el.textContent = s.replace(/\\dfrac\{([^}]*)\}\{([^}]*)\}/g, '($1)/($2)').replace(/\\[a-z]+/g, ' ').replace(/[{}]/g, '');
+}
+function richText(s, el) {
+  el.innerHTML = '';
+  s.split(/(\$[^$]+\$)/).forEach(part => {
+    if (part.startsWith('$') && part.endsWith('$')) { const sp = document.createElement('span'); tex(part.slice(1, -1), sp); el.appendChild(sp); }
+    else { const sp = document.createElement('span'); sp.innerHTML = part; el.appendChild(sp); }
+  });
+}
+
+// ---------- UI ----------
+const $ = id => document.getElementById(id);
+function buildNav() {
+  const nav = $('nav'); nav.innerHTML = '';
+  const groups = {}, q = ($('search').value || '').trim().toLowerCase();
+  TOPICS.forEach((tp, i) => { if (q && !(tp.title + ' ' + tp.subject).toLowerCase().includes(q)) return; const g = tp.subject.split(' · ')[0]; (groups[g] ||= []).push(i); });
+  if (!Object.keys(groups).length) nav.innerHTML = '<div class="empty">No formula matches.</div>';
+  const nd = TOPICS.filter(x => done.has(x.id)).length;
+  $('progress').innerHTML = `${nd} / ${TOPICS.length} checks passed<div class="bar"><i style="width:${nd / TOPICS.length * 100}%"></i></div>`;
+  for (const [g, idx] of Object.entries(groups)) {
+    const d = document.createElement('div'); d.className = 'group';
+    d.innerHTML = `<h3>${g}</h3><div class="list"></div>`;
+    for (const i of idx) {
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'topic' + (done.has(TOPICS[i].id) ? ' done' : '');
+      b.innerHTML = `<span class="dot"></span>${TOPICS[i].title}`;
+      if (i === cur) b.setAttribute('aria-current', 'true');
+      b.onclick = () => select(i);
+      d.querySelector('.list').appendChild(b);
+    }
+    nav.appendChild(d);
+  }
+}
+function select(i) {
+  cur = (i + TOPICS.length) % TOPICS.length;
+  const tp = TOPICS[cur];
+  try { localStorage.setItem('fi-cur', tp.id); history.replaceState(null, '', '#' + tp.id); } catch (e) {}
+  $('title').textContent = tp.title; $('subject').textContent = tp.subject;
+  tex(tp.tex, $('formula'), true); $('blurb').textContent = tp.blurb;
+  const ctl = $('controls'); ctl.innerHTML = '';
+  for (const ct of tp.controls) {
+    const d = document.createElement('div'); d.className = 'ctl';
+    const v = params[tp.id][ct.k];
+    d.innerHTML = `<label for="c-${ct.k}">${ct.label}<b id="v-${ct.k}">${v}${ct.unit}</b></label><input type="range" id="c-${ct.k}" min="${ct.min}" max="${ct.max}" step="${ct.step}" value="${v}">`;
+    d.querySelector('input').oninput = e => { params[tp.id][ct.k] = +e.target.value; $('v-' + ct.k).textContent = e.target.value + ct.unit; updateReadout(); };
+    ctl.appendChild(d);
+  }
+  const ul = $('insights'); ul.innerHTML = '';
+  for (const s of tp.insights) { const li = document.createElement('li'); richText(s, li); ul.appendChild(li); }
+  $('tryit').textContent = tp.tryit;
+  $('q').textContent = tp.quiz.q; $('why').textContent = '';
+  const opts = $('opts'); opts.innerHTML = '';
+  tp.quiz.opts.forEach((o, j) => {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'opt'; b.textContent = o;
+    b.onclick = () => {
+      [...opts.children].forEach((x, k) => { x.disabled = true; if (k === tp.quiz.a) x.classList.add('right'); });
+      if (j !== tp.quiz.a) b.classList.add('wrong');
+      $('why').textContent = (j === tp.quiz.a ? '✓ Right. ' : '✗ Not quite. ') + tp.quiz.why;
+      if (j === tp.quiz.a) { done.add(tp.id); try { localStorage.setItem('fi-done', JSON.stringify([...done])); } catch (e) {} buildNav(); }
+    };
+    opts.appendChild(b);
+  });
+  if (tp.id === 'gas') { gasState.parts = []; gasState.P = null; gasState.acc = 0; gasState.accT = 0; gasState.T = params.gas.T; }
+  buildNav(); updateReadout();
+}
+$('search').oninput = buildNav;
+$('prev').onclick = () => select(cur - 1);
+$('next').onclick = () => select(cur + 1);
+$('themeBtn').onclick = () => {
+  const r = document.documentElement, dark = r.dataset.theme ? r.dataset.theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+  r.dataset.theme = dark ? 'light' : 'dark';
+};
+
+// ---------- canvas loop ----------
+const cv = $('cv'), ctx = cv.getContext('2d');
+let W = 0, H = 0, last = performance.now(), roTick = 0;
+function fit() { const r = cv.getBoundingClientRect(), d = devicePixelRatio || 1; W = r.width; H = r.height; cv.width = Math.round(W * d); cv.height = Math.round(H * d); ctx.setTransform(d, 0, 0, d, 0, 0); }
+new ResizeObserver(fit).observe($('stage'));
+function frame(now) {
+  const dt = (now - last) / 1000; last = now;
+  const t = now / 1000, tp = TOPICS[cur], p = params[tp.id];
+  readColors();
+  ctx.clearRect(0, 0, W, H);
+  if (W > 0) tp.draw(ctx, W, H, p, t, dt);
+  if (++roTick % 6 === 0) updateReadout();
+  requestAnimationFrame(frame);
+}
+function updateReadout() {
+  const tp = TOPICS[cur], rows = tp.readout(params[tp.id], performance.now() / 1000);
+  $('readout').innerHTML = rows.map(([k, v]) => `<span class="pill"><i>${k}:</i> ${v}</span>`).join('');
+}
+function start() { buildNav(); select(cur); fit(); requestAnimationFrame(frame); }
+if (document.readyState === 'complete') start(); else addEventListener('load', start);
+</script>
+</body>
+</html>

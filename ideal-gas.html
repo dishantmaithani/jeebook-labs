@@ -1,0 +1,1039 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ideal Gas Box</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap">
+<style>
+:root {
+  --bg: #070b14;
+  --card: rgba(15, 22, 38, 0.72);
+  --card-hi: rgba(255, 255, 255, 0.03);
+  --line: rgba(148, 163, 184, 0.13);
+  --line2: rgba(148, 163, 184, 0.24);
+  --ink: #e6ebf5;
+  --muted: #8b95ab;
+  --faint: #5b6478;
+  --accent: #7aa2ff;
+  --accent2: #ffb057;
+  --vp: #34d399;
+  --vavg: #60a5fa;
+  --vrms: #f472b6;
+  --good: #34d399;
+  --bad: #fb7185;
+  --wall: rgba(120, 150, 220, 0.05);
+  --edge: rgba(170, 200, 255, 0.55);
+  --metal1: #cfd8e6;
+  --metal2: #55627a;
+  --chip: rgba(148, 163, 184, 0.09);
+  --shadow: 0 20px 50px -24px rgba(0, 0, 0, 0.7);
+  --f-head: "Space Grotesk", "Segoe UI", system-ui, sans-serif;
+  --f-body: "Inter", "Segoe UI", system-ui, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+  color-scheme: dark;
+}
+:root[data-theme="light"] {
+  --bg: #eef2f8;
+  --card: rgba(255, 255, 255, 0.82);
+  --card-hi: rgba(255, 255, 255, 0.6);
+  --line: rgba(15, 23, 42, 0.09);
+  --line2: rgba(15, 23, 42, 0.18);
+  --ink: #0f172a;
+  --muted: #536079;
+  --faint: #8a94a8;
+  --accent: #3d63ea;
+  --accent2: #e07a12;
+  --vp: #059669;
+  --vavg: #2563eb;
+  --vrms: #db2777;
+  --good: #059669;
+  --bad: #e11d48;
+  --wall: rgba(40, 70, 140, 0.045);
+  --edge: rgba(30, 50, 100, 0.45);
+  --metal1: #eef2f7;
+  --metal2: #8792a6;
+  --chip: rgba(15, 23, 42, 0.05);
+  --shadow: 0 18px 40px -26px rgba(30, 41, 80, 0.45);
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--bg); color: var(--ink); }
+body {
+  font: 14px/1.5 var(--f-body);
+  padding: 22px 16px 40px;
+  min-height: 100vh;
+  background:
+    radial-gradient(900px 500px at 8% -10%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 70%),
+    radial-gradient(700px 500px at 100% 10%, color-mix(in srgb, var(--vrms) 10%, transparent), transparent 70%),
+    radial-gradient(800px 600px at 60% 110%, color-mix(in srgb, var(--vp) 8%, transparent), transparent 70%),
+    var(--bg);
+  background-attachment: fixed;
+}
+.wrap { max-width: 1320px; margin: 0 auto; }
+button { font: inherit; color: inherit; }
+
+/* header */
+header { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 18px; }
+.brand { display: flex; align-items: center; gap: 14px; }
+.logo { width: 44px; height: 44px; border-radius: 13px; display: grid; place-items: center;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 30%, transparent), color-mix(in srgb, var(--vrms) 22%, transparent));
+  border: 1px solid var(--line2); }
+h1 { font: 700 clamp(22px, 3vw, 30px)/1.05 var(--f-head); margin: 0; letter-spacing: -0.02em; }
+.tag { color: var(--muted); margin: 3px 0 0; font-size: 13.5px; }
+.hdr-right { display: flex; align-items: center; gap: 10px; }
+.eq { font: 600 15px var(--f-mono); padding: 7px 14px; border-radius: 999px; background: var(--chip); border: 1px solid var(--line); letter-spacing: 0.02em; }
+.eq b { color: var(--accent); font-weight: 600; }
+.icon-btn { width: 36px; height: 36px; border-radius: 10px; border: 1px solid var(--line); background: var(--chip); cursor: pointer; display: grid; place-items: center; }
+.icon-btn:hover { border-color: var(--line2); }
+
+/* layout */
+.app { display: grid; grid-template-columns: minmax(0, 1.62fr) minmax(330px, 1fr); gap: 16px; align-items: start; }
+.col { display: grid; gap: 16px; min-width: 0; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 18px; box-shadow: var(--shadow);
+  backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); position: relative; overflow: hidden; }
+.card::before { content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  background: linear-gradient(180deg, var(--card-hi), transparent 40%); }
+.card-h { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 14px 16px 0; position: relative; flex-wrap: wrap; }
+.card-t { font: 600 14px var(--f-head); letter-spacing: 0.01em; display: flex; align-items: center; gap: 8px; }
+.card-t small { font: 500 12px var(--f-body); color: var(--muted); }
+.dotlive { width: 7px; height: 7px; border-radius: 50%; background: var(--good); box-shadow: 0 0 10px var(--good); animation: pulse 1.8s infinite; }
+@keyframes pulse { 50% { opacity: 0.35; } }
+
+/* stage */
+.stage canvas { display: block; width: 100%; aspect-ratio: 16 / 9.6; touch-action: none; }
+.toolbar { display: flex; gap: 6px; flex-wrap: wrap; }
+.tbtn { border: 1px solid var(--line); background: var(--chip); border-radius: 9px; padding: 5px 11px; font-size: 12.5px; font-weight: 500; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+.tbtn:hover { border-color: var(--line2); }
+.tbtn.on { background: color-mix(in srgb, var(--accent) 22%, transparent); border-color: color-mix(in srgb, var(--accent) 55%, transparent); }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 9px; overflow: hidden; background: var(--chip); }
+.seg button { border: 0; background: none; padding: 5px 9px; font: 500 12px var(--f-mono); cursor: pointer; color: var(--muted); }
+.seg button.on { background: color-mix(in srgb, var(--accent) 22%, transparent); color: var(--ink); }
+.stage-foot { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 0 16px 14px; flex-wrap: wrap; position: relative; }
+.cbar { display: flex; align-items: center; gap: 10px; font: 500 11.5px var(--f-mono); color: var(--muted); }
+.cbar i { display: block; width: 170px; height: 8px; border-radius: 9px; }
+.stage-note { font-size: 12px; color: var(--muted); }
+.toast { position: absolute; left: 50%; top: 58px; transform: translate(-50%, -6px); opacity: 0; transition: 0.25s; pointer-events: none;
+  background: var(--ink); color: var(--bg); font-weight: 500; font-size: 12.5px; padding: 6px 12px; border-radius: 8px; z-index: 3; }
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+/* controls */
+.controls { padding: 16px; display: grid; gap: 14px; }
+.modes { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; background: var(--chip); border: 1px solid var(--line); padding: 4px; border-radius: 13px; }
+.mode { border: 0; background: none; border-radius: 9px; padding: 8px 6px; cursor: pointer; text-align: center; color: var(--muted); transition: 0.15s; }
+.mode b { display: block; font: 600 13px var(--f-head); color: var(--ink); opacity: 0.8; }
+.mode span { font: 500 10.5px var(--f-mono); }
+.mode.on { background: var(--card); box-shadow: 0 1px 0 var(--line2), 0 6px 18px -10px rgba(0,0,0,.6); color: var(--ink); }
+.mode.on b { opacity: 1; color: var(--accent); }
+.hint { font-size: 13px; color: var(--muted); min-height: 2.6em; margin: -2px 2px 0; }
+.hint strong { color: var(--ink); font-weight: 600; }
+.sliders { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 20px; }
+.sl { padding: 10px 12px 8px; border-radius: 12px; border: 1px solid var(--line); background: var(--chip); transition: 0.2s; }
+.sl.locked { opacity: 0.55; }
+.sl.driven { border-color: color-mix(in srgb, var(--accent2) 45%, transparent); }
+.sl-top { display: flex; align-items: baseline; gap: 8px; }
+.sl-name { font-weight: 600; font-size: 13px; }
+.sl-name i { font-family: Georgia, serif; font-size: 15px; color: var(--accent); margin-left: 2px; }
+.sl-tag { font: 500 10px var(--f-mono); text-transform: uppercase; letter-spacing: 0.06em; color: var(--faint); display: inline-flex; gap: 4px; align-items: center; }
+.sl.driven .sl-tag { color: var(--accent2); }
+.sl output { margin-left: auto; font: 600 14px var(--f-mono); font-variant-numeric: tabular-nums; }
+.sl output small { font-weight: 400; color: var(--muted); font-size: 11.5px; }
+input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; height: 22px; background: transparent; margin: 4px 0 0; cursor: pointer; }
+input[type=range]:disabled { cursor: not-allowed; }
+input[type=range]::-webkit-slider-runnable-track { height: 5px; border-radius: 9px;
+  background: linear-gradient(90deg, var(--accent) var(--fill, 50%), var(--line2) var(--fill, 50%)); }
+input[type=range]::-moz-range-track { height: 5px; border-radius: 9px; background: var(--line2); }
+input[type=range]::-moz-range-progress { height: 5px; border-radius: 9px; background: var(--accent); }
+input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 17px; height: 17px; border-radius: 50%; margin-top: -6px;
+  background: var(--ink); border: 3px solid var(--accent); box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 20%, transparent); }
+input[type=range]::-moz-range-thumb { width: 12px; height: 12px; border-radius: 50%; background: var(--ink); border: 3px solid var(--accent); }
+.sl.driven input[type=range]::-webkit-slider-runnable-track { background: linear-gradient(90deg, var(--accent2) var(--fill, 50%), var(--line2) var(--fill, 50%)); }
+.sl.driven input[type=range]::-webkit-slider-thumb { border-color: var(--accent2); box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent2) 20%, transparent); }
+input[type=range]:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: 6px; }
+.gases { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.gases .lbl { font-size: 12.5px; color: var(--muted); margin-right: 2px; }
+.gas { border: 1px solid var(--line); background: var(--chip); border-radius: 11px; padding: 5px 11px 5px 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; }
+.gas .sym { width: 26px; height: 26px; border-radius: 7px; display: grid; place-items: center; font: 700 12px var(--f-head); background: var(--line); }
+.gas .gn { font-size: 12.5px; font-weight: 600; line-height: 1.1; text-align: left; }
+.gas .gm { font: 400 10.5px var(--f-mono); color: var(--muted); display: block; }
+.gas.on { border-color: color-mix(in srgb, var(--accent) 60%, transparent); background: color-mix(in srgb, var(--accent) 14%, transparent); }
+.gas.on .sym { background: var(--accent); color: #fff; }
+
+/* readouts */
+.readout { padding: 6px 14px 14px; display: grid; grid-template-columns: 200px 1fr; gap: 6px 14px; align-items: center; position: relative; }
+#gauge { width: 200px; height: 178px; display: block; }
+.tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.tile { border: 1px solid var(--line); background: var(--chip); border-radius: 11px; padding: 7px 10px; min-width: 0; }
+.tile .k { font-size: 11px; color: var(--muted); display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+.tile .v { font: 600 16px var(--f-mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tile .v small { font-size: 11px; color: var(--muted); font-weight: 400; }
+.tile .s { font: 400 11px var(--f-mono); color: var(--faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.speeds { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.sw { width: 9px; height: 9px; border-radius: 3px; display: inline-block; }
+
+.chart canvas { display: block; width: 100%; height: 236px; }
+.chart .formula { font: 400 12px var(--f-mono); color: var(--muted); padding: 2px 16px 0; position: relative; }
+.legend { display: flex; gap: 12px; font-size: 11.5px; color: var(--muted); flex-wrap: wrap; }
+.legend span { display: inline-flex; align-items: center; gap: 5px; }
+.lg-bar { width: 12px; height: 8px; border-radius: 2px; background: linear-gradient(90deg, #3b82f6, #a3e635, #f43f5e); opacity: .8; }
+.lg-line { width: 14px; height: 2px; background: var(--ink); }
+.lg-dash { width: 14px; border-top: 2px dashed var(--faint); }
+.law { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 0 14px 14px; position: relative; }
+.law .tile .v.pos { color: var(--good); }
+.law .tile .v.neg { color: var(--bad); }
+.law-note { grid-column: 1 / -1; font-size: 11.5px; color: var(--faint); }
+footer { margin-top: 18px; color: var(--faint); font-size: 12px; text-align: center; }
+kbd { font: 500 11px var(--f-mono); border: 1px solid var(--line2); border-bottom-width: 2px; border-radius: 5px; padding: 0 5px; }
+
+@media (max-width: 1040px) {
+  .app { grid-template-columns: 1fr; }
+}
+@media (max-width: 620px) {
+  .sliders { grid-template-columns: 1fr; }
+  .modes { grid-template-columns: repeat(2, 1fr); }
+  .readout { grid-template-columns: 1fr; justify-items: center; }
+  .tiles { width: 100%; }
+  .law { grid-template-columns: 1fr 1fr 1fr; }
+  .eq { display: none; }
+  .stage canvas { aspect-ratio: 4 / 3.2; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <div class="logo" aria-hidden="true">
+        <svg width="26" height="26" viewBox="0 0 26 26"><rect x="2" y="4" width="22" height="18" rx="3" fill="none" stroke="currentColor" stroke-opacity=".7" stroke-width="1.6"/>
+          <circle cx="8" cy="10" r="2.2" fill="#22d3ee"/><circle cx="16" cy="15" r="2.2" fill="#fbbf24"/><circle cx="12" cy="18" r="1.8" fill="#3b82f6"/><circle cx="19" cy="9" r="1.8" fill="#f43f5e"/></svg>
+      </div>
+      <div>
+        <h1>Ideal Gas Box</h1>
+        <p class="tag">3-D hard-sphere molecules in real units, with live Maxwell–Boltzmann statistics.</p>
+      </div>
+    </div>
+    <div class="hdr-right">
+      <div class="eq"><b>P</b>V = n<b>R</b>T</div>
+      <button class="icon-btn" id="themeBtn" title="Toggle light / dark" aria-label="Toggle theme">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <div class="app">
+    <div class="col">
+      <section class="card stage">
+        <div class="card-h">
+          <div class="card-t"><span class="dotlive" id="liveDot"></span>Chamber <small id="chamberSub">80 molecules · Argon</small></div>
+          <div class="toolbar">
+            <button class="tbtn" id="pauseBtn" title="Pause (Space)">
+              <svg id="pauseIco" width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><rect x="2" y="1.5" width="3" height="9" rx="1"/><rect x="7" y="1.5" width="3" height="9" rx="1"/></svg>
+              <span>Pause</span></button>
+            <button class="tbtn" id="equalBtn" title="Give every molecule the same speed and watch the spread return">Equal speeds</button>
+            <div class="seg" id="slowSeg" title="Simulation speed">
+              <button data-s="1" class="on">1×</button><button data-s="0.5">½×</button><button data-s="0.25">¼×</button>
+            </div>
+          </div>
+        </div>
+        <div class="toast" id="toast"></div>
+        <canvas id="box" aria-label="Animated box of gas molecules with a movable piston"></canvas>
+        <div class="stage-foot">
+          <div class="cbar"><span>0</span><i id="cbar"></i><span id="cbarMax">— m/s</span><span>molecular speed</span></div>
+          <div class="stage-note">Drag the piston · click a molecule to track it</div>
+        </div>
+      </section>
+
+      <section class="card controls">
+        <div class="modes" id="modes" role="tablist">
+          <button class="mode on" data-m="isothermal"><b>Isothermal</b><span>T const</span></button>
+          <button class="mode" data-m="isobaric"><b>Isobaric</b><span>P const</span></button>
+          <button class="mode" data-m="isochoric"><b>Isochoric</b><span>V const</span></button>
+          <button class="mode" data-m="adiabatic"><b>Adiabatic</b><span>Q = 0</span></button>
+        </div>
+        <p class="hint" id="hint"></p>
+        <div class="sliders" id="sliders"></div>
+        <div class="gases" id="gases"><span class="lbl">Gas</span></div>
+      </section>
+    </div>
+
+    <div class="col">
+      <section class="card">
+        <div class="card-h"><div class="card-t">State <small>measured from wall impacts</small></div></div>
+        <div class="readout">
+          <svg id="gauge" viewBox="0 0 220 196" aria-label="Pressure gauge"></svg>
+          <div class="tiles">
+            <div class="tile"><div class="k">Temperature</div><div class="v" id="rT">—</div><div class="s" id="rTk">—</div></div>
+            <div class="tile"><div class="k">Volume</div><div class="v" id="rV">—</div><div class="s" id="rVs">—</div></div>
+            <div class="tile"><div class="k">Amount</div><div class="v" id="rN">—</div><div class="s" id="rNs">—</div></div>
+            <div class="tile"><div class="k">PV / nRT</div><div class="v" id="rZ">—</div><div class="s" id="rZs">ideal → 1.00</div></div>
+          </div>
+          <div class="speeds">
+            <div class="tile"><div class="k"><i class="sw" style="background:var(--vp)"></i>v<sub>p</sub> = √(2RT/M)</div><div class="v" id="rVp">—</div><div class="s">most probable</div></div>
+            <div class="tile"><div class="k"><i class="sw" style="background:var(--vavg)"></i>v̄ = √(8RT/πM)</div><div class="v" id="rVa">—</div><div class="s" id="rVas">—</div></div>
+            <div class="tile"><div class="k"><i class="sw" style="background:var(--vrms)"></i>v<sub>rms</sub> = √(3RT/M)</div><div class="v" id="rVr">—</div><div class="s" id="rVrs">—</div></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card chart">
+        <div class="card-h">
+          <div class="card-t">Maxwell–Boltzmann distribution</div>
+          <div class="legend"><span><i class="lg-bar"></i>molecules</span><span><i class="lg-line"></i>theory</span><span><i class="lg-dash"></i>300 K</span></div>
+        </div>
+        <div class="formula">f(v) = 4π (M/2πRT)<sup>3/2</sup> v² e<sup>−Mv²/2RT</sup></div>
+        <canvas id="mb" aria-label="Speed distribution histogram with theoretical curve"></canvas>
+      </section>
+
+      <section class="card chart">
+        <div class="card-h">
+          <div class="card-t">P–V diagram <small>path since reset</small></div>
+          <button class="tbtn" id="resetPath">Reset path</button>
+        </div>
+        <canvas id="pv" aria-label="Pressure versus volume diagram"></canvas>
+        <div class="law">
+          <div class="tile"><div class="k">W by gas = ∫P dV</div><div class="v" id="lW">0 J</div></div>
+          <div class="tile"><div class="k">ΔU = n·(3/2)R·ΔT</div><div class="v" id="lU">0 J</div></div>
+          <div class="tile"><div class="k">Q = ΔU + W</div><div class="v" id="lQ">0 J</div></div>
+          <div class="law-note">First law, monatomic gas (C<sub>v</sub> = 3R/2, γ = 5/3). Close a loop and ΔU returns to 0, so Q = W = the enclosed area.</div>
+        </div>
+      </section>
+    </div>
+  </div>
+  <footer>Each molecule stands for 1/80 mol. Collisions are elastic, so any starting speeds relax to Maxwell–Boltzmann by themselves. <kbd>Space</kbd> pauses.</footer>
+</div>
+
+<script>
+(() => {
+'use strict';
+// ---------- constants ----------
+const R = 8.314, GAMMA = 5 / 3;
+const GASES = {
+  He: { name: 'Helium', M: 4.0026e-3, r: 8 },
+  Ne: { name: 'Neon', M: 20.180e-3, r: 9 },
+  Ar: { name: 'Argon', M: 39.948e-3, r: 10.5 },
+  Xe: { name: 'Xenon', M: 131.29e-3, r: 12.5 },
+};
+const RANGE = { P: [10, 2000], V: [5, 40], T: [100, 1000], n: [0.25, 2.5] };
+const STEP = { P: 1, V: 0.1, T: 1, n: 0.05 };
+const BOX = { Wmax: 1000, H: 600, D: 260 };
+const WALL = 11;        // wall contact distance (sim units)
+const DCOL = 24;        // molecule collision diameter
+const SPD = 0.65;       // sim units per (m/s)
+const PER_MOL = 80;     // molecules per mol
+const SHRINK = 0.26;    // perspective shrink of the back wall
+const NB = 40;          // histogram bins
+const CMAP = [[0, [59, 130, 246]], [0.28, [34, 211, 238]], [0.5, [163, 230, 53]], [0.72, [251, 191, 36]], [1, [244, 63, 94]]];
+const HINTS = {
+  isothermal: '<strong>Boyle’s law</strong> — the box sits on a heat bath, so T stays fixed and P ∝ 1/V. Every joule of work is paid for by heat: Q = W.',
+  isobaric: '<strong>Charles’s law</strong> — the piston floats at constant P, so V ∝ T. Heat goes partly into ΔU and partly into pushing the piston.',
+  isochoric: '<strong>Gay-Lussac’s law</strong> — the piston is clamped, so P ∝ T. No work is done: all heat becomes internal energy, Q = ΔU.',
+  adiabatic: '<strong>Adiabatic</strong> — insulated walls, Q = 0, so PV<sup>γ</sup> and TV<sup>γ−1</sup> stay constant. Push the piston in and the gas heats up.',
+};
+const LOCK = { isothermal: 'T', isobaric: 'P', isochoric: 'V', adiabatic: null };
+
+// ---------- state ----------
+const state = { mode: 'isothermal', gas: 'Ar', n: 1, T: 300, V: 24, P: 0, paused: false, slow: 1 };
+state.P = state.n * R * state.T / state.V;
+const tally = { W: 0, T0: state.T, path: [] };
+const meas = { Pm: null, ratio: 1, hitRate: 0, collRate: 0, Tkin: state.T, vrms: 0, vavg: 0 };
+let parts = [], tracer = null, trail = [], flashes = [];
+let Wcur = BOX.Wmax * state.V / RANGE.V[1];
+let hist = new Float32Array(NB), yMax = 0, pvMax = 0, needleP = state.P, driven = null, drivenT = 0;
+const L = { k: 1, fx: 0, fy: 0, vx: 0, vy: 0 };
+let C = {}, sprites = [];
+
+const $ = s => document.querySelector(s);
+const gas = () => GASES[state.gas];
+const sig2 = () => SPD * SPD * R * state.T / gas().M;          // per-axis velocity variance (sim units)
+const vAxis = () => Math.ceil(3.1 * Math.sqrt(2 * R * 1000 / gas().M) / 250) * 250;
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const inR = (v, k) => v >= RANGE[k][0] - 1e-9 && v <= RANGE[k][1] + 1e-9;
+
+// ---------- colour helpers ----------
+function cmap(t) {
+  t = clamp(t, 0, 1);
+  for (let i = 1; i < CMAP.length; i++) if (t <= CMAP[i][0]) {
+    const [t0, a] = CMAP[i - 1], [t1, b] = CMAP[i], u = (t - t0) / (t1 - t0);
+    return a.map((x, j) => Math.round(x + (b[j] - x) * u));
+  }
+  return CMAP[CMAP.length - 1][1];
+}
+const rgba = (c, a = 1) => `rgba(${c[0]},${c[1]},${c[2]},${a})`;
+const mix = (a, b, u) => a.map((x, i) => Math.round(x + (b[i] - x) * u));
+const heatRGB = () => mix([56, 189, 248], [249, 101, 22], (state.T - 100) / 900);
+const isLight = () => document.documentElement.dataset.theme === 'light';
+function readColors() {
+  const cs = getComputedStyle(document.documentElement);
+  for (const k of ['ink', 'muted', 'faint', 'line', 'line2', 'accent', 'accent2', 'vp', 'vavg', 'vrms', 'wall', 'edge', 'metal1', 'metal2', 'good', 'bad'])
+    C[k] = cs.getPropertyValue('--' + k).trim();
+}
+function buildSprites() {
+  const NBK = 28, glow = isLight() ? 0.16 : 0.42;
+  sprites = [];
+  for (let b = 0; b < NBK; b++) {
+    const col = cmap((b + 0.5) / NBK), cv = document.createElement('canvas');
+    cv.width = cv.height = 64;
+    const g = cv.getContext('2d');
+    const halo = g.createRadialGradient(32, 32, 8, 32, 32, 32);
+    halo.addColorStop(0, rgba(col, glow)); halo.addColorStop(1, rgba(col, 0));
+    g.fillStyle = halo; g.fillRect(0, 0, 64, 64);
+    const ball = g.createRadialGradient(28.5, 28.5, 0.5, 32, 32, 11);
+    ball.addColorStop(0, 'rgba(255,255,255,0.95)');
+    ball.addColorStop(0.3, rgba(mix(col, [255, 255, 255], 0.25)));
+    ball.addColorStop(1, rgba(mix(col, [0, 0, 0], 0.45)));
+    g.fillStyle = ball; g.beginPath(); g.arc(32, 32, 11, 0, Math.PI * 2); g.fill();
+    sprites.push(cv);
+  }
+}
+
+// ---------- particles ----------
+function gauss() { let u = 0; while (!u) u = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * Math.random()); }
+function newPart() {
+  const s = Math.sqrt(sig2());
+  return { x: WALL + Math.random() * (Wcur - 2 * WALL), y: WALL + Math.random() * (BOX.H - 2 * WALL), z: WALL + Math.random() * (BOX.D - 2 * WALL),
+    vx: gauss() * s, vy: gauss() * s, vz: gauss() * s };
+}
+function syncCount() {
+  const N = Math.max(10, Math.round(state.n * PER_MOL));
+  while (parts.length < N) parts.push(newPart());
+  while (parts.length > N) parts.splice(parts[parts.length - 1] === tracer ? parts.length - 2 : parts.length - 1, 1);
+  if (!tracer || !parts.includes(tracer)) { tracer = parts[0]; trail = []; }
+}
+function equalSpeeds() {
+  const v = Math.sqrt(3 * sig2());
+  for (const p of parts) {
+    const u = Math.random() * 2 - 1, ph = Math.random() * Math.PI * 2, s = Math.sqrt(1 - u * u);
+    p.vx = v * s * Math.cos(ph); p.vy = v * s * Math.sin(ph); p.vz = v * u;
+  }
+  toast('Every molecule now has the same speed — watch collisions spread it out');
+}
+
+// ---------- physics ----------
+function step(dt) {
+  const N = parts.length;
+  let vmax = 1;
+  for (const p of parts) vmax = Math.max(vmax, Math.abs(p.vx), Math.abs(p.vy), Math.abs(p.vz));
+  const nsub = clamp(Math.ceil(vmax * dt / 5), 1, 24), h = dt / nsub;
+  const xHi = Wcur - WALL, yHi = BOX.H - WALL, zHi = BOX.D - WALL, d2c = DCOL * DCOL;
+  let J = 0, hits = 0, coll = 0;
+  for (let s = 0; s < nsub; s++) {
+    for (const p of parts) {
+      p.x += p.vx * h; p.y += p.vy * h; p.z += p.vz * h;
+      if (p.x < WALL) { p.x = 2 * WALL - p.x; p.vx = Math.abs(p.vx); J += 2 * p.vx; hits++; }
+      else if (p.x > xHi) {
+        if (p.vx > 0) { J += 2 * p.vx; hits++; p.vx = -p.vx; flash(xHi + WALL, p.y, p.z); }
+        p.x = Math.max(WALL, xHi);
+      }
+      if (p.y < WALL) { p.y = 2 * WALL - p.y; p.vy = Math.abs(p.vy); J += 2 * p.vy; hits++; }
+      else if (p.y > yHi) { p.y = 2 * yHi - p.y; J += 2 * Math.abs(p.vy); p.vy = -Math.abs(p.vy); hits++; flash(p.x, BOX.H, p.z, 0.25); }
+      if (p.z < WALL) { p.z = 2 * WALL - p.z; p.vz = Math.abs(p.vz); J += 2 * p.vz; hits++; }
+      else if (p.z > zHi) { p.z = 2 * zHi - p.z; J += 2 * Math.abs(p.vz); p.vz = -Math.abs(p.vz); hits++; flash(p.x, p.y, BOX.D, 0.25); }
+    }
+    for (let i = 0; i < N; i++) {
+      const a = parts[i];
+      for (let j = i + 1; j < N; j++) {
+        const b = parts[j];
+        const dx = b.x - a.x; if (dx > DCOL || dx < -DCOL) continue;
+        const dy = b.y - a.y; if (dy > DCOL || dy < -DCOL) continue;
+        const dz = b.z - a.z; if (dz > DCOL || dz < -DCOL) continue;
+        const d2 = dx * dx + dy * dy + dz * dz;
+        if (d2 >= d2c || d2 < 1e-6) continue;
+        const dot = (b.vx - a.vx) * dx + (b.vy - a.vy) * dy + (b.vz - a.vz) * dz;
+        if (dot >= 0) continue;
+        const k = dot / d2;
+        a.vx += k * dx; a.vy += k * dy; a.vz += k * dz;
+        b.vx -= k * dx; b.vy -= k * dy; b.vz -= k * dz;
+        coll++;
+      }
+    }
+  }
+  // heat bath / thermostat: rescale (keeps the distribution's shape, sets its width)
+  let s2 = 0, sv = 0;
+  for (const p of parts) { const q = p.vx * p.vx + p.vy * p.vy + p.vz * p.vz; s2 += q; }
+  const cur = s2 / N, tgt = 3 * sig2();
+  const lam = Math.sqrt(clamp(1 + Math.min(1, dt / 0.3) * (tgt / cur - 1), 0.6, 1.6));
+  s2 = 0;
+  for (const p of parts) { p.vx *= lam; p.vy *= lam; p.vz *= lam; const q = p.vx * p.vx + p.vy * p.vy + p.vz * p.vz; s2 += q; sv += Math.sqrt(q); }
+  meas.Tkin = gas().M * (s2 / N) / (3 * R * SPD * SPD);
+  meas.vrms = Math.sqrt(s2 / N) / SPD; meas.vavg = sv / N / SPD;
+  // pressure from momentum delivered to the six walls
+  const Lx = Wcur - 2 * WALL, Ly = BOX.H - 2 * WALL, Lz = BOX.D - 2 * WALL;
+  const A = 2 * (Lx * Ly + Lx * Lz + Ly * Lz);
+  const Pinst = J / (A * dt), Pth = N * sig2() / (Lx * Ly * Lz);
+  const a = 1 - Math.exp(-dt / 1.4);
+  meas.Pm = meas.Pm == null ? Pth : meas.Pm + (Pinst - meas.Pm) * a;
+  meas.ratio = meas.Pm / Pth;
+  const b = 1 - Math.exp(-dt / 0.6);
+  meas.hitRate += (hits / dt - meas.hitRate) * b;
+  meas.collRate += (coll / dt - meas.collRate) * b;
+}
+function flash(x, y, z, chance = 1) {
+  if (flashes.length < 70 && Math.random() < chance) flashes.push({ x, y, z, life: 1 });
+}
+function updateHist(dt) {
+  const vA = vAxis(), bw = vA / NB, c = new Float32Array(NB);
+  for (const p of parts) {
+    const b = Math.floor(Math.sqrt(p.vx * p.vx + p.vy * p.vy + p.vz * p.vz) / SPD / bw);
+    if (b < NB) c[b]++;
+  }
+  const d = Math.exp(-dt / 0.5);
+  for (let i = 0; i < NB; i++) hist[i] = hist[i] * d + c[i] * (1 - d);
+}
+
+// ---------- thermodynamic control ----------
+function solve(k, val, base) {
+  const { n } = base, g = GAMMA;
+  let { P, V, T } = base;
+  switch (state.mode) {
+    case 'isothermal': if (k === 'V') { V = val; P = n * R * T / V; } else if (k === 'P') { P = val; V = n * R * T / P; } break;
+    case 'isobaric': if (k === 'V') { V = val; T = P * V / (n * R); } else if (k === 'T') { T = val; V = n * R * T / P; } break;
+    case 'isochoric': if (k === 'T') { T = val; P = n * R * T / V; } else if (k === 'P') { P = val; T = P * V / (n * R); } break;
+    case 'adiabatic':
+      if (k === 'V') { V = val; T = base.T * Math.pow(base.V / V, g - 1); P = n * R * T / V; }
+      else if (k === 'P') { P = val; V = base.V * Math.pow(base.P / P, 1 / g); T = P * V / (n * R); }
+      else if (k === 'T') { T = val; V = base.V * Math.pow(base.T / T, 1 / (g - 1)); P = n * R * T / V; }
+      break;
+  }
+  return { P, V, T, n };
+}
+const valid = s => inR(s.P, 'P') && inR(s.V, 'V') && inR(s.T, 'T');
+function setVar(k, val) {
+  if (LOCK[state.mode] === k) { toast(`${k} is held constant in ${state.mode} mode`); return; }
+  const base = { P: state.P, V: state.V, T: state.T, n: state.n };
+  let res = solve(k, val, base);
+  if (!valid(res)) {          // walk back toward the old value until every variable is in range
+    let lo = 0, hi = 1;
+    for (let i = 0; i < 24; i++) { const m = (lo + hi) / 2; valid(solve(k, base[k] + (val - base[k]) * m, base)) ? lo = m : hi = m; }
+    res = solve(k, base[k] + (val - base[k]) * lo, base);
+    if (Math.abs(val - res[k]) > STEP[k]) toast('Another variable hit the end of its range');
+  }
+  // work done by the gas along this step of the process
+  const V1 = base.V, V2 = res.V;
+  if (Math.abs(V2 - V1) > 1e-12) {
+    if (state.mode === 'isothermal') tally.W += state.n * R * base.T * Math.log(V2 / V1);
+    else if (state.mode === 'isobaric') tally.W += base.P * (V2 - V1);
+    else if (state.mode === 'adiabatic') tally.W += (base.P * V1 - res.P * V2) / (GAMMA - 1);
+  }
+  Object.assign(state, { P: res.P, V: res.V, T: res.T });
+  driven = k; drivenT = performance.now();
+  pushPath();
+  syncSliders();
+}
+function setN(val) {
+  const iso = state.mode === 'isobaric';
+  const at = n => iso ? { P: state.P, T: state.T, V: n * R * state.T / state.P } : { V: state.V, T: state.T, P: n * R * state.T / state.V };
+  let n = val;
+  if (!valid(at(n))) { let lo = 0, hi = 1; for (let i = 0; i < 24; i++) { const m = (lo + hi) / 2; valid(at(state.n + (val - state.n) * m)) ? lo = m : hi = m; } n = state.n + (val - state.n) * lo; }
+  Object.assign(state, at(n), { n });
+  syncCount(); resetTally(); syncSliders();
+}
+function resetTally() { tally.W = 0; tally.T0 = state.T; tally.path = [{ V: state.V, P: state.P }]; }
+function pushPath() {
+  const last = tally.path[tally.path.length - 1];
+  if (!last || Math.hypot((state.V - last.V) / 40, (state.P - last.P) / 2000) > 0.002) tally.path.push({ V: state.V, P: state.P });
+  if (tally.path.length > 1500) tally.path.splice(1, 1);
+}
+
+// ---------- UI: sliders ----------
+const SL = {
+  P: { name: 'Pressure', sym: 'P', fmt: v => `${v.toFixed(v < 100 ? 1 : 0)} <small>kPa</small>` },
+  V: { name: 'Volume', sym: 'V', fmt: v => `${v.toFixed(1)} <small>L</small>` },
+  T: { name: 'Temperature', sym: 'T', fmt: v => `${v.toFixed(0)} <small>K</small>` },
+  n: { name: 'Amount', sym: 'n', fmt: v => `${v.toFixed(2)} <small>mol</small>` },
+};
+const lockSvg = '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>';
+function buildSliders() {
+  const box = $('#sliders');
+  for (const k of ['P', 'V', 'T', 'n']) {
+    const d = document.createElement('div');
+    d.className = 'sl'; d.dataset.k = k;
+    d.innerHTML = `<div class="sl-top"><span class="sl-name">${SL[k].name}<i>${SL[k].sym}</i></span><span class="sl-tag"></span><output></output></div>
+      <input type="range" min="${RANGE[k][0]}" max="${RANGE[k][1]}" step="${STEP[k]}" aria-label="${SL[k].name}">`;
+    const inp = d.querySelector('input');
+    inp.addEventListener('input', () => k === 'n' ? setN(+inp.value) : setVar(k, +inp.value));
+    box.appendChild(d);
+  }
+}
+function syncSliders() {
+  const lock = LOCK[state.mode], now = performance.now();
+  for (const d of document.querySelectorAll('.sl')) {
+    const k = d.dataset.k, inp = d.querySelector('input'), v = state[k];
+    if (document.activeElement !== inp || +inp.value !== v) inp.value = v;
+    inp.style.setProperty('--fill', ((v - RANGE[k][0]) / (RANGE[k][1] - RANGE[k][0]) * 100).toFixed(2) + '%');
+    d.querySelector('output').innerHTML = SL[k].fmt(v);
+    const isLock = k === lock;
+    inp.disabled = isLock;
+    d.classList.toggle('locked', isLock);
+    const follows = !isLock && k !== 'n' && driven && driven !== k && now - drivenT < 900;
+    d.classList.toggle('driven', !!follows);
+    d.querySelector('.sl-tag').innerHTML = isLock ? lockSvg + 'held' : follows ? '↻ follows' : '';
+  }
+}
+function buildGases() {
+  const box = $('#gases');
+  for (const [k, g] of Object.entries(GASES)) {
+    const b = document.createElement('button');
+    b.className = 'gas' + (k === state.gas ? ' on' : ''); b.dataset.g = k;
+    b.innerHTML = `<span class="sym">${k}</span><span class="gn">${g.name}<span class="gm">M = ${(g.M * 1000).toFixed(1)} g/mol</span></span>`;
+    b.onclick = () => setGas(k);
+    box.appendChild(b);
+  }
+}
+function setGas(k) {
+  if (k === state.gas) return;
+  const f = Math.sqrt(GASES[state.gas].M / GASES[k].M);
+  for (const p of parts) { p.vx *= f; p.vy *= f; p.vz *= f; }
+  state.gas = k; hist.fill(0); yMax = 0;
+  document.querySelectorAll('.gas').forEach(b => b.classList.toggle('on', b.dataset.g === k));
+  updateColorbar();
+}
+function setMode(m) {
+  state.mode = m; driven = null;
+  document.querySelectorAll('.mode').forEach(b => b.classList.toggle('on', b.dataset.m === m));
+  $('#hint').innerHTML = HINTS[m];
+  syncSliders();
+}
+function updateColorbar() {
+  $('#cbar').style.background = `linear-gradient(90deg, ${CMAP.map(([t, c]) => `${rgba(c)} ${t * 100}%`).join(', ')})`;
+  $('#cbarMax').textContent = `${vAxis()} m/s`;
+}
+let toastTimer = 0;
+function toast(msg) {
+  const t = $('#toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), 1900);
+}
+
+// ---------- gauge ----------
+const G = { cx: 110, cy: 104, r: 84, a0: 135, a1: 405, max: 2000 };
+const gAng = P => G.a0 + clamp(P / G.max, 0, 1) * (G.a1 - G.a0);
+const pol = (r, a) => [G.cx + r * Math.cos(a * Math.PI / 180), G.cy + r * Math.sin(a * Math.PI / 180)];
+function arcD(r, a0, a1) { const [x0, y0] = pol(r, a0), [x1, y1] = pol(r, a1); return `M${x0.toFixed(2)} ${y0.toFixed(2)} A${r} ${r} 0 ${a1 - a0 > 180 ? 1 : 0} 1 ${x1.toFixed(2)} ${y1.toFixed(2)}`; }
+function buildGauge() {
+  let ticks = '', labels = '';
+  for (let P = 0; P <= G.max; P += 100) {
+    const a = gAng(P), major = P % 500 === 0, [x0, y0] = pol(G.r - (major ? 15 : 9), a), [x1, y1] = pol(G.r - 4, a);
+    ticks += `<line x1="${x0.toFixed(1)}" y1="${y0.toFixed(1)}" x2="${x1.toFixed(1)}" y2="${y1.toFixed(1)}" stroke="var(--${major ? 'muted' : 'line2'})" stroke-width="${major ? 1.6 : 1}"/>`;
+    if (major) { const [lx, ly] = pol(G.r - 28, a); labels += `<text x="${lx.toFixed(1)}" y="${(ly + 3.5).toFixed(1)}" text-anchor="middle" font-family="JetBrains Mono" font-size="9.5" fill="var(--faint)">${P}</text>`; }
+  }
+  $('#gauge').innerHTML = `
+    <defs><linearGradient id="gGrad" x1="0" x2="1" y1="0" y2="0">${CMAP.map(([t, c]) => `<stop offset="${t}" stop-color="${rgba(c)}"/>`).join('')}</linearGradient>
+    <filter id="gGlow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3"/></filter></defs>
+    <path d="${arcD(G.r + 6, G.a0, G.a1)}" fill="none" stroke="var(--line)" stroke-width="7" stroke-linecap="round"/>
+    <path id="gArcGlow" d="${arcD(G.r + 6, G.a0, G.a1)}" pathLength="100" fill="none" stroke="url(#gGrad)" stroke-width="7" stroke-linecap="round" filter="url(#gGlow)" opacity=".55"/>
+    <path id="gArc" d="${arcD(G.r + 6, G.a0, G.a1)}" pathLength="100" fill="none" stroke="url(#gGrad)" stroke-width="7" stroke-linecap="round"/>
+    ${ticks}${labels}
+    <circle id="gSet" r="4.5" fill="var(--ink)" stroke="var(--bg)" stroke-width="2"/>
+    <g id="gNeedle"><path d="M${G.cx - 10} ${G.cy - 2.2} L${G.cx + G.r - 18} ${G.cy} L${G.cx - 10} ${G.cy + 2.2} Z" fill="var(--accent2)"/></g>
+    <circle cx="${G.cx}" cy="${G.cy}" r="7" fill="var(--bg)" stroke="var(--accent2)" stroke-width="2.5"/>
+    <text id="gVal" x="${G.cx}" y="${G.cy + 40}" text-anchor="middle" font-family="JetBrains Mono" font-weight="600" font-size="21" fill="var(--ink)">—</text>
+    <text x="${G.cx}" y="${G.cy + 55}" text-anchor="middle" font-family="Inter" font-size="10" fill="var(--muted)">kPa · measured</text>
+    <text id="gSub" x="${G.cx}" y="${G.cy + 71}" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="var(--faint)">—</text>`;
+}
+function updateGauge(dt) {
+  const Pm = state.P * meas.ratio;
+  needleP += (Pm - needleP) * (1 - Math.exp(-dt / 0.18));
+  const a = gAng(needleP), frac = clamp(needleP / G.max, 0, 1) * 100;
+  $('#gNeedle').setAttribute('transform', `rotate(${a.toFixed(2)} ${G.cx} ${G.cy})`);
+  for (const id of ['#gArc', '#gArcGlow']) $(id).setAttribute('stroke-dasharray', `${frac.toFixed(2)} 100`);
+  const [sx, sy] = pol(G.r + 6, gAng(state.P));
+  $('#gSet').setAttribute('cx', sx.toFixed(1)); $('#gSet').setAttribute('cy', sy.toFixed(1));
+}
+
+// ---------- canvas helpers ----------
+function fitCanvas(cv) {
+  const r = cv.getBoundingClientRect(), d = Math.min(2, window.devicePixelRatio || 1);
+  const w = Math.max(1, Math.round(r.width * d)), h = Math.max(1, Math.round(r.height * d));
+  if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; }
+  const c = cv.getContext('2d'); c.setTransform(d, 0, 0, d, 0, 0);
+  return { c, w: r.width, h: r.height };
+}
+function proj(x, y, z) {
+  const s = 1 - SHRINK * z / BOX.D, X = L.fx + x * L.k, Y = L.fy + y * L.k;
+  return [L.vx + (X - L.vx) * s, L.vy + (Y - L.vy) * s, s];
+}
+function poly(c, pts, fill, stroke, lw = 1) {
+  c.beginPath(); pts.forEach(([x, y], i) => i ? c.lineTo(x, y) : c.moveTo(x, y)); c.closePath();
+  if (fill) { c.fillStyle = fill; c.fill(); }
+  if (stroke) { c.strokeStyle = stroke; c.lineWidth = lw; c.stroke(); }
+}
+function seg(c, a, b, col, lw = 1, dash) {
+  c.beginPath(); c.moveTo(a[0], a[1]); c.lineTo(b[0], b[1]);
+  c.strokeStyle = col; c.lineWidth = lw; c.setLineDash(dash || []); c.stroke(); c.setLineDash([]);
+}
+const mono = (size, wt = 500) => `${wt} ${size}px "JetBrains Mono", ui-monospace, monospace`;
+function niceStep(range, target) {
+  const raw = range / target, p = Math.pow(10, Math.floor(Math.log10(raw))), f = raw / p;
+  return (f < 1.5 ? 1 : f < 3.5 ? 2 : f < 7.5 ? 5 : 10) * p;
+}
+
+// ---------- draw: chamber ----------
+const cvBox = $('#box');
+function drawBox() {
+  const { c, w, h } = fitCanvas(cvBox);
+  c.clearRect(0, 0, w, h);
+  if (w < 160 || h < 120) return;
+  const padX = 22, padY = 26, rodRoom = Math.min(56, w * 0.06);
+  L.k = Math.min((w - padX * 2 - rodRoom) / BOX.Wmax, (h - padY * 2) / BOX.H);
+  L.fx = padX + ((w - padX * 2 - rodRoom) - BOX.Wmax * L.k) / 2;
+  L.fy = (h - BOX.H * L.k) / 2;
+  L.vx = L.fx + BOX.Wmax * L.k / 2; L.vy = L.fy + BOX.H * L.k / 2;
+  const W = Wcur, H = BOX.H, D = BOX.D, heat = heatRGB(), tN = (state.T - 100) / 900, adia = state.mode === 'adiabatic';
+
+  // ghost of the full cylinder
+  c.save(); c.globalAlpha = 0.6;
+  poly(c, [proj(0, 0, 0), proj(BOX.Wmax, 0, 0), proj(BOX.Wmax, H, 0), proj(0, H, 0)], null, C.line, 1);
+  c.setLineDash([3, 5]); poly(c, [proj(W, 0, D), proj(BOX.Wmax, 0, D), proj(BOX.Wmax, H, D), proj(W, H, D)], null, C.line, 1);
+  seg(c, proj(BOX.Wmax, 0, 0), proj(BOX.Wmax, 0, D), C.line, 1, [3, 5]); seg(c, proj(BOX.Wmax, H, 0), proj(BOX.Wmax, H, D), C.line, 1, [3, 5]);
+  c.restore();
+
+  // inner faces
+  poly(c, [proj(0, 0, D), proj(W, 0, D), proj(W, H, D), proj(0, H, D)], C.wall);
+  poly(c, [proj(0, 0, 0), proj(0, 0, D), proj(0, H, D), proj(0, H, 0)], C.wall);
+  poly(c, [proj(0, 0, 0), proj(W, 0, 0), proj(W, 0, D), proj(0, 0, D)], C.wall);
+  // floor: heat bath glow (or insulation hatching when adiabatic)
+  const f0 = proj(0, H, 0), f1 = proj(0, H, D);
+  const fg = c.createLinearGradient(f0[0], f0[1], f1[0], f1[1]);
+  if (adia) { fg.addColorStop(0, isLight() ? 'rgba(100,116,139,.18)' : 'rgba(148,163,184,.12)'); fg.addColorStop(1, 'rgba(148,163,184,.03)'); }
+  else { fg.addColorStop(0, rgba(heat, 0.16 + 0.3 * tN)); fg.addColorStop(1, rgba(heat, 0.02)); }
+  poly(c, [proj(0, H, 0), proj(W, H, 0), proj(W, H, D), proj(0, H, D)], fg);
+  // depth grid
+  c.save(); c.globalAlpha = isLight() ? 0.6 : 0.45;
+  for (let x = 100; x < W; x += 100) { seg(c, proj(x, H, 0), proj(x, H, D), C.line); seg(c, proj(x, 0, D), proj(x, H, D), C.line); }
+  for (let z = D / 4; z < D; z += D / 4) seg(c, proj(0, H, z), proj(W, H, z), C.line);
+  for (let y = 100; y < H; y += 100) seg(c, proj(0, y, D), proj(W, y, D), C.line);
+  c.restore();
+  // heater element / insulation label
+  if (!adia) {
+    c.save(); c.shadowColor = rgba(heat, 0.9); c.shadowBlur = 8 + 18 * tN;
+    seg(c, proj(4, H, 6), proj(W - 4, H, 6), rgba(heat, 0.55 + 0.4 * tN), 3); c.restore();
+  }
+  c.font = mono(10.5); c.fillStyle = adia ? C.muted : rgba(heat, 0.95); c.textAlign = 'left';
+  c.fillText(adia ? 'INSULATED — no heat in or out' : state.mode === 'isochoric' || state.mode === 'isobaric' ? `HEATER · ${Math.round(state.T)} K` : `HEAT BATH · ${Math.round(state.T)} K`, L.fx + 6, L.fy + H * L.k + 17);
+
+  // wall-impact flashes
+  for (const f of flashes) {
+    const [X, Y, s] = proj(f.x, f.y, f.z);
+    c.beginPath(); c.arc(X, Y, (3 + (1 - f.life) * 12) * s * L.k * 1.6, 0, Math.PI * 2);
+    c.strokeStyle = isLight() ? `rgba(224,122,18,${f.life * 0.7})` : `rgba(255,190,110,${f.life * 0.6})`; c.lineWidth = 1.4; c.stroke();
+  }
+
+  // tracer trail
+  if (tracer && trail.length > 2) {
+    for (let i = 1; i < trail.length; i++) {
+      const a = proj(trail[i - 1].x, trail[i - 1].y, trail[i - 1].z), b = proj(trail[i].x, trail[i].y, trail[i].z);
+      seg(c, a, b, isLight() ? `rgba(15,23,42,${(i / trail.length) * 0.55})` : `rgba(255,255,255,${(i / trail.length) * 0.6})`, 1.6);
+    }
+  }
+
+  // molecules, far to near
+  const vA = vAxis(), r0 = gas().r * L.k;
+  const order = parts.slice().sort((a, b) => b.z - a.z);
+  for (const p of order) {
+    const v = Math.sqrt(p.vx * p.vx + p.vy * p.vy + p.vz * p.vz) / SPD;
+    const [X, Y, s] = proj(p.x, p.y, p.z), rp = r0 * s, S = 64 * rp / 11;
+    c.globalAlpha = 0.55 + 0.45 * (s - (1 - SHRINK)) / SHRINK;
+    c.drawImage(sprites[Math.min(sprites.length - 1, Math.floor(v / vA * sprites.length))], X - S / 2, Y - S / 2, S, S);
+    if (p === tracer) {
+      c.globalAlpha = 1; c.beginPath(); c.arc(X, Y, rp + 5, 0, Math.PI * 2);
+      c.strokeStyle = C.ink; c.lineWidth = 1.5; c.stroke();
+      c.font = mono(10); c.fillStyle = C.ink; c.textAlign = 'left';
+      c.fillText(`${Math.round(v)} m/s`, X + rp + 8, Y - rp - 2);
+    }
+  }
+  c.globalAlpha = 1;
+
+  // piston: plate side, front slab, rod
+  const pxF = L.fx + W * L.k, slab = 16 * L.k;
+  const side = [proj(W, 0, 0), proj(W, 0, D), proj(W, H, D), proj(W, H, 0)];
+  const sg = c.createLinearGradient(side[0][0], 0, side[1][0], 0);
+  sg.addColorStop(0, C.metal1); sg.addColorStop(1, C.metal2);
+  c.save(); c.globalAlpha = 0.28; poly(c, side, sg); c.restore();
+  poly(c, side, null, C.edge, 1);
+  const mg = c.createLinearGradient(0, L.fy, 0, L.fy + H * L.k);
+  mg.addColorStop(0, C.metal1); mg.addColorStop(0.5, C.metal2); mg.addColorStop(1, C.metal1);
+  c.fillStyle = mg; c.fillRect(pxF, L.fy - 2, slab, H * L.k + 4);
+  c.strokeStyle = C.edge; c.lineWidth = 1; c.strokeRect(pxF, L.fy - 2, slab, H * L.k + 4);
+  const rodH = 22 * L.k, rodY = L.vy - rodH / 2, rodEnd = w - 10;
+  const rg = c.createLinearGradient(0, rodY, 0, rodY + rodH);
+  rg.addColorStop(0, C.metal1); rg.addColorStop(0.5, C.metal2); rg.addColorStop(1, C.metal1);
+  c.fillStyle = rg; c.fillRect(pxF + slab, rodY, Math.max(0, rodEnd - pxF - slab - 12), rodH);
+  c.fillStyle = mg; c.beginPath(); c.roundRect(rodEnd - 14, L.vy - 34 * L.k, 14, 68 * L.k, 4); c.fill();
+  c.strokeStyle = C.edge; c.stroke();
+  if (state.mode === 'isochoric') {    // clamp
+    c.fillStyle = C.accent2; c.beginPath(); c.roundRect(pxF + slab + 3, L.fy - 10, 10, 8, 2); c.fill();
+    c.beginPath(); c.roundRect(pxF + slab + 3, L.fy + H * L.k + 2, 10, 8, 2); c.fill();
+  }
+  // grip highlight when hovering / dragging
+  if (hoverPiston || dragging) {
+    c.save(); c.shadowColor = C.accent; c.shadowBlur = 16;
+    c.strokeStyle = C.accent; c.lineWidth = 2; c.strokeRect(pxF, L.fy - 2, slab, H * L.k + 4); c.restore();
+  }
+
+  // glass front edges
+  const fe = [proj(0, 0, 0), proj(W, 0, 0), proj(W, H, 0), proj(0, H, 0)];
+  c.save(); c.shadowColor = C.edge; c.shadowBlur = isLight() ? 0 : 6;
+  c.beginPath(); c.moveTo(fe[1][0], fe[1][1]); c.lineTo(fe[0][0], fe[0][1]); c.lineTo(fe[3][0], fe[3][1]); c.lineTo(fe[2][0], fe[2][1]);
+  c.strokeStyle = C.edge; c.lineWidth = 2; c.stroke(); c.restore();
+  seg(c, proj(0, 0, 0), proj(0, 0, D), C.edge, 1); seg(c, proj(0, H, 0), proj(0, H, D), C.edge, 1);
+  const gl = c.createLinearGradient(fe[0][0], fe[0][1], fe[2][0], fe[2][1]);
+  gl.addColorStop(0, isLight() ? 'rgba(255,255,255,.35)' : 'rgba(255,255,255,.05)'); gl.addColorStop(0.35, 'rgba(255,255,255,0)');
+  poly(c, fe, gl);
+
+  // volume tag above the piston
+  const tag = `V = ${state.V.toFixed(1)} L`;
+  c.font = mono(11, 600); const tw = c.measureText(tag).width + 14;
+  const tx = clamp(pxF + slab / 2 - tw / 2, 4, w - tw - 4), ty = L.fy - 22;
+  c.fillStyle = C.ink; c.beginPath(); c.roundRect(tx, ty, tw, 18, 6); c.fill();
+  c.fillStyle = isLight() ? '#fff' : '#070b14'; c.textAlign = 'left'; c.fillText(tag, tx + 7, ty + 12.5);
+}
+
+// ---------- draw: Maxwell–Boltzmann ----------
+const cvMB = $('#mb');
+function mbf(v, T, M) { return 4 * Math.PI * Math.pow(M / (2 * Math.PI * R * T), 1.5) * v * v * Math.exp(-M * v * v / (2 * R * T)); }
+function drawMB(dt) {
+  const { c, w, h } = fitCanvas(cvMB);
+  c.clearRect(0, 0, w, h);
+  const m = { l: 16, r: 16, t: 34, b: 30 }, pw = w - m.l - m.r, ph = h - m.t - m.b;
+  if (pw < 60 || ph < 40) return;
+  const M = gas().M, T = state.T, vA = vAxis(), bw = vA / NB, N = parts.length;
+  const vp = Math.sqrt(2 * R * T / M), va = Math.sqrt(8 * R * T / (Math.PI * M)), vr = Math.sqrt(3 * R * T / M);
+  let hmax = 0; for (let i = 0; i < NB; i++) hmax = Math.max(hmax, hist[i] / (N * bw));
+  const target = Math.max(mbf(vp, T, M), hmax * 0.92) * 1.12;
+  yMax = yMax ? yMax + (target - yMax) * (1 - Math.exp(-dt / 0.35)) : target;
+  const X = v => m.l + v / vA * pw, Y = y => m.t + ph - Math.min(1.04, y / yMax) * ph;
+
+  // grid + axis
+  const st = niceStep(vA, 5);
+  c.font = mono(10); c.textAlign = 'center'; c.fillStyle = C.faint;
+  for (let v = 0; v <= vA + 1e-6; v += st) { seg(c, [X(v), m.t], [X(v), m.t + ph], C.line, 1); c.fillText(v, X(v), m.t + ph + 15); }
+  seg(c, [m.l, m.t + ph], [m.l + pw, m.t + ph], C.line2, 1.2);
+  c.textAlign = 'right'; c.fillStyle = C.muted; c.fillText('speed v (m/s)', m.l + pw, m.t + ph + 27);
+
+  // histogram bars coloured like the molecules
+  const bpx = pw / NB;
+  for (let i = 0; i < NB; i++) {
+    const y = hist[i] / (N * bw); if (y <= 0) continue;
+    const col = cmap((i + 0.5) / NB), top = Y(y);
+    c.fillStyle = rgba(col, isLight() ? 0.42 : 0.38); c.fillRect(X(i * bw) + 1, top, bpx - 2, m.t + ph - top);
+    c.fillStyle = rgba(col, 0.95); c.fillRect(X(i * bw) + 1, top, bpx - 2, 2);
+  }
+  // reference curve at 300 K
+  c.beginPath();
+  for (let i = 0; i <= 200; i++) { const v = vA * i / 200; i ? c.lineTo(X(v), Y(mbf(v, 300, M))) : c.moveTo(X(v), Y(mbf(v, 300, M))); }
+  c.strokeStyle = C.faint; c.lineWidth = 1.3; c.setLineDash([4, 4]); c.stroke(); c.setLineDash([]);
+  // theory curve with area
+  const pts = []; for (let i = 0; i <= 240; i++) { const v = vA * i / 240; pts.push([X(v), Y(mbf(v, T, M))]); }
+  const ag = c.createLinearGradient(m.l, 0, m.l + pw, 0);
+  CMAP.forEach(([t, col]) => ag.addColorStop(t, rgba(col, 0.12)));
+  c.beginPath(); c.moveTo(m.l, m.t + ph); pts.forEach(p => c.lineTo(p[0], p[1])); c.lineTo(m.l + pw, m.t + ph); c.closePath(); c.fillStyle = ag; c.fill();
+  c.beginPath(); pts.forEach((p, i) => i ? c.lineTo(p[0], p[1]) : c.moveTo(p[0], p[1]));
+  c.strokeStyle = C.ink; c.lineWidth = 2.2; c.stroke();
+
+  // characteristic speeds
+  const marks = [['v', 'p', vp, C.vp], ['v̄', '', va, C.vavg], ['v', 'rms', vr, C.vrms]];
+  const big = mono(11, 600), small = mono(8.5, 600);
+  let lastX = -1e9;
+  marks.forEach(([main, sub, v, col]) => {
+    const x = X(v), y = Y(mbf(v, T, M)), num = ` ${Math.round(v)}`;
+    seg(c, [x, m.t + ph], [x, y], col, 1.4, [3, 3]);
+    c.beginPath(); c.arc(x, y, 3.6, 0, Math.PI * 2); c.fillStyle = col; c.fill();
+    c.font = big; const w1 = c.measureText(main).width, w3 = c.measureText(num).width;
+    c.font = small; const w2 = sub ? c.measureText(sub).width + 1 : 0;
+    const tw = w1 + w2 + w3;
+    let lx = Math.max(x - tw / 2, lastX + 10); lx = Math.min(lx, w - tw - 4);
+    c.fillStyle = col; c.textAlign = 'left';
+    c.font = big; c.fillText(main, lx, 15);
+    if (sub) { c.font = small; c.fillText(sub, lx + w1 + 0.5, 18); }
+    c.font = big; c.fillText(num, lx + w1 + w2, 15);
+    seg(c, [lx + tw / 2, 21], [x, Math.max(25, y - 6)], col, 0.8, [1, 3]);
+    lastX = lx + tw;
+  });
+  // tracer molecule
+  if (tracer) {
+    const v = Math.sqrt(tracer.vx ** 2 + tracer.vy ** 2 + tracer.vz ** 2) / SPD;
+    if (v < vA) {
+      const x = X(v), y0 = m.t + ph;
+      c.beginPath(); c.moveTo(x, y0 - 1); c.lineTo(x - 5, y0 + 7); c.lineTo(x + 5, y0 + 7); c.closePath();
+      c.fillStyle = C.ink; c.fill();
+    }
+  }
+}
+
+// ---------- draw: P–V diagram ----------
+const cvPV = $('#pv');
+function drawPV() {
+  const { c, w, h } = fitCanvas(cvPV);
+  c.clearRect(0, 0, w, h);
+  const m = { l: 46, r: 18, t: 24, b: 32 }, pw = w - m.l - m.r, ph = h - m.t - m.b;
+  if (pw < 60 || ph < 40) return;
+  // P axis follows the action: fits the path and the current state, eased
+  let pTop = Math.max(400, state.P * 1.45);
+  for (const s of tally.path) pTop = Math.max(pTop, s.P * 1.15);
+  pTop = Math.min(2000, Math.ceil(pTop / 250) * 250);
+  pvMax = pvMax ? pvMax + (pTop - pvMax) * 0.12 : pTop;
+  const Vmax = 42, Pmax = pvMax, n = state.n;
+  const X = V => m.l + V / Vmax * pw, Y = P => m.t + ph - P / Pmax * ph;
+  c.font = mono(10); c.fillStyle = C.faint;
+  c.textAlign = 'center';
+  for (let V = 0; V <= 40; V += 10) { seg(c, [X(V), m.t], [X(V), m.t + ph], C.line); c.fillText(V, X(V), m.t + ph + 15); }
+  c.textAlign = 'right';
+  const pst = niceStep(Pmax, 4);
+  for (let P = 0; P <= Pmax + 1e-6; P += pst) { seg(c, [m.l, Y(P)], [m.l + pw, Y(P)], C.line); c.fillText(P, m.l - 6, Y(P) + 3.5); }
+  c.fillStyle = C.muted; c.fillText('V (L)', m.l + pw, m.t + ph + 28);
+  c.textAlign = 'left'; c.fillText('P (kPa)', m.l - 40, 12);
+
+  const curve = (f, col, lw, dash) => {
+    c.beginPath(); let on = false;
+    for (let i = 0; i <= 200; i++) {
+      const V = 1 + (Vmax - 1) * i / 200, P = f(V);
+      if (P > Pmax * 1.02) { on = false; continue; }
+      on ? c.lineTo(X(V), Y(P)) : c.moveTo(X(V), Y(P)); on = true;
+    }
+    c.strokeStyle = col; c.lineWidth = lw; c.setLineDash(dash || []); c.stroke(); c.setLineDash([]);
+  };
+  c.save(); c.beginPath(); c.rect(m.l, m.t - 2, pw, ph + 2); c.clip();
+  c.font = mono(9); c.fillStyle = C.faint; c.textAlign = 'left';
+  let lastLx = -1e9;
+  for (let T = 200; T <= 1000; T += 200) {
+    curve(V => n * R * T / V, C.line2, 1);
+    // label each isotherm where it crosses 85% of the plot height
+    const Vl = n * R * T / (Pmax * 0.85);
+    if (Vl > 1 && Vl < 38 && X(Vl) - lastLx > 34) { c.fillText(`${T} K`, X(Vl) + 4, Y(Pmax * 0.85) - 3); lastLx = X(Vl); }
+  }
+  // the line the current process can move along
+  const pc = C.accent2;
+  if (state.mode === 'isothermal') curve(V => n * R * state.T / V, pc, 1.6, [5, 4]);
+  else if (state.mode === 'adiabatic') curve(V => state.P * Math.pow(state.V / V, GAMMA), pc, 1.6, [5, 4]);
+  else if (state.mode === 'isobaric') seg(c, [X(RANGE.V[0]), Y(state.P)], [X(RANGE.V[1]), Y(state.P)], pc, 1.6, [5, 4]);
+  else seg(c, [X(state.V), Y(RANGE.P[0])], [X(state.V), Y(Math.min(Pmax, RANGE.P[1]))], pc, 1.6, [5, 4]);
+  // path
+  const path = tally.path;
+  if (path.length > 1) {
+    c.beginPath(); path.forEach((s, i) => i ? c.lineTo(X(s.V), Y(s.P)) : c.moveTo(X(s.V), Y(s.P)));
+    c.save(); c.shadowColor = C.accent; c.shadowBlur = 10; c.strokeStyle = C.accent; c.lineWidth = 2.6; c.lineJoin = 'round'; c.stroke(); c.restore();
+    c.beginPath(); c.arc(X(path[0].V), Y(path[0].P), 4.5, 0, Math.PI * 2); c.strokeStyle = C.accent; c.lineWidth = 2; c.stroke();
+  }
+  c.restore();
+  // current state
+  const sx = X(state.V), sy = Y(Math.min(Pmax, state.P));
+  const halo = c.createRadialGradient(sx, sy, 0, sx, sy, 16);
+  halo.addColorStop(0, rgba([255, 176, 87], 0.55)); halo.addColorStop(1, rgba([255, 176, 87], 0));
+  c.fillStyle = halo; c.beginPath(); c.arc(sx, sy, 16, 0, Math.PI * 2); c.fill();
+  c.beginPath(); c.arc(sx, sy, 5, 0, Math.PI * 2); c.fillStyle = C.accent2; c.fill();
+  c.strokeStyle = isLight() ? '#fff' : '#070b14'; c.lineWidth = 2; c.stroke();
+}
+
+// ---------- readouts ----------
+const fmtJ = j => { const a = Math.abs(j); return (j < -0.05 ? '−' : j > 0.05 ? '+' : '') + (a >= 1000 ? (a / 1000).toFixed(2) + ' kJ' : a.toFixed(0) + ' J'); };
+function updateReadouts() {
+  const M = gas().M, T = state.T, Pm = state.P * meas.ratio;
+  $('#gVal').textContent = Pm.toFixed(Pm < 100 ? 1 : 0);
+  $('#gSub').textContent = `ideal ${state.P.toFixed(state.P < 100 ? 1 : 0)} · ${(state.P / 101.325).toFixed(2)} atm`;
+  $('#rT').innerHTML = `${T.toFixed(0)} <small>K</small>`;
+  $('#rTk').textContent = `from KE: ${meas.Tkin.toFixed(0)} K`;
+  $('#rV').innerHTML = `${state.V.toFixed(1)} <small>L</small>`;
+  $('#rVs').textContent = `${(meas.hitRate / 1000).toFixed(1)}k wall hits/s`;
+  $('#rN').innerHTML = `${state.n.toFixed(2)} <small>mol</small>`;
+  $('#rNs').textContent = `${parts.length} molecules · ${Math.round(meas.collRate)} coll/s`;
+  $('#rZ').textContent = (Pm * state.V / (state.n * R * T)).toFixed(2);
+  $('#rVp').innerHTML = `${Math.round(Math.sqrt(2 * R * T / M))} <small>m/s</small>`;
+  $('#rVa').innerHTML = `${Math.round(Math.sqrt(8 * R * T / (Math.PI * M)))} <small>m/s</small>`;
+  $('#rVas').textContent = `box: ${Math.round(meas.vavg)}`;
+  $('#rVr').innerHTML = `${Math.round(Math.sqrt(3 * R * T / M))} <small>m/s</small>`;
+  $('#rVrs').textContent = `box: ${Math.round(meas.vrms)}`;
+  const dU = state.n * 1.5 * R * (T - tally.T0), Q = dU + tally.W;
+  for (const [id, v] of [['#lW', tally.W], ['#lU', dU], ['#lQ', Q]]) {
+    const el = $(id); el.textContent = fmtJ(v);
+    el.className = 'v' + (v > 0.5 ? ' pos' : v < -0.5 ? ' neg' : '');
+  }
+  $('#chamberSub').textContent = `${parts.length} molecules · ${gas().name}`;
+  if (driven && performance.now() - drivenT > 900) { driven = null; syncSliders(); }
+}
+
+// ---------- pointer: piston drag + tracer pick ----------
+let dragging = false, hoverPiston = false, downAt = null;
+const pistonHit = x => Math.abs(x - (L.fx + Wcur * L.k + 8 * L.k)) < Math.max(14, 14 * L.k);
+const localXY = e => { const r = cvBox.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
+cvBox.addEventListener('pointermove', e => {
+  const [x] = localXY(e);
+  if (dragging) { setVar('V', clamp((x - L.fx - 8 * L.k) / L.k / BOX.Wmax * RANGE.V[1], RANGE.V[0], RANGE.V[1])); return; }
+  hoverPiston = pistonHit(x);
+  cvBox.style.cursor = hoverPiston ? (LOCK[state.mode] === 'V' ? 'not-allowed' : 'ew-resize') : 'crosshair';
+});
+cvBox.addEventListener('pointerleave', () => { hoverPiston = false; });
+cvBox.addEventListener('pointerdown', e => {
+  const [x, y] = localXY(e); downAt = [x, y];
+  if (pistonHit(x)) {
+    if (LOCK[state.mode] === 'V') { toast('The piston is clamped in isochoric mode'); return; }
+    dragging = true; cvBox.setPointerCapture(e.pointerId);
+  }
+});
+cvBox.addEventListener('pointerup', e => {
+  const [x, y] = localXY(e);
+  if (!dragging && downAt && Math.hypot(x - downAt[0], y - downAt[1]) < 5) {
+    let best = null, bd = 30;
+    for (const p of parts) { const [X, Y] = proj(p.x, p.y, p.z), d = Math.hypot(X - x, Y - y); if (d < bd) { bd = d; best = p; } }
+    if (best) { tracer = best; trail = []; }
+  }
+  dragging = false; downAt = null;
+});
+
+// ---------- wiring ----------
+$('#modes').addEventListener('click', e => { const b = e.target.closest('.mode'); if (b) setMode(b.dataset.m); });
+function togglePause() {
+  state.paused = !state.paused;
+  $('#pauseBtn span').textContent = state.paused ? 'Play' : 'Pause';
+  $('#pauseBtn').classList.toggle('on', state.paused);
+  $('#pauseIco').innerHTML = state.paused ? '<path d="M3 1.5v9l7.5-4.5z"/>' : '<rect x="2" y="1.5" width="3" height="9" rx="1"/><rect x="7" y="1.5" width="3" height="9" rx="1"/>';
+  $('#liveDot').style.animationPlayState = state.paused ? 'paused' : 'running';
+}
+$('#pauseBtn').onclick = togglePause;
+$('#equalBtn').onclick = equalSpeeds;
+$('#resetPath').onclick = resetTally;
+$('#slowSeg').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  state.slow = +b.dataset.s;
+  document.querySelectorAll('#slowSeg button').forEach(x => x.classList.toggle('on', x === b));
+});
+document.addEventListener('keydown', e => {
+  if (e.code === 'Space' && !['INPUT', 'BUTTON'].includes(document.activeElement.tagName)) { e.preventDefault(); togglePause(); }
+});
+function applyTheme(t) {
+  if (t) document.documentElement.dataset.theme = t; else delete document.documentElement.dataset.theme;
+  readColors(); buildSprites();
+}
+$('#themeBtn').onclick = () => {
+  const t = isLight() ? 'dark' : 'light';
+  applyTheme(t);
+  try { localStorage.setItem('igb-theme', t); } catch (_) {}
+};
+
+// ---------- main loop ----------
+let last = performance.now();
+function frame(now) {
+  const dt = Math.min(0.05, (now - last) / 1000); last = now;
+  Wcur += (BOX.Wmax * state.V / RANGE.V[1] - Wcur) * (1 - Math.exp(-dt / 0.08));
+  if (!state.paused) {
+    step(dt * state.slow);
+    updateHist(dt);
+    if (tracer) { trail.push({ x: tracer.x, y: tracer.y, z: tracer.z }); if (trail.length > 80) trail.shift(); }
+  }
+  for (const f of flashes) f.life -= dt * 2.6;
+  flashes = flashes.filter(f => f.life > 0);
+  requestAnimationFrame(frame);   // schedule first, so one bad frame can never stop the loop
+  drawBox(); drawMB(dt); drawPV(); updateGauge(dt);
+  if (!(frameNo++ % 6)) updateReadouts();
+}
+let frameNo = 0;
+
+let saved = null; try { saved = localStorage.getItem('igb-theme'); } catch (_) {}
+applyTheme(saved || (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark'));
+buildSliders(); buildGases(); buildGauge(); updateColorbar();
+syncCount(); resetTally(); setMode('isothermal');
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

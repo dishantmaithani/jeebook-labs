@@ -1,0 +1,1331 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Titration Curves Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;800&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+:root {
+  --bg: #f6f3ec; --paper: #fffdf8; --ink: #1d2330; --muted: #5d6474; --line: #e2dccd; --grid: #ece6d8;
+  --accent: #2f5bea; --accent-2: #e2742b; --accent-3: #1a9a6c; --accent-4: #b0399a; --chip: #ece7db;
+  --good: #1a9a6c; --bad: #c8412f; --warn: #b8860b; --glass: #8a93a6; --steel: #9aa0ab;
+  --f-head: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --f-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #12151c; --paper: #1a1e28; --ink: #e8e9ee; --muted: #9aa1b2; --line: #2b3140; --grid: #232836;
+    --accent: #7d9bff; --accent-2: #ff9d5c; --accent-3: #4fd1a1; --accent-4: #e27ad0; --chip: #252a37;
+    --good: #4fd1a1; --bad: #ff7a66; --warn: #e8c35a; --glass: #8f9ab0; --steel: #6b7282; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #12151c; --paper: #1a1e28; --ink: #e8e9ee; --muted: #9aa1b2; --line: #2b3140; --grid: #232836;
+  --accent: #7d9bff; --accent-2: #ff9d5c; --accent-3: #4fd1a1; --accent-4: #e27ad0; --chip: #252a37;
+  --good: #4fd1a1; --bad: #ff7a66; --warn: #e8c35a; --glass: #8f9ab0; --steel: #6b7282; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--bg); color: var(--ink); }
+body { font: 15px/1.55 var(--f-body); padding: 20px 16px 48px; }
+.wrap { max-width: 1240px; margin: 0 auto; display: grid; gap: 16px; }
+header { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 12px; }
+h1 { font: 800 clamp(26px, 4vw, 38px)/1.05 var(--f-head); margin: 0; letter-spacing: -0.02em; }
+h1 span { color: var(--accent); }
+.sub { color: var(--muted); margin: 4px 0 0; max-width: 68ch; }
+.hdr { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.btn, .theme-btn, .seg button, .tabs button {
+  background: var(--chip); color: var(--ink); border: 1px solid var(--line); border-radius: 10px;
+  padding: 7px 12px; font: 500 13px var(--f-body); cursor: pointer; touch-action: manipulation; user-select: none;
+}
+.theme-btn { border-radius: 999px; }
+.btn:hover, .seg button:hover, .tabs button:hover { border-color: var(--accent); }
+.btn:disabled, .tabs button:disabled { opacity: .45; cursor: not-allowed; border-color: var(--line); }
+.btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 600; }
+.btn.on, .seg button[aria-pressed="true"], .tabs button[aria-pressed="true"] { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.seg { display: inline-flex; gap: 0; }
+.seg button { border-radius: 0; }
+.seg button:first-child { border-radius: 999px 0 0 999px; }
+.seg button:last-child { border-radius: 0 999px 999px 0; }
+
+.top { display: grid; grid-template-columns: minmax(300px, 400px) 1fr; gap: 16px; align-items: start; }
+.cols { display: grid; grid-template-columns: 1fr 1fr 1.15fr; gap: 16px; align-items: start; }
+.card { background: var(--paper); border: 1px solid var(--line); border-radius: 16px; padding: 16px; min-width: 0; }
+.head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 10px; align-items: baseline; margin-bottom: 10px; }
+.head h2 { font: 800 21px/1.15 var(--f-head); margin: 0; }
+.card h4 { font: 700 16px var(--f-head); margin: 0 0 10px; }
+.tag { font: 600 11px var(--f-mono); text-transform: uppercase; letter-spacing: .1em; color: var(--muted); }
+.stage { position: relative; width: 100%; border-radius: 12px; background: var(--bg); overflow: hidden; }
+.stage.app { aspect-ratio: 10 / 11; }
+.stage.plot { aspect-ratio: 16 / 10; }
+canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+.actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+.ctl label { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; color: var(--muted); }
+.ctl label b { font: 600 13px var(--f-mono); color: var(--ink); }
+.ctl { margin-top: 10px; }
+input[type=range] { width: 100%; accent-color: var(--accent); }
+select, input[type=number] {
+  width: 100%; background: var(--bg); color: var(--ink); border: 1px solid var(--line); border-radius: 9px;
+  padding: 7px 9px; font: 500 14px var(--f-body);
+}
+.chk { display: flex; gap: 8px; align-items: center; font-size: 13px; color: var(--muted); margin-top: 8px; cursor: pointer; }
+.hint { font: 400 12px var(--f-mono); color: var(--muted); margin: 8px 0 0; }
+.tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.toggles { display: flex; flex-wrap: wrap; gap: 4px 16px; margin-top: 8px; }
+.toggles .chk { margin-top: 0; }
+.readout { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.pill { font: 500 13px var(--f-mono); background: var(--chip); border-radius: 8px; padding: 5px 10px; white-space: nowrap; }
+.pill i { font-style: normal; color: var(--muted); }
+.tip {
+  position: absolute; pointer-events: none; background: var(--paper); border: 1px solid var(--line); border-radius: 8px;
+  padding: 5px 8px; font: 500 12px/1.45 var(--f-mono); color: var(--ink); box-shadow: 0 4px 14px rgb(0 0 0 / .12); display: none; white-space: nowrap;
+}
+.form { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 14px; }
+.form .full { grid-column: 1 / -1; }
+.form .f > span { display: block; font-size: 13px; color: var(--muted); margin-bottom: 4px; }
+.region { display: inline-block; font: 600 12px var(--f-mono); text-transform: uppercase; letter-spacing: .08em; padding: 3px 9px; border-radius: 999px; background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--accent); }
+.eqn { font: 500 15px/1.5 var(--f-mono); background: var(--bg); border-radius: 10px; padding: 10px 12px; margin: 10px 0; overflow-x: auto; }
+.eqn small { display: block; color: var(--muted); font-size: 12.5px; }
+.cmp { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+.cmp div { background: var(--chip); border-radius: 10px; padding: 7px 10px; }
+.cmp i { display: block; font: 500 11px var(--f-mono); color: var(--muted); font-style: normal; text-transform: uppercase; letter-spacing: .06em; }
+.cmp b { font: 600 18px var(--f-mono); }
+.note { color: var(--muted); font-size: 13.5px; margin: 10px 0 0; }
+.note.warn { color: var(--warn); }
+.specbar { display: flex; height: 22px; border-radius: 7px; overflow: hidden; margin-top: 6px; background: var(--chip); }
+.specbar span { display: flex; align-items: center; justify-content: center; font: 600 10.5px var(--f-mono); color: #fff; overflow: hidden; white-space: nowrap; transition: width .15s; }
+.speclabel { font: 500 12px var(--f-mono); color: var(--muted); margin-top: 10px; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th { text-align: left; font: 600 11px var(--f-mono); text-transform: uppercase; letter-spacing: .06em; color: var(--muted); padding: 4px 6px; border-bottom: 1px solid var(--line); }
+td { padding: 6px; border-bottom: 1px solid var(--line); vertical-align: top; }
+td.m { font-family: var(--f-mono); white-space: nowrap; }
+.badge { font: 600 11px var(--f-mono); padding: 1px 7px; border-radius: 999px; white-space: nowrap; }
+.badge.good { background: color-mix(in srgb, var(--good) 18%, transparent); color: var(--good); }
+.badge.mid { background: color-mix(in srgb, var(--warn) 20%, transparent); color: var(--warn); }
+.badge.bad { background: color-mix(in srgb, var(--bad) 16%, transparent); color: var(--bad); }
+.log { margin: 10px 0 0; padding-left: 18px; font-size: 13px; color: var(--muted); display: grid; gap: 3px; }
+.log b { color: var(--ink); font-family: var(--f-mono); font-weight: 600; }
+.challenge { border-color: var(--accent-2); }
+.challenge .row { display: flex; flex-wrap: wrap; gap: 10px; align-items: end; margin-top: 10px; }
+.challenge .row .f { flex: 1 1 140px; }
+.challenge .row .f span { display: block; font-size: 13px; color: var(--muted); margin-bottom: 4px; }
+.verdict { margin-top: 10px; padding: 10px 12px; border-radius: 10px; background: var(--bg); }
+.verdict.ok { border-left: 3px solid var(--good); }
+.verdict.no { border-left: 3px solid var(--bad); }
+.toast {
+  position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%) translateY(20px); opacity: 0; transition: .25s;
+  background: var(--ink); color: var(--paper); padding: 10px 16px; border-radius: 12px; font: 500 14px var(--f-body);
+  pointer-events: none; z-index: 10; max-width: calc(100vw - 32px); text-align: center;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.how { columns: 2 320px; column-gap: 28px; color: var(--muted); font-size: 14px; }
+.how p { margin: 0 0 10px; break-inside: avoid; }
+.how b { color: var(--ink); }
+.hidden { display: none !important; }
+@media (max-width: 1020px) {
+  .cols { grid-template-columns: 1fr 1fr; }
+  .cols > :last-child { grid-column: 1 / -1; }
+}
+@media (max-width: 820px) {
+  .top, .cols { grid-template-columns: 1fr; }
+  .stage.app { aspect-ratio: 10 / 9; max-height: 460px; }
+  .stage.plot { aspect-ratio: 4 / 3.2; }
+  .cmp b { font-size: 16px; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Titration <span>Curves</span> Lab</h1>
+      <p class="sub">Open the stopcock and watch pH respond drop by drop. The pH comes from an exact charge-balance solver. It handles polyprotic acids, mixtures, weak–weak pairs, indicators and activity, and puts the JEE shortcut formula next to the exact answer.</p>
+    </div>
+    <div class="hdr">
+      <div class="seg" id="modeSeg" role="group" aria-label="Mode">
+        <button type="button" data-mode="explore" aria-pressed="true">Explore</button>
+        <button type="button" data-mode="challenge" aria-pressed="false">Unknown challenge</button>
+      </div>
+      <button class="theme-btn" id="themeBtn" type="button">Toggle theme</button>
+    </div>
+  </header>
+
+  <section class="card challenge hidden" id="chalCard">
+    <div class="head"><h2>Find the unknown</h2><span class="tag" id="chalScore">Score 0 / 0</span></div>
+    <p class="note" id="chalBrief" style="margin-top:0"></p>
+    <div class="row">
+      <label class="f"><span>Concentration of unknown (M)</span><input type="number" id="ansC" step="0.001" min="0" placeholder="e.g. 0.085"></label>
+      <label class="f"><span>pKₐ (of acid or of BH⁺), if weak</span><input type="number" id="ansK" step="0.01" placeholder="optional"></label>
+      <button class="btn primary" id="chkBtn" type="button">Check answer</button>
+      <button class="btn" id="newBtn" type="button">New unknown</button>
+      <button class="btn" id="revealBtn" type="button">Reveal</button>
+    </div>
+    <div class="verdict hidden" id="verdict"></div>
+  </section>
+
+  <div class="top">
+    <section class="card">
+      <div class="head"><h2 id="flaskTitle">Flask</h2><span class="tag" id="flaskTag"></span></div>
+      <div class="stage app"><canvas id="appCv" aria-label="Burette and flask"></canvas></div>
+      <div class="actions">
+        <button class="btn primary" id="dropBtn" type="button">+1 drop</button>
+        <button class="btn" data-add="0.5" type="button">+0.5 mL</button>
+        <button class="btn" data-add="1" type="button">+1 mL</button>
+        <button class="btn" data-add="5" type="button">+5 mL</button>
+        <button class="btn" id="pourBtn" type="button">Hold to pour</button>
+        <button class="btn" id="autoBtn" type="button">Auto ▶</button>
+        <button class="btn" id="undoBtn" type="button">Undo</button>
+        <button class="btn" id="resetBtn" type="button">Reset</button>
+      </div>
+      <div class="ctl"><label for="flow">Stopcock flow <b id="flowVal"></b></label><input type="range" id="flow" min="0" max="100" value="45"></div>
+      <label class="chk"><input type="checkbox" id="slowNear" checked> Auto slows down when pH starts changing fast</label>
+      <p class="hint">Space = 1 drop · hold P = pour · Z = undo · 1 drop = 0.05 mL</p>
+    </section>
+
+    <section class="card">
+      <div class="tabs" id="tabs" role="group" aria-label="Graph">
+        <button type="button" data-view="ph" aria-pressed="true">pH curve</button>
+        <button type="button" data-view="d1">dpH/dV</button>
+        <button type="button" data-view="spec">Speciation</button>
+        <button type="button" data-view="beta">Buffer capacity</button>
+        <button type="button" data-view="gran">Gran plot</button>
+      </div>
+      <div class="stage plot" id="plotStage"><canvas id="gCv" aria-label="Titration graph"></canvas><div class="tip" id="tip"></div></div>
+      <div class="toggles" id="toggles">
+        <label class="chk"><input type="checkbox" data-show="theory" checked> Theory curve</label>
+        <label class="chk"><input type="checkbox" data-show="eq" checked> Equivalence points</label>
+        <label class="chk"><input type="checkbox" data-show="pka" checked> Half-equivalence (pH = pKₐ)</label>
+        <label class="chk"><input type="checkbox" data-show="band" checked> Indicator range</label>
+        <span style="flex:1"></span>
+        <button class="btn" id="pinBtn" type="button">Pin curve</button>
+        <button class="btn" id="unpinBtn" type="button">Clear pins</button>
+      </div>
+      <div class="readout" id="readout"></div>
+    </section>
+  </div>
+
+  <div class="cols">
+    <section class="card">
+      <h4>Setup</h4>
+      <div class="form">
+        <label class="f full"><span>In the flask (analyte)</span><select id="selA"></select></label>
+        <label class="f full"><span>In the burette (titrant)</span><select id="selT"></select></label>
+        <label class="f full"><span>Indicator</span><select id="selI"></select></label>
+        <div class="ctl full" style="margin:0"><label for="ca">Analyte concentration <b id="caVal"></b></label><input type="range" id="ca" min="0" max="100" value="60"></div>
+        <div class="ctl full" style="margin:0"><label for="va">Analyte volume <b id="vaVal"></b></label><input type="range" id="va" min="5" max="50" step="1" value="25"></div>
+        <div class="ctl full" style="margin:0"><label for="ct">Titrant concentration <b id="ctVal"></b></label><input type="range" id="ct" min="0" max="100" value="60"></div>
+        <div class="ctl full" style="margin:0"><label for="tc">Temperature <b id="tcVal"></b></label><input type="range" id="tc" min="0" max="60" step="1" value="25"></div>
+        <label class="chk full"><input type="checkbox" id="act"> Activity corrections (Davies equation)</label>
+      </div>
+    </section>
+
+    <section class="card" id="whereCard">
+      <h4>Where am I on the curve?</h4>
+      <div id="where"></div>
+    </section>
+
+    <section class="card" id="eqCard">
+      <h4>Equivalence points &amp; indicator choice</h4>
+      <div id="eqs"></div>
+      <ul class="log" id="epLog"></ul>
+    </section>
+  </div>
+
+  <section class="card">
+    <h4>How the lab computes pH</h4>
+    <div class="how">
+      <p><b>No shortcut formulas inside.</b> At every volume the lab solves the full charge balance [H⁺] + Σ cations = [OH⁻] + Σ anions. Every acid–base species takes its share from its αₖ fraction, and the equation is solved numerically for [H⁺]. That is why one engine handles HCl, H₃PO₄, glycine, NaOH + Na₂CO₃ mixtures and weak-acid/weak-base pairs.</p>
+      <p><b>The JEE shortcuts are checked against it.</b> The "Where am I" card picks the textbook formula for your region (½(pKₐ − log C), Henderson–Hasselbalch, ½(pKₐ₁ + pKₐ₂), salt hydrolysis, excess titrant) and shows how far it is from the exact value. Try very dilute solutions, the first few drops, or HCN to see where the shortcuts break.</p>
+      <p><b>Temperature</b> changes K<sub>w</sub> (pK<sub>w</sub> is 14.94 at 0 °C and 13.02 at 60 °C), so neutral pH moves too. The pKₐ values of the acids are held at their 25 °C values.</p>
+      <p><b>Activity.</b> With Davies corrections on, the solver iterates the ionic strength I, builds conditional constants from the activity coefficients γ, and reports pH = −log a(H⁺), which is what a pH meter reads.</p>
+      <p><b>Equivalence points</b> come from stoichiometry. Each one is rated by its jump in pH across ±1 % of V<sub>eq</sub>. An indicator is listed as suitable when its pK<sub>In</sub> falls inside the jump across ±0.5 %, and the endpoint error is where the curve actually crosses pK<sub>In</sub>.</p>
+      <p><b>Gran plot.</b> Before the first equivalence point, (V₀+V)·10<sup>−pH</sup> for a strong acid, or V·10<sup>−pH</sup> = Kₐ(V<sub>eq</sub> − V) for a weak one, is linear in V and reaches zero at V<sub>eq</sub>. Fit your own drops and extrapolate. Analysts use this to find V<sub>eq</sub> without ever reaching it.</p>
+    </div>
+  </section>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+'use strict';
+const $ = id => document.getElementById(id);
+const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
+const log10 = Math.log10;
+const fmt = (x, d = 2) => (Number.isFinite(x) ? x.toFixed(d) : '—');
+const sci = x => {
+  if (!Number.isFinite(x) || x <= 0) return '—';
+  const e = Math.floor(log10(x)), m = x / 10 ** e;
+  return `${m.toFixed(2)}×10${sup(e)}`;
+};
+const sup = n => String(n).replace(/-/g, '⁻').replace(/\d/g, d => '⁰¹²³⁴⁵⁶⁷⁸⁹'[d]);
+
+/* ---------------- Chemistry data ----------------
+   pKa ascending. sp[k] = species with k protons removed from the fully protonated form.
+   z0 = charge of fully protonated form, q = spectator cation charge per formula unit (Na⁺),
+   h0 = protons carried by the form as added. */
+const SPEC = {
+  HCl:    { f: 'HCl', pKa: [-7], z0: 0, q: 0, h0: 1, sp: ['HCl', 'Cl⁻'], cls: 'strong acid' },
+  AcOH:   { f: 'CH₃COOH', pKa: [4.76], z0: 0, q: 0, h0: 1, sp: ['CH₃COOH', 'CH₃COO⁻'], cls: 'weak acid' },
+  HCOOH:  { f: 'HCOOH', pKa: [3.75], z0: 0, q: 0, h0: 1, sp: ['HCOOH', 'HCOO⁻'], cls: 'weak acid' },
+  HCN:    { f: 'HCN', pKa: [9.21], z0: 0, q: 0, h0: 1, sp: ['HCN', 'CN⁻'], cls: 'very weak acid' },
+  Ox:     { f: 'H₂C₂O₄', pKa: [1.25, 4.27], z0: 0, q: 0, h0: 2, sp: ['H₂C₂O₄', 'HC₂O₄⁻', 'C₂O₄²⁻'], cls: 'diprotic acid' },
+  H3PO4:  { f: 'H₃PO₄', pKa: [2.15, 7.20, 12.35], z0: 0, q: 0, h0: 3, sp: ['H₃PO₄', 'H₂PO₄⁻', 'HPO₄²⁻', 'PO₄³⁻'], cls: 'triprotic acid' },
+  Gly:    { f: 'Glycine', pKa: [2.34, 9.60], z0: 1, q: 0, h0: 1, sp: ['H₃N⁺CH₂COOH', 'H₃N⁺CH₂COO⁻', 'H₂NCH₂COO⁻'], cls: 'amphoteric (zwitterion)' },
+  NaOH:   { f: 'NaOH', pKa: [], z0: 0, q: 1, h0: 0, strongBase: true, sp: [], cls: 'strong base' },
+  NH3:    { f: 'NH₃', pKa: [9.25], z0: 1, q: 0, h0: 0, sp: ['NH₄⁺', 'NH₃'], cls: 'weak base' },
+  Py:     { f: 'C₅H₅N', pKa: [5.23], z0: 1, q: 0, h0: 0, sp: ['C₅H₅NH⁺', 'C₅H₅N'], cls: 'weak base' },
+  Na2CO3: { f: 'Na₂CO₃', pKa: [6.35, 10.33], z0: 0, q: 2, h0: 0, sp: ['H₂CO₃', 'HCO₃⁻', 'CO₃²⁻'], cls: 'diprotic base' },
+  NaHCO3: { f: 'NaHCO₃', pKa: [6.35, 10.33], z0: 0, q: 1, h0: 1, sp: ['H₂CO₃', 'HCO₃⁻', 'CO₃²⁻'], cls: 'amphoteric' },
+  H2SO4:  { f: 'H₂SO₄', pKa: [-3, 1.99], z0: 0, q: 0, h0: 2, sp: ['H₂SO₄', 'HSO₄⁻', 'SO₄²⁻'], cls: 'strong diprotic acid' },
+};
+const ANALYTES = [
+  { id: 'HCl', label: 'HCl: strong acid', comps: ['HCl'] },
+  { id: 'AcOH', label: 'CH₃COOH: weak acid (pKₐ 4.76)', comps: ['AcOH'] },
+  { id: 'HCOOH', label: 'HCOOH: formic acid (pKₐ 3.75)', comps: ['HCOOH'] },
+  { id: 'HCN', label: 'HCN: very weak acid (pKₐ 9.21)', comps: ['HCN'] },
+  { id: 'Ox', label: 'H₂C₂O₄: oxalic acid (diprotic)', comps: ['Ox'] },
+  { id: 'H3PO4', label: 'H₃PO₄: phosphoric acid (triprotic)', comps: ['H3PO4'] },
+  { id: 'Gly', label: 'Glycine: amino acid zwitterion', comps: ['Gly'] },
+  { id: 'NaOH', label: 'NaOH: strong base', comps: ['NaOH'] },
+  { id: 'NH3', label: 'NH₃: weak base (pKₐ of NH₄⁺ 9.25)', comps: ['NH3'] },
+  { id: 'Py', label: 'Pyridine: weak base (pKₐ 5.23)', comps: ['Py'] },
+  { id: 'Na2CO3', label: 'Na₂CO₃: diprotic base', comps: ['Na2CO3'] },
+  { id: 'NaHCO3', label: 'NaHCO₃: amphoteric', comps: ['NaHCO3'] },
+  { id: 'mixA', label: 'Mixture: HCl + CH₃COOH (each at C)', comps: ['HCl', 'AcOH'] },
+  { id: 'mixB', label: 'Mixture: NaOH + Na₂CO₃ (double indicator)', comps: ['NaOH', 'Na2CO3'] },
+];
+const TITRANTS = [
+  { id: 'NaOH', label: 'NaOH (strong base)', spec: 'NaOH', kind: 'base', cap: 1 },
+  { id: 'NH3', label: 'NH₃ (weak base)', spec: 'NH3', kind: 'base', cap: 1 },
+  { id: 'HCl', label: 'HCl (strong acid)', spec: 'HCl', kind: 'acid', cap: 1 },
+  { id: 'H2SO4', label: 'H₂SO₄ (diprotic, 2nd H⁺ weak)', spec: 'H2SO4', kind: 'acid', cap: 2 },
+  { id: 'AcOH', label: 'CH₃COOH (weak acid)', spec: 'AcOH', kind: 'acid', cap: 1 },
+];
+const IND = {
+  none: { name: 'None' },
+  mo:   { name: 'Methyl orange', pk: 3.7, lo: 3.1, hi: 4.4, a: [214, 48, 39, .85], b: [246, 178, 32, .8] },
+  mr:   { name: 'Methyl red', pk: 5.1, lo: 4.4, hi: 6.2, a: [212, 40, 74, .85], b: [242, 206, 43, .8] },
+  btb:  { name: 'Bromothymol blue', pk: 7.1, lo: 6.0, hi: 7.6, a: [226, 204, 46, .8], b: [42, 90, 215, .85] },
+  phth: { name: 'Phenolphthalein', pk: 9.3, lo: 8.2, hi: 10.0, a: [255, 255, 255, 0], b: [226, 30, 140, .82] },
+  tph:  { name: 'Thymolphthalein', pk: 9.9, lo: 9.3, hi: 10.5, a: [255, 255, 255, 0], b: [40, 78, 205, .8] },
+  uni:  { name: 'Universal indicator', universal: true },
+};
+const UNI = [[0, [190, 25, 35]], [2, [225, 55, 35]], [4, [240, 140, 30]], [5.5, [238, 205, 45]], [7, [70, 170, 70]], [8.5, [35, 150, 150]], [10, [40, 90, 205]], [12, [80, 50, 165]], [14, [115, 35, 140]]];
+const TOOLS_IND = ['mo', 'mr', 'btb', 'phth', 'tph'];
+const DROP = 0.05;
+
+const pKwAt = T => { const K = T + 273.15; return 4470.99 / K - 6.0875 + 0.01706 * K; };
+const daviesA = T => 0.4918 + 6.6098e-4 * T + 5.0231e-6 * T * T;
+
+/* ---------------- State ---------------- */
+const st = {
+  aId: 'AcOH', tId: 'NaOH', ind: 'phth', Ca: 0.1, Va: 25, Ct: 0.1, T: 25, activity: false,
+  V: 0, pts: [], pending: 0, drops: [], plumes: [], pour: false, auto: false, spawnT: 0,
+  mode: 'explore', view: 'ph', show: { theory: true, eq: true, pka: true, band: true },
+  hist: [], endpoints: [], indSide: null, pins: [], hover: null,
+  chal: null, score: [0, 0], cur: null,
+};
+let TH = null; // theory
+let dirtyG = true, dirtyUI = true;
+
+const sliderC = v => +(0.001 * 10 ** (v / 100 * 3)).toPrecision(2); // 0.001 → 1 M (log)
+const analyte = () => ANALYTES.find(a => a.id === st.aId);
+const titrant = () => TITRANTS.find(t => t.id === st.tId);
+const canBase = a => a.comps.some(k => SPEC[k].h0 > 0);
+const canAcid = a => a.comps.some(k => SPEC[k].strongBase || SPEC[k].h0 < SPEC[k].pKa.length);
+
+/* ---------------- Exact solver (charge balance) ---------------- */
+function fractions(lk, logH) { // lk = conditional log Ka, ascending pKa order
+  const n = lk.length, t = new Array(n + 1);
+  let acc = 0, m = -Infinity;
+  for (let k = 0; k <= n; k++) { t[k] = (n - k) * logH + acc; if (k < n) acc += lk[k]; if (t[k] > m) m = t[k]; }
+  let s = 0;
+  for (let k = 0; k <= n; k++) { t[k] = 10 ** (t[k] - m); s += t[k]; }
+  for (let k = 0; k <= n; k++) t[k] /= s;
+  return t;
+}
+function solve(comps) {
+  const pKw = pKwAt(st.T), A = daviesA(st.T);
+  let I = 0, out = null;
+  const iters = st.activity ? 7 : 1;
+  for (let it = 0; it < iters; it++) {
+    const D = st.activity ? Math.sqrt(I) / (1 + Math.sqrt(I)) - 0.3 * I : 0;
+    const lg = z => -A * z * z * D;
+    const lgH = lg(1), logKw = -pKw - 2 * lgH;
+    const lks = comps.map(c => c.s.pKa.map((pk, j) => -pk + lg(c.s.z0 - j) - lgH - lg(c.s.z0 - j - 1)));
+    const charge = x => {
+      let f = 10 ** x - 10 ** (logKw - x);
+      for (let i = 0; i < comps.length; i++) {
+        const c = comps[i], a = fractions(lks[i], x);
+        let z = c.s.q;
+        for (let k = 0; k < a.length; k++) z += a[k] * (c.s.z0 - k);
+        f += c.C * z;
+      }
+      return f;
+    };
+    let lo = -16, hi = 2.5;
+    for (let k = 0; k < 64; k++) { const mid = (lo + hi) / 2; if (charge(mid) > 0) hi = mid; else lo = mid; }
+    const x = (lo + hi) / 2, H = 10 ** x, OH = 10 ** (logKw - x);
+    const alphas = comps.map((c, i) => fractions(lks[i], x));
+    let I2 = H + OH;
+    comps.forEach((c, i) => { I2 += c.C * c.s.q; alphas[i].forEach((a, k) => { I2 += c.C * a * (c.s.z0 - k) ** 2; }); });
+    I = 0.5 * I2;
+    out = { pH: -(x + lgH), H, OH, alphas, I, pKw };
+  }
+  return out;
+}
+function mixAt(V) {
+  const Vt = st.Va + V, a = analyte();
+  const comps = a.comps.map(k => ({ s: SPEC[k], C: st.Ca * st.Va / Vt, key: k }));
+  if (V > 0) comps.push({ s: SPEC[titrant().spec], C: st.Ct * V / Vt, key: 'tit' });
+  return comps;
+}
+const pHat = V => solve(mixAt(V)).pH;
+
+/* ---------------- Stoichiometry ---------------- */
+function buildSteps() {
+  const a = analyte(), t = titrant(), base = t.kind === 'base', steps = [];
+  a.comps.forEach(key => {
+    const s = SPEC[key], n = s.pKa.length, mol = st.Ca * st.Va; // mmol
+    if (base) { for (let h = s.h0; h >= 1; h--) steps.push({ pKa: s.pKa[n - h], mol, key }); }
+    else {
+      if (s.strongBase) steps.push({ pKa: 99, mol, key });
+      for (let h = s.h0; h < n; h++) steps.push({ pKa: s.pKa[n - h - 1], mol, key });
+    }
+  });
+  steps.sort((x, y) => base ? x.pKa - y.pKa : y.pKa - x.pKa);
+  let cum = 0;
+  steps.forEach(s => { s.before = cum; cum += s.mol; s.after = cum; s.Veq = cum / (st.Ct * t.cap); s.Vhalf = (s.before + s.mol / 2) / (st.Ct * t.cap); });
+  return steps;
+}
+
+/* ---------------- Theory curve ---------------- */
+function niceCeil(x) { const s = x <= 20 ? 5 : x <= 60 ? 10 : 20; return Math.ceil(x / s) * s; }
+function computeTheory() {
+  const steps = buildSteps();
+  const lastV = steps.length ? steps[steps.length - 1].Veq : 25;
+  const Vmax = st.mode === 'challenge' ? 50 : clamp(niceCeil(Math.max(lastV * 1.45, 10)), 10, 200);
+  const xs = new Set();
+  const N = 520;
+  for (let i = 0; i <= N; i++) xs.add(+(Vmax * i / N).toFixed(6));
+  for (let i = 1; i <= 30; i++) xs.add(+(Vmax * 0.01 * i / 30).toFixed(6));
+  steps.forEach(s => { if (s.Veq < Vmax) for (let i = -80; i <= 80; i++) { const v = s.Veq * (1 + 0.03 * i / 80); if (v > 0 && v < Vmax) xs.add(+v.toFixed(7)); } });
+  const V = [...xs].sort((a, b) => a - b), pH = V.map(pHat);
+  const d = V.map((_, i) => {
+    const i0 = Math.max(0, i - 1), i1 = Math.min(V.length - 1, i + 1);
+    return Math.abs((pH[i1] - pH[i0]) / (V[i1] - V[i0]));
+  });
+  const t = titrant();
+  const beta = V.map((_, i) => {
+    const i0 = Math.max(0, i - 1), i1 = Math.min(V.length - 1, i + 1);
+    const cb = v => st.Ct * t.cap * v / (st.Va + v);
+    const dp = Math.abs(pH[i1] - pH[i0]);
+    return dp > 1e-9 ? (cb(V[i1]) - cb(V[i0])) / dp : NaN;
+  });
+  const eqs = steps.map((s, i) => {
+    if (s.Veq >= Vmax) return null;
+    const ph = pHat(s.Veq), m = pHat(s.Veq * 0.99), p = pHat(s.Veq * 1.01);
+    const m5 = pHat(s.Veq * 0.995), p5 = pHat(s.Veq * 1.005);
+    const jump = Math.abs(p - m);
+    const lo5 = Math.min(m5, p5), hi5 = Math.max(m5, p5);
+    const lo1 = Math.min(m, p), hi1 = Math.max(m, p);
+    const good = TOOLS_IND.filter(k => IND[k].pk >= lo5 && IND[k].pk <= hi5);
+    const approx = TOOLS_IND.filter(k => !good.includes(k) && IND[k].lo < hi1 && IND[k].hi > lo1);
+    const sol = solve(mixAt(s.Veq));
+    const dom = [];
+    analyte().comps.forEach((key, ci) => {
+      const a = sol.alphas[ci], sp = SPEC[key].sp;
+      if (!sp.length) return;
+      let bi = 0; a.forEach((x, k) => { if (x > a[bi]) bi = k; });
+      dom.push(sp[bi]);
+    });
+    return { i, V: s.Veq, pH: ph, jump, good, approx, dom, step: s };
+  }).filter(Boolean);
+  eqs.forEach((e, j) => {
+    e.lo = j ? (eqs[j - 1].V + e.V) / 2 : 0;
+    e.hi = j < eqs.length - 1 ? (eqs[j + 1].V + e.V) / 2 : Vmax;
+  });
+  TH = { V, pH, d, beta, steps, eqs, Vmax, pKw: pKwAt(st.T) };
+}
+function endpointFor(e, indKey) {
+  const ind = IND[indKey];
+  if (!ind || ind.pk == null) return null;
+  const f = v => pHat(v) - ind.pk;
+  let a = Math.max(e.lo, 1e-6), b = e.hi, fa = f(a), fb = f(b);
+  if (fa * fb > 0) return null;
+  for (let k = 0; k < 44; k++) { const m = (a + b) / 2, fm = f(m); if (fa * fm <= 0) { b = m; fb = fm; } else { a = m; fa = fm; } }
+  return (a + b) / 2;
+}
+
+/* ---------------- JEE shortcut estimate ---------------- */
+function estimate(V) {
+  const t = titrant(), tb = t.kind === 'base', pKw = TH.pKw, a = analyte();
+  const W = tb
+    ? { P1: 'pH', P2: 'pOH', K: 'pKₐ', K2: 'pK_b', ac: 'acid', salt: '[A⁻]', acid: '[HA]' }
+    : { P1: 'pOH', P2: 'pH', K: 'pK_b', K2: 'pKₐ', ac: 'base', salt: '[BH⁺]', acid: '[B]' };
+  const tS = SPEC[t.spec];
+  const tk = tS.pKa.length === 1 && tS.pKa[0] > 1 && tS.pKa[0] < 13 ? (tb ? tS.pKa[0] : pKw - tS.pKa[0]) : null;
+  const steps = TH.steps.map(s => ({ ...s, pk: tb ? s.pKa : pKw - s.pKa }));
+  if (!steps.length) return null;
+  const strong = s => s.pk < 1;
+  const Vt = st.Va + V, P = st.Ct * t.cap * V, total = steps[steps.length - 1].after;
+  const tol = 0.001 * Math.min(...steps.map(s => s.mol));
+  const out = (region, f, sub, P1v, warn) => ({ region, f, sub, val: tb ? P1v : pKw - P1v, warn });
+  const lg = x => log10(x);
+
+  // amphiprotic start
+  if (V < 1e-9 && a.comps.length === 1) {
+    const s = SPEC[a.comps[0]], n = s.pKa.length;
+    if (s.h0 > 0 && s.h0 < n) {
+      const k1 = s.pKa[n - s.h0 - 1], k2 = s.pKa[n - s.h0];
+      return { region: 'Start · amphiprotic', f: 'pH = ½(pKₐ₁ + pKₐ₂)', sub: `= ½(${fmt(k1)} + ${fmt(k2)}) = ${fmt((k1 + k2) / 2)}`, val: (k1 + k2) / 2 };
+    }
+  }
+  if (V < 1e-9) {
+    const f0 = steps[0];
+    if (strong(f0)) {
+      const C = steps.filter(strong).reduce((x, s) => x + s.mol, 0) / Vt;
+      return out('Start · strong ' + W.ac, `${W.P1} = −log C`, `= −log ${fmt(C, 4)} = ${fmt(-lg(C))}`, -lg(C));
+    }
+    const C = f0.mol / Vt, v = 0.5 * (f0.pk - lg(C));
+    return out('Start · weak ' + W.ac, `${W.P1} = ½(${W.K} − log C)`, `= ½(${fmt(f0.pk)} − log ${fmt(C, 4)}) = ${fmt(v)}`, v,
+      C < 1e-3 || f0.pk < 2.5 ? 'Shortcut assumes α ≪ 1. Here the acid is too dilute or too strong for that.' : '');
+  }
+  // past the last equivalence
+  if (P > total + tol) {
+    const ex = P - total;
+    if (tk == null) {
+      const c = ex / Vt, p2 = -lg(c);
+      return out('Excess titrant', `${W.P2} = −log[excess titrant]`, `= −log(${fmt(ex, 3)} mmol / ${fmt(Vt, 2)} mL) = ${fmt(p2)}`, pKw - p2);
+    }
+    const v = tk + lg(ex / total);
+    return out('Excess weak titrant · buffer', `${W.P1} = ${W.K}(titrant) + log(excess / formed salt)`, `= ${fmt(tk)} + log(${fmt(ex, 3)}/${fmt(total, 3)}) = ${fmt(v)}`, v);
+  }
+  // at an equivalence point
+  for (let k = 0; k < steps.length; k++) {
+    if (Math.abs(P - steps[k].after) > tol) continue;
+    const prev = steps[k], next = steps[k + 1], lab = `Equivalence ${k + 1}`;
+    if (next) {
+      if (!strong(prev) && !strong(next) && prev.key === next.key) {
+        const v = (prev.pk + next.pk) / 2;
+        return out(lab + ' · amphiprotic', `${W.P1} = ½(${W.K}₁ + ${W.K}₂)`, `= ½(${fmt(prev.pk)} + ${fmt(next.pk)}) = ${fmt(v)}`, v);
+      }
+      if (strong(next)) return null;
+      const C = next.mol / Vt, v = 0.5 * (next.pk - lg(C));
+      return out(lab + ' · weak ' + W.ac + ' left', `${W.P1} = ½(${W.K} − log C)`, `= ½(${fmt(next.pk)} − log ${fmt(C, 4)}) = ${fmt(v)}`, v);
+    }
+    const Cs = prev.mol / Vt;
+    if (tk == null) {
+      if (strong(prev)) return out(lab + ' · neutral salt', 'pH = ½ pK_w', `= ${fmt(pKw / 2)}`, pKw / 2);
+      const kb = pKw - prev.pk, p2 = 0.5 * (kb - lg(Cs));
+      return out(lab + ' · salt hydrolysis', `${W.P2} = ½(${W.K2} − log C_salt)`, `= ½(${fmt(kb)} − log ${fmt(Cs, 4)}) = ${fmt(p2)}`, pKw - p2);
+    }
+    if (strong(prev)) {
+      const v = 0.5 * (tk - lg(Cs));
+      return out(lab + ' · salt of weak titrant', `${W.P1} = ½(${W.K}(titrant) − log C_salt)`, `= ½(${fmt(tk)} − log ${fmt(Cs, 4)}) = ${fmt(v)}`, v);
+    }
+    const v = (prev.pk + tk) / 2, pHv = tb ? v : pKw - v;
+    const pKa_ = tb ? prev.pk : pKw - tk, pKb_ = tb ? pKw - tk : prev.pk;
+    return { region: lab + ' · weak–weak salt', f: 'pH = ½(pK_w + pKₐ − pK_b)  (no C!)', sub: `= ½(${fmt(pKw)} + ${fmt(pKa_)} − ${fmt(pKb_)}) = ${fmt(pHv)}`, val: pHv };
+  }
+  // inside a step
+  const i = steps.findIndex(s => P < s.after);
+  const s = steps[i], r = (P - s.before) / s.mol;
+  if (strong(s)) {
+    let end = s.after; for (let j = i + 1; j < steps.length && strong(steps[j]); j++) end = steps[j].after;
+    const c = (end - P) / Vt, v = -lg(c);
+    return out(`Before equivalence ${i + 1} · strong ${W.ac} left`, `${W.P1} = −log[remaining ${W.ac}]`, `= −log(${fmt(end - P, 3)} mmol / ${fmt(Vt, 2)} mL) = ${fmt(v)}`, v);
+  }
+  const v = s.pk + lg(r / (1 - r));
+  return out(`Buffer region ${i + 1}`, `${W.P1} = ${W.K} + log(${W.salt}/${W.acid})`, `= ${fmt(s.pk)} + log(${fmt(r, 3)}/${fmt(1 - r, 3)}) = ${fmt(v)}`, v,
+    r < 0.06 || r > 0.94 ? 'Near the edge of the buffer region the Henderson ratio is extreme and the shortcut drifts.' : '');
+}
+
+/* ---------------- Colours ---------------- */
+let CSS = {};
+function readCSS() {
+  const cs = getComputedStyle(document.documentElement);
+  ['bg', 'paper', 'ink', 'muted', 'line', 'grid', 'accent', 'accent-2', 'accent-3', 'accent-4', 'good', 'bad', 'warn', 'glass', 'steel', 'chip']
+    .forEach(k => CSS[k] = cs.getPropertyValue('--' + k).trim());
+  CSS.dark = document.documentElement.dataset.theme ? document.documentElement.dataset.theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+}
+function indColor(pH, key = st.ind) {
+  const ind = IND[key];
+  if (!ind || key === 'none') return [150, 190, 230, 0.22];
+  if (ind.universal) {
+    let j = 0; while (j < UNI.length - 2 && pH > UNI[j + 1][0]) j++;
+    const [p0, c0] = UNI[j], [p1, c1] = UNI[j + 1], u = clamp((pH - p0) / (p1 - p0), 0, 1);
+    return [0, 1, 2].map(i => c0[i] + (c1[i] - c0[i]) * u).concat(.8);
+  }
+  const fb = 1 / (1 + 10 ** ((ind.pk - pH) * 1.6));
+  const A = ind.a, B = ind.b, aA = A[3], aB = B[3];
+  const al = aA + (aB - aA) * fb;
+  if (al < 0.02) return [150, 190, 230, 0.22];
+  const c = [0, 1, 2].map(i => (A[i] * aA * (1 - fb) + B[i] * aB * fb) / (aA * (1 - fb) + aB * fb));
+  const w = clamp(al / 0.8, 0, 1); // blend toward water tint when faint
+  return [0, 1, 2].map(i => 150 + (c[i] - 150) * w).concat(Math.max(0.22, al));
+}
+const rgba = c => `rgba(${c[0] | 0},${c[1] | 0},${c[2] | 0},${c[3]})`;
+const SPC = () => [CSS.accent, CSS['accent-2'], CSS['accent-3'], CSS['accent-4'], CSS.warn, CSS.bad];
+
+/* ---------------- Titration actions ---------------- */
+function flowRate() { const v = +$('flow').value; return 0.02 * 10 ** (v / 100 * 2.3); } // mL/s
+function pushHist() { st.hist.push(st.V + st.pending + st.drops.reduce((x, d) => x + d.vol, 0)); if (st.hist.length > 200) st.hist.shift(); }
+function addVolume(vol) {
+  const cap = TH.Vmax;
+  if (st.V >= cap - 1e-9) { stopFlow(); toast(`End of the plotted range (${cap} mL). Reset or undo to continue.`); return; }
+  st.V = Math.min(cap, st.V + vol);
+  const sol = solve(mixAt(st.V));
+  st.cur = sol;
+  st.pts.push({ V: st.V, pH: sol.pH });
+  checkIndicator(sol.pH);
+  dirtyG = dirtyUI = true;
+}
+function checkIndicator(pH) {
+  const ind = IND[st.ind];
+  if (!ind || ind.pk == null) return;
+  const side = pH > ind.pk;
+  if (st.indSide !== null && side !== st.indSide) {
+    st.endpoints.push({ V: st.V, pH, ind: st.ind, to: side ? 'base' : 'acid' });
+    const col = side ? 'base colour' : 'acid colour';
+    toast(`${ind.name} turned to its ${col} at ${fmt(st.V)} mL (pH ${fmt(pH)}). That is your endpoint.`);
+    if (st.auto) setAuto(false);
+  }
+  st.indSide = side;
+}
+function stopFlow() { st.pending = 0; st.pour = false; setAuto(false); $('pourBtn').classList.remove('on'); }
+function setAuto(on) {
+  st.auto = on;
+  $('autoBtn').textContent = on ? 'Pause ❚❚' : 'Auto ▶';
+  $('autoBtn').classList.toggle('on', on);
+}
+function resetTitration(keepPins = true) {
+  st.V = 0; st.pending = 0; st.drops = []; st.plumes = []; st.hist = []; st.endpoints = [];
+  st.pour = false; setAuto(false);
+  computeTheory();
+  const sol = solve(mixAt(0));
+  st.cur = sol; st.pts = [{ V: 0, pH: sol.pH }];
+  const ind = IND[st.ind]; st.indSide = ind && ind.pk != null ? sol.pH > ind.pk : null;
+  if (!keepPins) st.pins = [];
+  dirtyG = dirtyUI = true;
+}
+function recomputeKeepV() { // T / activity changed: keep the drops, recompute pH
+  computeTheory();
+  st.pts = st.pts.map(p => ({ V: p.V, pH: pHat(p.V) }));
+  st.cur = solve(mixAt(st.V));
+  const ind = IND[st.ind]; st.indSide = ind && ind.pk != null ? st.cur.pH > ind.pk : null;
+  dirtyG = dirtyUI = true;
+}
+function undo() {
+  if (!st.hist.length) return;
+  st.pending = 0; st.drops = []; st.pour = false; setAuto(false);
+  const v = st.hist.pop();
+  st.V = Math.min(st.V, v);
+  st.pts = st.pts.filter(p => p.V <= st.V + 1e-9);
+  if (!st.pts.length) st.pts = [{ V: 0, pH: pHat(0) }];
+  st.endpoints = st.endpoints.filter(e => e.V <= st.V + 1e-9);
+  st.cur = solve(mixAt(st.V));
+  const ind = IND[st.ind]; st.indSide = ind && ind.pk != null ? st.cur.pH > ind.pk : null;
+  dirtyG = dirtyUI = true;
+}
+let toastT = 0;
+function toast(msg) { const t = $('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 3200); }
+
+/* ---------------- Apparatus canvas ---------------- */
+const appCv = $('appCv'), actx = appCv.getContext('2d');
+const gCv = $('gCv'), gctx = gCv.getContext('2d');
+let AW = 0, AH = 0, GW = 0, GH = 0, DPR = 1;
+function fit() {
+  DPR = Math.min(2, window.devicePixelRatio || 1);
+  const r1 = appCv.getBoundingClientRect(), r2 = gCv.getBoundingClientRect();
+  AW = r1.width; AH = r1.height; GW = r2.width; GH = r2.height;
+  appCv.width = AW * DPR; appCv.height = AH * DPR; gCv.width = GW * DPR; gCv.height = GH * DPR;
+  dirtyG = true;
+}
+function geom() {
+  const W = AW, H = AH, cx = W * 0.42;
+  const g = {
+    W, H, cx, bw: Math.max(14, W * 0.05), yB0: H * 0.04, yB1: H * 0.49, ySC: H * 0.515, yTip: H * 0.585,
+    yF0: H * 0.62, yN: H * 0.7, yF1: H * 0.9, nw: W * 0.055, fw: W * 0.24,
+  };
+  const frac = (st.Va + st.V) / (st.Va + TH.Vmax);
+  g.yLiq = g.yF1 - (g.yF1 - g.yN) * (0.16 + 0.62 * frac);
+  return g;
+}
+function flaskPath(c, g) {
+  const { cx, yF0, yN, yF1, nw, fw } = g, r = 10;
+  c.beginPath();
+  c.moveTo(cx - nw, yF0);
+  c.lineTo(cx - nw, yN);
+  c.lineTo(cx - fw + r * 0.6, yF1 - r);
+  c.quadraticCurveTo(cx - fw, yF1, cx - fw + r * 1.6, yF1);
+  c.lineTo(cx + fw - r * 1.6, yF1);
+  c.quadraticCurveTo(cx + fw, yF1, cx + fw - r * 0.6, yF1 - r);
+  c.lineTo(cx + nw, yN);
+  c.lineTo(cx + nw, yF0);
+}
+let tAnim = 0;
+function drawApp(dt) {
+  const c = actx, g = geom();
+  c.setTransform(DPR, 0, 0, DPR, 0, 0);
+  c.clearRect(0, 0, AW, AH);
+  const { W, H, cx, bw, yB0, yB1, ySC, yTip } = g;
+  // stand
+  c.fillStyle = CSS.steel;
+  c.fillRect(W * 0.07, H * 0.965, W * 0.6, H * 0.02);
+  c.fillRect(W * 0.1, H * 0.03, Math.max(5, W * 0.014), H * 0.94);
+  c.fillRect(W * 0.1, H * 0.2, cx - W * 0.1 - bw / 2, 5);
+  c.fillRect(cx - bw / 2 - 5, H * 0.2 - 6, bw + 10, 16);
+  // stir plate
+  c.fillStyle = CSS.dark ? '#2b303c' : '#d9d4c7';
+  roundRect(c, cx - W * 0.3, g.yF1 + 2, W * 0.6, H * 0.055, 6); c.fill();
+  c.fillStyle = CSS.accent;
+  c.beginPath(); c.arc(cx + W * 0.24, g.yF1 + 2 + H * 0.0275, 3.5, 0, 7); c.fill();
+  // burette liquid
+  const reading = st.V % 50 === 0 && st.V > 0 ? 50 : st.V % 50;
+  const gTop = yB0 + 10, gBot = yB1 - 6, yLevel = gTop + (gBot - gTop) * (reading / 50);
+  const tCol = st.tId === 'HCl' || st.tId === 'H2SO4' || st.tId === 'AcOH' ? 'rgba(160,200,235,.38)' : 'rgba(170,215,225,.38)';
+  c.fillStyle = tCol;
+  c.fillRect(cx - bw / 2 + 2, yLevel, bw - 4, yB1 - yLevel);
+  c.fillRect(cx - 3, yB1, 6, yTip - yB1 - 2);
+  // meniscus
+  c.strokeStyle = CSS.dark ? 'rgba(200,220,255,.7)' : 'rgba(40,70,120,.6)'; c.lineWidth = 1.5;
+  c.beginPath(); c.moveTo(cx - bw / 2 + 2, yLevel - 2); c.quadraticCurveTo(cx, yLevel + 4, cx + bw / 2 - 2, yLevel - 2); c.stroke();
+  // burette glass
+  c.strokeStyle = CSS.glass; c.lineWidth = 1.6;
+  c.strokeRect(cx - bw / 2, yB0, bw, yB1 - yB0);
+  c.beginPath(); c.moveTo(cx - bw / 2, yB1); c.lineTo(cx - 3, yB1 + 6); c.lineTo(cx - 3, yTip - 6); c.lineTo(cx - 1.2, yTip);
+  c.moveTo(cx + bw / 2, yB1); c.lineTo(cx + 3, yB1 + 6); c.lineTo(cx + 3, yTip - 6); c.lineTo(cx + 1.2, yTip); c.stroke();
+  // graduations
+  c.fillStyle = CSS.muted; c.strokeStyle = CSS.muted; c.lineWidth = 1;
+  c.font = `500 ${Math.max(8, Math.min(10, W * 0.024))}px ${getComputedStyle(document.body).getPropertyValue('--f-mono')}`;
+  c.textAlign = 'left'; c.textBaseline = 'middle';
+  for (let m = 0; m <= 50; m++) {
+    const y = gTop + (gBot - gTop) * m / 50, len = m % 10 === 0 ? bw * 0.5 : m % 5 === 0 ? bw * 0.35 : bw * 0.18;
+    c.globalAlpha = m % 5 === 0 ? 0.9 : 0.45;
+    c.beginPath(); c.moveTo(cx - bw / 2, y); c.lineTo(cx - bw / 2 + len, y); c.stroke();
+    if (m % 10 === 0) c.fillText(String(m), cx + bw / 2 + 4, y);
+  }
+  c.globalAlpha = 1;
+  // stopcock
+  const flowing = st.pending > 1e-9 || st.pour || st.auto;
+  c.save(); c.translate(cx, ySC);
+  c.fillStyle = CSS.steel; roundRect(c, -7, -6, 14, 12, 3); c.fill();
+  c.rotate(flowing ? Math.PI / 2 : 0);
+  c.fillStyle = CSS.accent; roundRect(c, -bw * 0.9, -2.5, bw * 1.8, 5, 2.5); c.fill();
+  c.restore();
+  // flask liquid
+  const pH = st.cur ? st.cur.pH : 7;
+  const col = indColor(pH);
+  c.save(); flaskPath(c, g); c.closePath(); c.clip();
+  const grd = c.createLinearGradient(0, g.yLiq, 0, g.yF1);
+  grd.addColorStop(0, rgba([col[0], col[1], col[2], col[3] * 0.85]));
+  grd.addColorStop(1, rgba([col[0] * 0.85, col[1] * 0.85, col[2] * 0.85, Math.min(1, col[3] * 1.15)]));
+  c.fillStyle = grd; c.fillRect(0, g.yLiq, W, g.yF1 - g.yLiq + 2);
+  // plumes (local colour flash where drops land)
+  st.plumes.forEach(p => {
+    const rg = c.createRadialGradient(p.x, p.y, 1, p.x, p.y, p.r);
+    rg.addColorStop(0, rgba([p.c[0], p.c[1], p.c[2], p.c[3] * p.a]));
+    rg.addColorStop(1, rgba([p.c[0], p.c[1], p.c[2], 0]));
+    c.fillStyle = rg; c.beginPath(); c.arc(p.x, p.y, p.r, 0, 7); c.fill();
+  });
+  // swirl
+  c.strokeStyle = 'rgba(255,255,255,.28)'; c.lineWidth = 1.2;
+  const wL = liquidHalfWidth(g, g.yLiq);
+  for (let k = 0; k < 3; k++) {
+    const ph = tAnim * 2.2 + k * 2.1;
+    c.beginPath(); c.ellipse(cx + Math.sin(ph) * wL * 0.12, g.yLiq + 4 + k * 3, wL * (0.75 - k * 0.2), 2.2, 0, 0, Math.PI); c.stroke();
+  }
+  // stir bar
+  const sb = Math.abs(Math.cos(tAnim * 9)) * W * 0.05 + 4;
+  c.fillStyle = CSS.dark ? '#e8e9ee' : '#fff'; c.strokeStyle = CSS.glass;
+  roundRect(c, cx - sb / 2, g.yF1 - 7, sb, 5, 2.5); c.fill(); c.stroke();
+  c.restore();
+  // meniscus line
+  c.strokeStyle = 'rgba(255,255,255,.55)'; c.lineWidth = 1;
+  c.beginPath(); c.moveTo(cx - wL, g.yLiq); c.lineTo(cx + wL, g.yLiq); c.stroke();
+  // flask glass
+  flaskPath(c, g); c.strokeStyle = CSS.glass; c.lineWidth = 2; c.stroke();
+  c.strokeStyle = 'rgba(255,255,255,.35)'; c.lineWidth = 3;
+  c.beginPath(); c.moveTo(cx - g.nw * 0.55, g.yN + 6); c.lineTo(cx - g.fw * 0.55, g.yF1 - 18); c.stroke();
+  // pH probe + meter
+  const px = cx + g.nw * 0.5, pTop = g.yF0 - H * 0.07, pBot = g.yF1 - H * 0.05;
+  c.strokeStyle = CSS.muted; c.lineWidth = 4; c.lineCap = 'round';
+  c.beginPath(); c.moveTo(px, pTop); c.lineTo(px, pBot); c.stroke();
+  c.fillStyle = CSS.muted; c.beginPath(); c.arc(px, pBot + 2, 3.5, 0, 7); c.fill();
+  c.lineWidth = 1.6; c.strokeStyle = CSS.ink; c.globalAlpha = .5;
+  const mx = W * 0.66, my = H * 0.555, mw = W * 0.31, mh = H * 0.13;
+  c.beginPath(); c.moveTo(px, pTop); c.bezierCurveTo(px, pTop - 30, mx - 10, my + mh + 30, mx + 10, my + mh); c.stroke();
+  c.globalAlpha = 1; c.lineCap = 'butt';
+  c.fillStyle = CSS.dark ? '#262b38' : '#2a2f3b'; roundRect(c, mx, my, mw, mh, 10); c.fill();
+  c.fillStyle = '#0f1a14'; roundRect(c, mx + 7, my + 7, mw - 14, mh * 0.62, 6); c.fill();
+  c.fillStyle = '#7dffb2'; c.textAlign = 'right'; c.textBaseline = 'middle';
+  c.font = `600 ${Math.min(mh * 0.42, mw * 0.24)}px ${getComputedStyle(document.body).getPropertyValue('--f-mono')}`;
+  c.fillText(fmt(pH), mx + mw - 14, my + 7 + mh * 0.31);
+  c.fillStyle = '#9aa1b2'; c.textAlign = 'left'; c.font = `600 ${Math.max(9, mh * 0.16)}px ${getComputedStyle(document.body).getPropertyValue('--f-mono')}`;
+  c.fillText('pH', mx + 12, my + mh * 0.84);
+  c.textAlign = 'right'; c.fillText(`${fmt(st.T, 0)} °C`, mx + mw - 12, my + mh * 0.84);
+  // burette reading label
+  c.fillStyle = CSS.ink; c.textAlign = 'left'; c.textBaseline = 'alphabetic';
+  c.font = `600 ${Math.max(10, W * 0.028)}px ${getComputedStyle(document.body).getPropertyValue('--f-mono')}`;
+  c.fillText(`${fmt(st.V)} mL added`, cx + bw / 2 + W * 0.06, yB0 + H * 0.1);
+  c.fillStyle = CSS.muted; c.font = `500 ${Math.max(9, W * 0.024)}px ${getComputedStyle(document.body).getPropertyValue('--f-mono')}`;
+  c.fillText(`reading ${fmt(reading)} mL`, cx + bw / 2 + W * 0.06, yB0 + H * 0.1 + 16);
+  const refills = Math.floor((st.V - 1e-9) / 50);
+  if (refills > 0) c.fillText(`refilled ×${refills}`, cx + bw / 2 + W * 0.06, yB0 + H * 0.1 + 32);
+  // drops
+  c.fillStyle = 'rgba(150,200,235,.9)';
+  st.drops.forEach(d => {
+    const r = clamp(2.2 + d.vol * 6, 2.2, 5);
+    c.beginPath(); c.ellipse(cx, d.y, r * 0.8, r * 1.15, 0, 0, 7); c.fill();
+  });
+  if (flowing && st.drops.length > 3) {
+    c.strokeStyle = 'rgba(150,200,235,.55)'; c.lineWidth = 2;
+    c.beginPath(); c.moveTo(cx, yTip); c.lineTo(cx, g.yLiq); c.stroke();
+  }
+}
+function liquidHalfWidth(g, y) {
+  if (y <= g.yN) return g.nw - 2;
+  const u = (y - g.yN) / (g.yF1 - g.yN);
+  return g.nw + (g.fw - g.nw) * u - 3;
+}
+function roundRect(c, x, y, w, h, r) { c.beginPath(); c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r); c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath(); }
+
+/* ---------------- Simulation loop ---------------- */
+let last = performance.now(), uiT = 0;
+function loop(now) {
+  const dt = Math.min(0.05, (now - last) / 1000); last = now; tAnim += dt;
+  const rate = flowRate();
+  if (st.pour) st.pending += rate * dt;
+  if (st.auto) {
+    let r = rate;
+    if ($('slowNear').checked && st.pts.length > 2) {
+      const a = st.pts[st.pts.length - 1], b = st.pts[st.pts.length - 3];
+      const slope = Math.abs(a.pH - b.pH) / Math.max(1e-6, a.V - b.V);
+      r = Math.max(0.025, rate / (1 + slope * 0.9));
+    }
+    if (st.V + st.pending < TH.Vmax) st.pending += r * dt; else setAuto(false);
+  }
+  const g = geom();
+  st.spawnT -= dt;
+  if (st.pending > 1e-9 && st.spawnT <= 0) {
+    const drain = Math.max(rate, st.pending * 2.2);
+    const vol = Math.min(st.pending, Math.max(DROP, drain * 0.06));
+    st.pending -= vol; if (st.pending < 1e-9) st.pending = 0;
+    st.drops.push({ y: g.yTip, v: 40, vol });
+    st.spawnT = 0.06;
+  }
+  for (let i = st.drops.length - 1; i >= 0; i--) {
+    const d = st.drops[i]; d.v += 1600 * dt; d.y += d.v * dt;
+    if (d.y >= g.yLiq) {
+      st.drops.splice(i, 1);
+      addVolume(d.vol);
+      if (IND[st.ind] && st.ind !== 'none') {
+        const local = pHat(Math.min(TH.Vmax, st.V + 1.2));
+        st.plumes.push({ x: g.cx + (Math.random() - .5) * 8, y: g.yLiq + 6, r: 8, a: 1, c: indColor(local) });
+        if (st.plumes.length > 30) st.plumes.shift();
+      }
+    }
+  }
+  st.plumes.forEach(p => { p.r += 60 * dt; p.y += 25 * dt; p.a -= 1.3 * dt; });
+  st.plumes = st.plumes.filter(p => p.a > 0);
+  drawApp(dt);
+  uiT -= dt;
+  if (dirtyG) { drawGraph(); dirtyG = false; }
+  if (dirtyUI && uiT <= 0) { updateUI(); dirtyUI = false; uiT = 0.08; }
+  requestAnimationFrame(loop);
+}
+
+/* ---------------- Graph ---------------- */
+const M = { l: 46, r: 14, t: 14, b: 36 };
+let G = null; // current mapping for hover
+function setupAxes(xmin, xmax, ymin, ymax, ylog = false) {
+  const w = GW - M.l - M.r, h = GH - M.t - M.b;
+  const X = x => M.l + (x - xmin) / (xmax - xmin) * w;
+  const Y = ylog ? y => M.t + h - (log10(Math.max(y, ymin)) - log10(ymin)) / (log10(ymax) - log10(ymin)) * h
+    : y => M.t + h - (y - ymin) / (ymax - ymin) * h;
+  const Xi = px => xmin + (px - M.l) / w * (xmax - xmin);
+  G = { X, Y, Xi, xmin, xmax, ymin, ymax, w, h, ylog };
+  return G;
+}
+function ticks(a, b, n) {
+  const span = b - a, step0 = span / n, mag = 10 ** Math.floor(log10(step0));
+  const step = [1, 2, 2.5, 5, 10].map(s => s * mag).find(s => s >= step0) || mag * 10;
+  const out = []; for (let v = Math.ceil(a / step) * step; v <= b + 1e-9; v += step) out.push(+v.toFixed(10));
+  return out;
+}
+function drawFrame(c, xlab, ylab, yt, xt, yfmt = v => String(v)) {
+  const { X, Y, xmin, xmax, ymin, ymax } = G;
+  c.strokeStyle = CSS.grid; c.lineWidth = 1; c.fillStyle = CSS.muted;
+  c.font = `500 11px ${getComputedStyle(document.body).getPropertyValue('--f-mono')}`;
+  c.textAlign = 'right'; c.textBaseline = 'middle';
+  yt.forEach(v => { const y = Y(v); c.beginPath(); c.moveTo(M.l, y); c.lineTo(GW - M.r, y); c.stroke(); c.fillText(yfmt(v), M.l - 6, y); });
+  c.textAlign = 'center'; c.textBaseline = 'top';
+  xt.forEach(v => { const x = X(v); c.beginPath(); c.moveTo(x, M.t); c.lineTo(x, GH - M.b); c.stroke(); c.fillText(String(+v.toFixed(2)), x, GH - M.b + 5); });
+  c.strokeStyle = CSS.line; c.strokeRect(M.l, M.t, G.w, G.h);
+  c.fillStyle = CSS.muted; c.textAlign = 'right'; c.textBaseline = 'bottom';
+  c.fillText(xlab, GW - M.r, GH - 4);
+  c.save(); c.translate(12, M.t + G.h / 2); c.rotate(-Math.PI / 2); c.textAlign = 'center'; c.textBaseline = 'top'; c.fillText(ylab, 0, -6); c.restore();
+}
+function line(c, xs, ys, X, Y, col, w = 2, dash = null, alpha = 1) {
+  c.save(); c.strokeStyle = col; c.lineWidth = w; c.globalAlpha = alpha; if (dash) c.setLineDash(dash);
+  c.beginPath(); let started = false;
+  for (let i = 0; i < xs.length; i++) {
+    const y = ys[i]; if (!Number.isFinite(y)) { started = false; continue; }
+    const px = X(xs[i]), py = Y(y);
+    if (!started) { c.moveTo(px, py); started = true; } else c.lineTo(px, py);
+  }
+  c.stroke(); c.restore();
+}
+function drawGraph() {
+  if (!TH || !GW) return;
+  const c = gctx;
+  c.setTransform(DPR, 0, 0, DPR, 0, 0);
+  c.clearRect(0, 0, GW, GH);
+  const chal = st.mode === 'challenge';
+  const showTh = st.show.theory && !chal;
+  const mono = getComputedStyle(document.body).getPropertyValue('--f-mono');
+  if (st.view === 'ph') {
+    const { X, Y } = setupAxes(0, TH.Vmax, 0, 14);
+    // indicator band
+    const ind = IND[st.ind];
+    if (st.show.band && ind && ind.pk != null) {
+      const cb = ind.b;
+      c.fillStyle = `rgba(${cb[0]},${cb[1]},${cb[2]},.13)`;
+      c.fillRect(M.l, Y(ind.hi), G.w, Y(ind.lo) - Y(ind.hi));
+      c.fillStyle = `rgba(${cb[0]},${cb[1]},${cb[2]},.95)`; c.font = `600 10.5px ${mono}`; c.textAlign = 'right'; c.textBaseline = 'bottom';
+      c.fillText(`${ind.name} ${ind.lo}–${ind.hi}`, GW - M.r - 4, Y(ind.hi) - 2);
+    }
+    drawFrame(c, 'V titrant (mL)', 'pH', ticks(0, 14, 7), ticks(0, TH.Vmax, 8));
+    // neutral line
+    c.save(); c.setLineDash([2, 4]); c.strokeStyle = CSS.muted; c.globalAlpha = .5;
+    c.beginPath(); c.moveTo(M.l, Y(TH.pKw / 2)); c.lineTo(GW - M.r, Y(TH.pKw / 2)); c.stroke(); c.restore();
+    // pins
+    st.pins.forEach((p, i) => {
+      line(c, p.V, p.pH, X, Y, CSS.muted, 1.6, [6, 4], .75);
+      const j = Math.floor(p.V.length * (0.12 + 0.17 * i)); c.fillStyle = CSS.muted; c.font = `500 10.5px ${mono}`; c.textAlign = 'left'; c.textBaseline = 'bottom';
+      if (p.V[j] != null) c.fillText(p.label, X(p.V[j]) + 4, Y(p.pH[j]) - 3);
+    });
+    if (showTh) line(c, TH.V, TH.pH, X, Y, CSS.accent, 2.2, null, st.pts.length > 1 ? .45 : .9);
+    // half-eq markers
+    if (st.show.pka && !chal) {
+      TH.steps.forEach(s => {
+        if (s.pKa < 0.5 || s.pKa > TH.pKw - 0.5 || s.Vhalf > TH.Vmax) return;
+        const ph = pHat(s.Vhalf);
+        c.save(); c.setLineDash([3, 3]); c.strokeStyle = CSS['accent-3']; c.globalAlpha = .7;
+        c.beginPath(); c.moveTo(M.l, Y(s.pKa)); c.lineTo(X(s.Vhalf), Y(s.pKa)); c.lineTo(X(s.Vhalf), GH - M.b); c.stroke(); c.restore();
+        c.fillStyle = CSS['accent-3']; c.beginPath(); c.arc(X(s.Vhalf), Y(ph), 4, 0, 7); c.fill();
+        c.font = `600 10.5px ${mono}`; c.textAlign = 'left'; c.textBaseline = 'bottom';
+        c.fillText(`pKₐ ${fmt(s.pKa)}`, M.l + 4, Y(s.pKa) - 2);
+      });
+    }
+    // eq markers
+    if (st.show.eq && !chal) {
+      TH.eqs.forEach((e, k) => {
+        c.save(); c.setLineDash([5, 4]); c.strokeStyle = CSS.bad; c.globalAlpha = e.jump > 0.6 ? .8 : .4;
+        c.beginPath(); c.moveTo(X(e.V), M.t); c.lineTo(X(e.V), GH - M.b); c.stroke(); c.restore();
+        c.fillStyle = CSS.bad; c.beginPath(); c.arc(X(e.V), Y(e.pH), 4.5, 0, 7); c.fill();
+        c.font = `600 10.5px ${mono}`; c.textAlign = X(e.V) > GW - 110 ? 'right' : 'left'; c.textBaseline = 'top';
+        const dx = c.textAlign === 'left' ? 5 : -5;
+        c.fillText(`EP${k + 1} ${fmt(e.V)} mL`, X(e.V) + dx, M.t + 4 + (k % 2) * 13);
+      });
+    }
+    // user points
+    const P = st.pts;
+    line(c, P.map(p => p.V), P.map(p => p.pH), X, Y, CSS['accent-2'], 2.4);
+    c.fillStyle = CSS['accent-2'];
+    const stride = Math.max(1, Math.floor(P.length / 400));
+    for (let i = 0; i < P.length; i += stride) { c.beginPath(); c.arc(X(P[i].V), Y(P[i].pH), 2.2, 0, 7); c.fill(); }
+    const lp = P[P.length - 1];
+    c.globalAlpha = .25; c.beginPath(); c.arc(X(lp.V), Y(lp.pH), 10, 0, 7); c.fill(); c.globalAlpha = 1;
+    c.beginPath(); c.arc(X(lp.V), Y(lp.pH), 5, 0, 7); c.fill();
+    // endpoints
+    st.endpoints.forEach(e => {
+      c.strokeStyle = CSS.ink; c.lineWidth = 1.5; c.beginPath(); c.arc(X(e.V), Y(e.pH), 7, 0, 7); c.stroke();
+    });
+  } else if (st.view === 'd1') {
+    const P = st.pts, md = [];
+    for (let i = 1; i < P.length; i++) {
+      const dv = P[i].V - P[i - 1].V; if (dv < 1e-6) continue;
+      md.push({ V: (P[i].V + P[i - 1].V) / 2, d: Math.abs(P[i].pH - P[i - 1].pH) / dv });
+    }
+    let ymax = 1;
+    if (showTh) ymax = Math.max(ymax, ...TH.d.filter(Number.isFinite));
+    md.forEach(p => ymax = Math.max(ymax, p.d));
+    ymax = 10 ** Math.ceil(log10(ymax * 1.2));
+    const ymin = 1e-3;
+    const { X, Y } = setupAxes(0, TH.Vmax, ymin, ymax, true);
+    const yt = []; for (let e = -3; 10 ** e <= ymax; e++) yt.push(10 ** e);
+    drawFrame(c, 'V titrant (mL)', 'dpH/dV  (log scale)', yt, ticks(0, TH.Vmax, 8), v => v >= 1 ? String(v) : v.toString());
+    if (showTh) line(c, TH.V, TH.d, X, Y, CSS.accent, 2, null, .55);
+    c.strokeStyle = CSS['accent-2']; c.lineWidth = 2;
+    md.forEach(p => { c.beginPath(); c.moveTo(X(p.V), Y(ymin)); c.lineTo(X(p.V), Y(Math.max(p.d, ymin))); c.globalAlpha = .55; c.stroke(); });
+    c.globalAlpha = 1; c.fillStyle = CSS['accent-2'];
+    md.forEach(p => { c.beginPath(); c.arc(X(p.V), Y(Math.max(p.d, ymin)), 2.4, 0, 7); c.fill(); });
+    if (md.length) {
+      const best = md.reduce((a, b) => b.d > a.d ? b : a);
+      c.fillStyle = CSS.ink; c.font = `600 11px ${mono}`; c.textAlign = 'left'; c.textBaseline = 'bottom';
+      c.fillText(`your steepest point: ${fmt(best.V)} mL`, M.l + 6, M.t + 16);
+    }
+    if (st.show.eq && !chal) TH.eqs.forEach(e => { c.save(); c.setLineDash([5, 4]); c.strokeStyle = CSS.bad; c.globalAlpha = .6; c.beginPath(); c.moveTo(X(e.V), M.t); c.lineTo(X(e.V), GH - M.b); c.stroke(); c.restore(); });
+  } else if (st.view === 'spec') {
+    const { X, Y } = setupAxes(0, 14, 0, 1);
+    drawFrame(c, 'pH', 'fraction α', ticks(0, 1, 5), ticks(0, 14, 7));
+    const cols = SPC();
+    const pHs = []; for (let i = 0; i <= 280; i++) pHs.push(14 * i / 280);
+    let ci = 0, legend = [];
+    analyte().comps.forEach(key => {
+      const s = SPEC[key]; if (!s.pKa.length) return;
+      const lk = s.pKa.map(p => -p);
+      const series = s.sp.map(() => []);
+      pHs.forEach(p => fractions(lk, -p).forEach((a, k) => series[k].push(a)));
+      series.forEach((ys, k) => {
+        const col = cols[ci % cols.length]; ci++;
+        line(c, pHs, ys, X, Y, col, 2.2);
+        legend.push([s.sp[k], col]);
+      });
+    });
+    const pH = st.cur.pH;
+    c.strokeStyle = CSS.ink; c.lineWidth = 1.5; c.setLineDash([4, 3]);
+    c.beginPath(); c.moveTo(X(pH), M.t); c.lineTo(X(pH), GH - M.b); c.stroke(); c.setLineDash([]);
+    c.fillStyle = CSS.ink; c.font = `600 11px ${mono}`; c.textAlign = 'left'; c.textBaseline = 'top';
+    c.fillText(`now pH ${fmt(pH)}`, X(pH) + 4, M.t + 4);
+    ci = 0;
+    analyte().comps.forEach(key => {
+      const s = SPEC[key]; if (!s.pKa.length) return;
+      fractions(s.pKa.map(p => -p), -pH).forEach(a => { c.fillStyle = cols[ci % cols.length]; ci++; c.beginPath(); c.arc(X(pH), Y(a), 4, 0, 7); c.fill(); });
+    });
+    c.font = `600 11px ${mono}`; c.textAlign = 'right'; c.textBaseline = 'top';
+    legend.forEach(([n, col], i) => { c.fillStyle = col; c.fillText(n, GW - M.r - 6, M.t + 20 + i * 15); });
+    if (!legend.length) { c.fillStyle = CSS.muted; c.textAlign = 'center'; c.fillText('NaOH has no acid–base species of its own to plot', M.l + G.w / 2, M.t + G.h / 2); }
+  } else if (st.view === 'beta') {
+    const b = TH.beta.slice(3, -3).filter(Number.isFinite);
+    const ymax = Math.max(1e-4, ...b) * 1.12;
+    const { X, Y } = setupAxes(0, TH.Vmax, 0, ymax);
+    drawFrame(c, 'V titrant (mL)', 'β  (M per pH unit)', ticks(0, ymax, 5), ticks(0, TH.Vmax, 8), v => v.toPrecision(2));
+    line(c, TH.V, TH.beta.map(v => Math.min(v, ymax)), X, Y, CSS['accent-3'], 2.2);
+    TH.steps.forEach(s => {
+      if (s.pKa < 0.5 || s.pKa > TH.pKw - 0.5 || s.Vhalf > TH.Vmax) return;
+      c.fillStyle = CSS['accent-3']; c.font = `600 10.5px ${mono}`; c.textAlign = 'center'; c.textBaseline = 'bottom';
+      const i = TH.V.findIndex(v => v >= s.Vhalf);
+      if (i > 0) c.fillText(`best buffer · pH ${fmt(s.pKa)}`, X(s.Vhalf), Y(Math.min(TH.beta[i], ymax)) - 6);
+    });
+    c.strokeStyle = CSS['accent-2']; c.lineWidth = 1.5; c.setLineDash([4, 3]);
+    c.beginPath(); c.moveTo(X(st.V), M.t); c.lineTo(X(st.V), GH - M.b); c.stroke(); c.setLineDash([]);
+  } else if (st.view === 'gran') {
+    const tb = titrant().kind === 'base';
+    const s0 = TH.steps[0], weak = s0 && (tb ? s0.pKa > 1 : TH.pKw - s0.pKa > 1);
+    // strong: (V0+V)·[H⁺] = Ct(Veq−V);  weak: V·[H⁺] = Ka(Veq−V)
+    const Gf = p => (weak ? p.V : st.Va + p.V) * (tb ? 10 ** (-p.pH) : 10 ** (p.pH - TH.pKw));
+    const thG = TH.V.map((v, i) => Gf({ V: v, pH: TH.pH[i] }));
+    const userG = st.pts.map(p => ({ V: p.V, g: Gf(p) }));
+    let ymax = Math.max(...userG.map(p => p.g), showTh ? thG[0] : 0, 1e-12) * 1.15;
+    const { X, Y } = setupAxes(0, TH.Vmax, 0, ymax);
+    drawFrame(c, 'V titrant (mL)', (weak ? 'V' : '(V₀+V)') + (tb ? '·10⁻ᵖᴴ' : '·10^(pH−pKw)') + (weak ? '  (weak: slope = −Kₐ)' : ''),ticks(0, ymax, 5), ticks(0, TH.Vmax, 8), v => v.toExponential(1));
+    if (showTh) line(c, TH.V, thG.map(v => Math.min(v, ymax)), X, Y, CSS.accent, 2, null, .45);
+    c.fillStyle = CSS['accent-2'];
+    userG.forEach(p => { c.beginPath(); c.arc(X(p.V), Y(Math.min(p.g, ymax)), 2.6, 0, 7); c.fill(); });
+    const fit = granFit(userG);
+    c.font = `600 11px ${mono}`; c.textAlign = 'left'; c.textBaseline = 'top';
+    if (fit) {
+      c.strokeStyle = CSS.ink; c.lineWidth = 1.5; c.setLineDash([6, 4]);
+      c.beginPath(); c.moveTo(X(0), Y(fit.b)); c.lineTo(X(fit.x0), Y(0)); c.stroke(); c.setLineDash([]);
+      c.fillStyle = CSS.ink; c.fillText(`Gran fit → Veq ≈ ${fmt(fit.x0)} mL (${fit.n} points)`, M.l + 8, M.t + 6);
+    } else {
+      c.fillStyle = CSS.muted; c.fillText('Add drops up to and a little past the first jump to fit a line', M.l + 8, M.t + 6);
+    }
+  }
+  if (st.hover != null) drawHover(c);
+}
+function granFit(userG) {
+  const P = st.pts; if (P.length < 6) return null;
+  let jv = null, best = 0;
+  for (let i = 1; i < P.length; i++) { const dv = P[i].V - P[i - 1].V; if (dv < 1e-6) continue; const d = Math.abs(P[i].pH - P[i - 1].pH) / dv; if (d > best) { best = d; jv = P[i - 1].V; } }
+  if (jv == null || best < 1) return null;
+  const sel = userG.filter(p => p.V >= 0.35 * jv && p.V <= 0.97 * jv && p.g > 0);
+  if (sel.length < 3) return null;
+  const n = sel.length, sx = sel.reduce((a, p) => a + p.V, 0), sy = sel.reduce((a, p) => a + p.g, 0);
+  const sxx = sel.reduce((a, p) => a + p.V * p.V, 0), sxy = sel.reduce((a, p) => a + p.V * p.g, 0);
+  const m = (n * sxy - sx * sy) / (n * sxx - sx * sx), b = (sy - m * sx) / n;
+  if (!(m < 0)) return null;
+  return { m, b, x0: -b / m, n };
+}
+function drawHover(c) {
+  const tip = $('tip');
+  if (!G || st.hover == null) { tip.style.display = 'none'; return; }
+  const px = st.hover; const x = G.Xi(px);
+  if (x < G.xmin || x > G.xmax) { tip.style.display = 'none'; return; }
+  c.save(); c.strokeStyle = CSS.muted; c.globalAlpha = .6; c.setLineDash([2, 3]);
+  c.beginPath(); c.moveTo(px, M.t); c.lineTo(px, GH - M.b); c.stroke(); c.restore();
+  let html = '';
+  const chal = st.mode === 'challenge';
+  if (st.view === 'spec') {
+    const parts = [];
+    analyte().comps.forEach(key => { const s = SPEC[key]; if (!s.pKa.length) return; fractions(s.pKa.map(p => -p), -x).forEach((a, k) => { if (a > 0.005) parts.push(`${s.sp[k]} ${(a * 100).toFixed(1)}%`); }); });
+    html = `pH ${fmt(x)}<br>${parts.join('<br>')}`;
+  } else {
+    const near = st.pts.reduce((a, p) => Math.abs(p.V - x) < Math.abs(a.V - x) ? p : a, st.pts[0]);
+    html = `V ${fmt(x)} mL`;
+    if (!chal) html += `<br>theory pH ${fmt(pHat(Math.max(0, x)))}`;
+    if (Math.abs(near.V - x) < TH.Vmax * 0.02) html += `<br>your drop: pH ${fmt(near.pH)}`;
+    if (st.view === 'ph' && !chal) html += `<br><span style="opacity:.7">click to jump here</span>`;
+  }
+  tip.innerHTML = html; tip.style.display = 'block';
+  const tw = tip.offsetWidth;
+  tip.style.left = (px + 12 + tw > GW ? px - tw - 12 : px + 12) + 'px';
+  tip.style.top = (M.t + 8) + 'px';
+}
+
+/* ---------------- UI panels ---------------- */
+function updateUI() {
+  const sol = st.cur, chal = st.mode === 'challenge';
+  const a = analyte(), t = titrant();
+  $('flaskTitle').textContent = chal ? `Unknown ${st.chal.kind}` : a.comps.map(k => SPEC[k].f).join(' + ');
+  $('flaskTag').textContent = `${fmt(st.Va, 0)} mL · titrant ${fmt(st.Ct, 3)} M ${SPEC[t.spec].f}`;
+  const reading = st.V % 50;
+  const pills = [
+    ['V added', `${fmt(st.V)} mL`], ['pH', fmt(sol.pH)], ['pOH', fmt(sol.pKw - sol.pH)], ['[H⁺]', `${sci(sol.H)} M`],
+    ['pK_w', fmt(sol.pKw)],
+  ];
+  if (st.activity) pills.push(['I', `${fmt(sol.I, 3)} M`]);
+  pills.push(['drops', String(Math.round(st.V / DROP))]);
+  $('readout').innerHTML = pills.map(([k, v]) => `<span class="pill"><i>${k}</i> ${v}</span>`).join('');
+
+  // where am I
+  if (chal) {
+    $('where').innerHTML = `<p class="note" style="margin-top:0">The textbook formulas are hidden during the challenge, so they cannot give the answer away. Use the jump, the half-equivalence point and the Gran plot.</p>`;
+  } else {
+    const e = estimate(st.V);
+    let h = '';
+    if (e) {
+      const d = e.val - sol.pH;
+      h += `<span class="region">${e.region}</span>`;
+      h += `<div class="eqn">${e.f}<small>${e.sub}</small></div>`;
+      h += `<div class="cmp"><div><i>JEE shortcut</i><b>${fmt(e.val)}</b></div><div><i>Exact</i><b>${fmt(sol.pH)}</b></div><div><i>Error</i><b style="color:${Math.abs(d) > 0.15 ? 'var(--bad)' : 'var(--good)'}">${d >= 0 ? '+' : ''}${fmt(d)}</b></div></div>`;
+      if (t.kind === 'acid' && !e.f.startsWith('pH')) h += `<p class="note">Base world: work out pOH first, then pH = pK_w − pOH.</p>`;
+      if (e.warn) h += `<p class="note warn">${e.warn}</p>`;
+      else if (Math.abs(d) > 0.15) h += `<p class="note warn">The shortcut is off by more than 0.15 here. The approximations it relies on (x ≪ C, water ignored, no second equilibrium) are breaking down.</p>`;
+    } else {
+      h += `<p class="note" style="margin-top:0">No single textbook formula covers this point. The exact solver gives pH ${fmt(sol.pH)}.</p>`;
+    }
+    // species bars
+    const cols = SPC(); let ci = 0;
+    a.comps.forEach((key, i) => {
+      const s = SPEC[key]; if (!s.sp.length) return;
+      const al = sol.alphas[i];
+      h += `<div class="speclabel">${s.f} species now</div><div class="specbar">` + al.map((x, k) => {
+        const col = cols[ci++ % cols.length];
+        return `<span style="width:${(x * 100).toFixed(2)}%;background:${col}" title="${s.sp[k]} ${(x * 100).toFixed(1)}%">${x > 0.16 ? s.sp[k] : ''}</span>`;
+      }).join('') + '</div>';
+    });
+    $('where').innerHTML = h;
+  }
+
+  // equivalence table
+  if (chal) {
+    $('eqs').innerHTML = `<p class="note" style="margin-top:0">Hidden until you check or reveal your answer.</p>`;
+  } else if (!TH.eqs.length) {
+    $('eqs').innerHTML = `<p class="note" style="margin-top:0">No equivalence point falls within the plotted range.</p>`;
+  } else {
+    const ind = IND[st.ind];
+    let h = `<table><thead><tr><th>EP</th><th>V (mL)</th><th>pH</th><th>Jump ±1%</th><th>Good indicators</th></tr></thead><tbody>`;
+    TH.eqs.forEach((e, k) => {
+      const cls = e.jump >= 2 ? ['good', 'sharp'] : e.jump >= 0.6 ? ['mid', 'visible'] : ['bad', 'hard to see'];
+      h += `<tr><td class="m">${k + 1}</td><td class="m">${fmt(e.V)}</td><td class="m">${fmt(e.pH)}</td>
+        <td><span class="badge ${cls[0]}">${fmt(e.jump, 1)} · ${cls[1]}</span></td>
+        <td>${e.good.length ? e.good.map(g => IND[g].name).join(', ') : e.approx.length ? `<span style="color:var(--warn)">${e.approx.map(g => IND[g].name).join(', ')} (approx.)</span>` : '<span style="color:var(--muted)">none: use a pH meter</span>'}
+        <div style="color:var(--muted);font-size:12px">flask: mostly ${e.dom.join(', ')}</div></td></tr>`;
+    });
+    h += '</tbody></table>';
+    if (ind && ind.pk != null) {
+      const lines = TH.eqs.map((e, k) => {
+        const v = endpointFor(e, st.ind);
+        if (v == null) return null;
+        const err = (v - e.V) / e.V * 100;
+        return `EP${k + 1}: ${ind.name} changes at <b>${fmt(v)} mL</b>, an endpoint error of <b style="color:${Math.abs(err) > 0.5 ? 'var(--bad)' : 'var(--good)'}">${err >= 0 ? '+' : ''}${fmt(err)}%</b>`;
+      }).filter(Boolean);
+      h += `<p class="note">${lines.length ? lines.join('<br>') : `${ind.name} (pK<sub>In</sub> ${ind.pk}) does not change colour near any equivalence point.`}</p>`;
+    }
+    $('eqs').innerHTML = h;
+  }
+  $('epLog').innerHTML = st.endpoints.map(e => `<li>${IND[e.ind].name} changed at <b>${fmt(e.V)} mL</b> (pH ${fmt(e.pH)})</li>`).join('');
+  $('undoBtn').disabled = !st.hist.length;
+}
+
+/* ---------------- Setup UI ---------------- */
+function fillSelects() {
+  $('selA').innerHTML = ANALYTES.map(a => `<option value="${a.id}">${a.label}</option>`).join('');
+  $('selI').innerHTML = Object.entries(IND).map(([k, v]) => `<option value="${k}">${v.name}${v.pk != null ? ` (${v.lo}–${v.hi})` : ''}</option>`).join('');
+  $('selA').value = st.aId; $('selI').value = st.ind;
+  fillTitrants();
+}
+function fillTitrants() {
+  const a = analyte();
+  const ok = TITRANTS.filter(t => t.kind === 'base' ? canBase(a) : canAcid(a));
+  if (!ok.find(t => t.id === st.tId)) st.tId = ok[0].id;
+  $('selT').innerHTML = ok.map(t => `<option value="${t.id}">${t.label}</option>`).join('');
+  $('selT').value = st.tId;
+}
+function syncLabels() {
+  $('caVal').textContent = `${st.Ca} M`; $('vaVal').textContent = `${st.Va} mL`;
+  $('ctVal').textContent = `${st.Ct} M`; $('tcVal').textContent = `${st.T} °C`;
+  $('flowVal').textContent = `${flowRate().toFixed(2)} mL/s`;
+}
+const caToSlider = c => Math.round(log10(c / 0.001) / 3 * 100);
+$('selA').onchange = e => { st.aId = e.target.value; fillTitrants(); autoIndicator(); resetTitration(); };
+$('selT').onchange = e => { st.tId = e.target.value; autoIndicator(); resetTitration(); };
+$('selI').onchange = e => {
+  st.ind = e.target.value; const ind = IND[st.ind];
+  st.indSide = ind && ind.pk != null ? st.cur.pH > ind.pk : null; dirtyG = dirtyUI = true;
+};
+$('ca').oninput = e => { st.Ca = sliderC(+e.target.value); syncLabels(); resetTitration(); };
+$('va').oninput = e => { st.Va = +e.target.value; syncLabels(); resetTitration(); };
+$('ct').oninput = e => { st.Ct = sliderC(+e.target.value); syncLabels(); resetTitration(); };
+$('tc').oninput = e => { st.T = +e.target.value; syncLabels(); recomputeKeepV(); };
+$('act').onchange = e => { st.activity = e.target.checked; recomputeKeepV(); };
+$('flow').oninput = syncLabels;
+function autoIndicator() { // suggest a sensible indicator for the first visible EP
+  computeTheory();
+  const e = TH.eqs.find(x => x.good.length) ;
+  if (e && !e.good.includes(st.ind)) { st.ind = e.good.includes('phth') ? 'phth' : e.good[0]; $('selI').value = st.ind; }
+}
+document.querySelectorAll('[data-show]').forEach(el => el.onchange = () => { st.show[el.dataset.show] = el.checked; dirtyG = true; });
+$('tabs').onclick = e => {
+  const b = e.target.closest('button'); if (!b || b.disabled) return;
+  st.view = b.dataset.view;
+  $('tabs').querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b));
+  dirtyG = true;
+};
+$('pinBtn').onclick = () => {
+  if (st.mode === 'challenge') return;
+  if (st.pins.length >= 4) st.pins.shift();
+  const a = analyte();
+  st.pins.push({ V: TH.V.slice(), pH: TH.pH.slice(), label: `${a.comps.map(k => SPEC[k].f).join('+')} ${st.Ca}M` });
+  dirtyG = true; toast('Curve pinned. Change the setup to compare against it.');
+};
+$('unpinBtn').onclick = () => { st.pins = []; dirtyG = true; };
+
+/* actions */
+$('dropBtn').onclick = () => { pushHist(); st.pending += DROP; };
+document.querySelectorAll('[data-add]').forEach(b => b.onclick = () => { pushHist(); st.pending += +b.dataset.add; });
+const pourOn = () => { if (!st.pour) { pushHist(); st.pour = true; $('pourBtn').classList.add('on'); } };
+const pourOff = () => { st.pour = false; $('pourBtn').classList.remove('on'); };
+$('pourBtn').addEventListener('pointerdown', e => { e.preventDefault(); pourOn(); });
+['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => $('pourBtn').addEventListener(ev, pourOff));
+$('autoBtn').onclick = () => { if (!st.auto) pushHist(); setAuto(!st.auto); };
+$('undoBtn').onclick = undo;
+$('resetBtn').onclick = () => resetTitration();
+window.addEventListener('keydown', e => {
+  if (e.target.matches('input[type=number], select')) return;
+  if (e.code === 'Space') { e.preventDefault(); if (!e.repeat) { pushHist(); st.pending += DROP; } }
+  else if (e.key === 'p' || e.key === 'P') { if (!e.repeat) pourOn(); }
+  else if (e.key === 'z' || e.key === 'Z') undo();
+});
+window.addEventListener('keyup', e => { if (e.key === 'p' || e.key === 'P') pourOff(); });
+
+/* graph hover + click-to-jump */
+gCv.addEventListener('pointermove', e => { const r = gCv.getBoundingClientRect(); st.hover = e.clientX - r.left; dirtyG = true; });
+gCv.addEventListener('pointerleave', () => { st.hover = null; $('tip').style.display = 'none'; dirtyG = true; });
+gCv.addEventListener('click', e => {
+  if (st.view !== 'ph' || st.mode === 'challenge' || !G) return;
+  const r = gCv.getBoundingClientRect(), v = clamp(G.Xi(e.clientX - r.left), 0, TH.Vmax);
+  pushHist(); st.pending = 0; st.drops = []; setAuto(false);
+  if (v < st.V) { st.V = v; st.pts = st.pts.filter(p => p.V <= v + 1e-9); }
+  else st.V = v;
+  st.cur = solve(mixAt(st.V)); st.pts.push({ V: st.V, pH: st.cur.pH });
+  const ind = IND[st.ind]; st.indSide = ind && ind.pk != null ? st.cur.pH > ind.pk : null;
+  dirtyG = dirtyUI = true;
+});
+
+/* ---------------- Challenge mode ---------------- */
+const CHAL_POOL = [
+  { aId: 'HCl', kind: 'acid' }, { aId: 'AcOH', kind: 'acid' }, { aId: 'HCOOH', kind: 'acid' }, { aId: 'Ox', kind: 'acid', n: 2 },
+  { aId: 'NaOH', kind: 'base' }, { aId: 'NH3', kind: 'base' }, { aId: 'Na2CO3', kind: 'base', n: 2 },
+];
+function newChallenge() {
+  const p = CHAL_POOL[Math.floor(Math.random() * CHAL_POOL.length)];
+  const n = p.n || 1;
+  const C = +((0.04 + Math.random() * 0.11) / n).toFixed(3);
+  st.chal = { ...p, C, done: false };
+  st.aId = p.aId; st.tId = p.kind === 'acid' ? 'NaOH' : 'HCl'; st.Ca = C; st.Va = 25; st.Ct = 0.1;
+  st.T = 25; st.activity = false; $('act').checked = false; $('tc').value = 25;
+  $('va').value = 25; $('ct').value = caToSlider(0.1);
+  fillTitrants();
+  st.ind = p.kind === 'acid' ? 'phth' : 'mo'; $('selI').value = st.ind;
+  $('ansC').value = ''; $('ansK').value = ''; $('verdict').classList.add('hidden');
+  $('chalBrief').innerHTML = `The flask holds <b>25.00 mL of an unknown ${p.kind}</b>. The burette has <b>0.100 M ${p.kind === 'acid' ? 'NaOH' : 'HCl'}</b>. Titrate it, find the equivalence volume, and work out the ${p.kind}'s molarity. If it is weak, read off pKₐ at half-equivalence. A ${n === 2 ? 'second jump may appear' : 'single jump is expected'}. Try a different indicator, or switch to the Gran plot.`;
+  syncLabels(); resetTitration(false);
+}
+$('chkBtn').onclick = () => {
+  if (!st.chal) return;
+  const c = parseFloat($('ansC').value), k = parseFloat($('ansK').value);
+  const v = $('verdict'); v.classList.remove('hidden', 'ok', 'no');
+  if (!Number.isFinite(c)) { v.classList.add('no'); v.innerHTML = 'Enter a concentration first.'; return; }
+  const err = Math.abs(c - st.chal.C) / st.chal.C * 100;
+  const s = SPEC[st.chal.aId];
+  const weakPk = s.pKa.filter(p => p > 1 && p < 13);
+  let kMsg = '';
+  if (Number.isFinite(k) && weakPk.length) {
+    const dk = Math.min(...weakPk.map(p => Math.abs(p - k)));
+    kMsg = dk <= 0.15 ? ` Your pKₐ ${fmt(k)} is within ${fmt(dk)} of a true value. ✓` : ` Your pKₐ is ${fmt(dk)} away from the nearest true value.`;
+  }
+  const ok = err <= 2;
+  if (!st.chal.done) { st.score[1]++; if (ok) st.score[0]++; st.chal.done = true; }
+  $('chalScore').textContent = `Score ${st.score[0]} / ${st.score[1]}`;
+  v.classList.add(ok ? 'ok' : 'no');
+  v.innerHTML = ok ? `<b>Correct, within ${fmt(err, 1)}%.</b>${kMsg} <button class="btn" type="button" onclick="reveal()">Show the full answer</button>`
+    : `<b>Not quite: ${fmt(err, 1)}% off.</b> Check that C·V₀ = C_t·V_eq, and for a diprotic ${st.chal.kind} decide which jump you are using.${kMsg}`;
+};
+function reveal() {
+  if (!st.chal) return;
+  const s = SPEC[st.chal.aId];
+  st.chal.done = true;
+  const v = $('verdict'); v.classList.remove('hidden', 'no'); v.classList.add('ok');
+  v.innerHTML = `It was <b>${st.chal.C} M ${s.f}</b> (${s.cls}${s.pKa.filter(p => p > 1 && p < 13).length ? `, pKₐ ${s.pKa.filter(p => p > 1 && p < 13).join(', ')}` : ''}). The switch below shows the theory curve and the equivalence points.
+  <div style="margin-top:8px"><button class="btn" type="button" id="toExplore">Open this flask in Explore</button></div>`;
+  $('toExplore').onclick = () => setMode('explore', true);
+}
+window.reveal = reveal;
+$('revealBtn').onclick = reveal;
+$('newBtn').onclick = newChallenge;
+function setMode(m, keep = false) {
+  st.mode = m;
+  $('modeSeg').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', b.dataset.mode === m));
+  const chal = m === 'challenge';
+  $('chalCard').classList.toggle('hidden', !chal);
+  ['selA', 'selT', 'ca', 'va', 'ct', 'tc', 'act'].forEach(id => $(id).disabled = chal);
+  $('toggles').querySelectorAll('input').forEach(i => i.disabled = chal && i.dataset.show !== 'band');
+  $('pinBtn').disabled = chal;
+  $('tabs').querySelector('[data-view="spec"]').disabled = chal;
+  $('tabs').querySelector('[data-view="beta"]').disabled = chal;
+  if (chal && (st.view === 'spec' || st.view === 'beta')) $('tabs').querySelector('[data-view="ph"]').click();
+  if (chal) newChallenge();
+  else {
+    $('selA').value = st.aId; $('ca').value = caToSlider(st.Ca); syncLabels();
+    if (keep) { const V = st.V, pts = st.pts; computeTheory(); st.pts = pts; st.V = V; dirtyG = dirtyUI = true; }
+    else resetTitration();
+  }
+}
+$('modeSeg').onclick = e => { const b = e.target.closest('button'); if (b && b.dataset.mode !== st.mode) setMode(b.dataset.mode); };
+
+/* theme */
+$('themeBtn').onclick = () => {
+  const r = document.documentElement, dark = r.dataset.theme ? r.dataset.theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+  r.dataset.theme = dark ? 'light' : 'dark'; readCSS(); dirtyG = true;
+};
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { readCSS(); dirtyG = true; });
+
+/* boot */
+readCSS();
+$('ca').value = caToSlider(st.Ca); $('ct').value = caToSlider(st.Ct);
+fillSelects(); syncLabels();
+new ResizeObserver(fit).observe($('plotStage'));
+new ResizeObserver(fit).observe(appCv);
+resetTitration();
+fit();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

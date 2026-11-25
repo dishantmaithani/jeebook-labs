@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>Ramayana: The Journey</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Tiro+Devanagari+Hindi&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<div id="hud" class="hidden">
+  <div id="topleft">
+    <div class="hpwrap">
+      <div class="pname">Rama <span id="chargeTag" class="hidden">· Divine arrows</span></div>
+      <div class="bar"><div id="hpfill"></div></div>
+    </div>
+    <div id="quest"><div id="qtitle"></div><div id="qdesc"></div></div>
+  </div>
+  <div id="compass"><span id="carrow">▲</span><span id="cdist"></span></div>
+  <div id="bossbar" class="hidden"><div id="bossname"></div><div class="bar"><div id="bossfill"></div></div></div>
+  <canvas id="minimap" width="180" height="180"></canvas>
+  <div id="sysbtns">
+    <button id="mapBtn" title="Map (M)">🗺</button>
+    <button id="muteBtn" title="Sound">🔊</button>
+    <button id="pauseBtn" title="Pause (P)">⏸</button>
+  </div>
+  <div id="crosshair">
+    <svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="2" fill="#fff"/><circle id="chargeRing" cx="20" cy="20" r="14" fill="none" stroke="#ffd36a" stroke-width="3" stroke-dasharray="88" stroke-dashoffset="88" transform="rotate(-90 20 20)"/></svg>
+  </div>
+  <div id="prompt" class="hidden"></div>
+  <div id="toast"></div>
+  <div id="region"><div id="regionName"></div><div id="regionDeva"></div></div>
+</div>
+
+<div id="dlg" class="hidden"><div id="dname"></div><div id="dtext"></div><div class="dhint">▶ E / tap</div></div>
+
+<div id="touch" class="hidden">
+  <div id="joyBase"><div id="joyKnob"></div></div>
+  <button id="tFire">🏹</button>
+  <button id="tJump">⤒</button>
+  <button id="tAct" class="hidden">Talk</button>
+  <button id="tRun">Run</button>
+</div>
+
+<div id="bigmap" class="hidden"><canvas id="bigmapc" width="640" height="640"></canvas><div class="maphint">M or tap to close</div></div>
+
+<div id="title">
+  <div class="tbox">
+    <div class="deva">रामायण</div>
+    <h1>RAMAYANA</h1>
+    <div class="sub">The Journey of Rama · an open-world adventure</div>
+    <div id="loading">Preparing the world…</div>
+    <div id="tbtns" class="hidden">
+      <button id="btnContinue" class="hidden">Continue Journey</button>
+      <button id="btnNew">New Journey</button>
+      <button id="btnBox" class="ghost hidden">← Back to Game Box</button>
+    </div>
+    <div class="controls" id="controlsHelp"></div>
+  </div>
+</div>
+
+<div id="pause" class="hidden">
+  <div class="tbox">
+    <h2>Paused</h2>
+    <button id="btnResume">Resume</button>
+    <button id="btnRestart" class="ghost">Restart journey</button>
+    <button id="btnBox2" class="ghost hidden">← Back to Game Box</button>
+    <div class="controls" id="controlsHelp2"></div>
+  </div>
+</div>
+
+<div id="credits" class="hidden">
+  <div class="tbox">
+    <div class="deva">जय श्री राम</div>
+    <h2>The Journey is Complete</h2>
+    <p>Dharma is restored. Rama, Sita, Lakshmana and Hanuman have returned to Ayodhya, and the city glows with a thousand lamps.</p>
+    <p class="small">Inspired by Valmiki's Ramayana. The world stays open — wander, fight the last rakshasas, and watch the lamps of Ayodhya.</p>
+    <button id="btnRoam">Keep exploring</button>
+  </div>
+</div>
+
+<div id="hurt"></div>
+<div id="fade"></div>
+<div id="floaters"></div>
+
+<script type="importmap">{"imports":{"three":"./vendor/three.module.js"}}</script>
+<script type="module" src="game.js"></script>
+</body>
+</html>

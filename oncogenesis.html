@@ -1,0 +1,718 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Oncogenesis</title>
+<style>
+:root{--bg:#0d0810;--panel:#1a1220;--panel2:#241a2c;--line:#3a2a45;--text:#f3e9f5;--muted:#b09cba;--atp:#ffd34d;--good:#5fe08a;--bad:#ff5f6d;--accent:#e879b8;--blue:#5aaeff;--nk:#41d39a}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font-family:system-ui,"Segoe UI",Roboto,sans-serif;overflow:hidden;user-select:none;-webkit-user-select:none}
+#app{display:grid;height:100vh;height:100dvh;grid-template-columns:minmax(0,1fr) 310px;grid-template-rows:auto minmax(0,1fr) auto;overflow:hidden;grid-template-areas:"hud hud" "stage side" "tray side"}
+#hud{grid-area:hud;display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--panel);border-bottom:1px solid var(--line);flex-wrap:wrap}
+.brand{font-weight:800;font-size:15px;margin-right:auto;line-height:1.15}
+.brand small{display:block;color:var(--muted);font-weight:500;font-size:12px}
+.stat{display:flex;flex-direction:column;min-width:64px;font-size:11px;color:var(--muted)}
+.stat b{color:var(--text);font-size:16px;font-variant-numeric:tabular-nums}
+.bar{height:5px;background:#000a;border-radius:3px;overflow:hidden;margin-top:2px;width:80px}
+.bar i{display:block;height:100%;width:0;background:var(--accent);transition:width .2s}
+.bar.atpb i{background:var(--atp)}
+#mets b{letter-spacing:2px}
+.ctrl{display:flex;gap:6px}
+button{font:inherit;color:var(--text);cursor:pointer;border:1px solid var(--line);background:var(--panel2);border-radius:10px;padding:7px 12px}
+button:hover{border-color:var(--accent)}
+button.primary{background:var(--accent);color:#1b0b16;border:none;font-weight:800}
+#stage{grid-area:stage;position:relative;min-height:0;overflow:hidden}
+#cv{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:crosshair}
+#goal{position:absolute;left:10px;top:8px;font-size:12px;color:var(--muted);background:#0009;padding:4px 10px;border-radius:999px;pointer-events:none}
+#toasts{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);display:flex;flex-direction:column;gap:6px;align-items:center;pointer-events:none;width:min(92%,520px)}
+.toast{background:#000c;border:1px solid var(--line);padding:7px 14px;border-radius:12px;font-size:13px;animation:tin .25s;text-align:center}
+.toast.bad{border-color:var(--bad)}.toast.good{border-color:var(--good)}
+@keyframes tin{from{opacity:0;transform:translateY(8px)}}
+#side{grid-area:side;background:var(--panel);border-left:1px solid var(--line);display:flex;flex-direction:column;min-height:0;overflow:hidden}
+#insp{padding:12px;border-bottom:1px solid var(--line);overflow:auto;flex:0 1 auto;max-height:64%}
+#insp h3{margin:0 0 4px;font-size:15px}
+#insp .sub{color:var(--muted);font-size:12px;margin-bottom:8px}
+.gene{display:grid;grid-template-columns:78px 30px 1fr;gap:6px;align-items:center;font-size:12px;padding:3px 0;border-bottom:1px dashed #ffffff10}
+.gene .nm{font-weight:700}
+.gene .ty{font-size:9px;color:var(--muted);display:block;font-weight:500}
+.al{display:flex;gap:3px}
+.al i{width:10px;height:10px;border-radius:50%;background:#5fe08a;display:inline-block}
+.al i.x{background:var(--bad);box-shadow:0 0 6px var(--bad)}
+.eff{color:var(--muted);font-size:11px}
+.eff.on{color:#ffb3c0}
+.lock{background:#ffffff08;border:1px dashed var(--line);border-radius:10px;padding:10px;font-size:12px;color:var(--muted)}
+.kv{display:flex;justify-content:space-between;font-size:12px;padding:2px 0}
+.kv span{color:var(--muted)}
+.legend{display:grid;grid-template-columns:22px 1fr;gap:6px 8px;font-size:12px;align-items:center}
+.sw{width:18px;height:18px;border-radius:5px;display:inline-block}
+#logWrap{padding:8px 12px;flex:1;min-height:0;display:flex;flex-direction:column}
+#logWrap h4{margin:0 0 6px;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+#log{overflow:auto;font-size:12px;line-height:1.4;flex:1}
+#log div{padding:2px 0;border-bottom:1px solid #ffffff08}
+#log .y{color:var(--muted);font-variant-numeric:tabular-nums;margin-right:4px}
+#tray{grid-area:tray;display:flex;gap:6px;padding:8px;background:var(--panel);border-top:1px solid var(--line);overflow-x:auto}
+.tool{position:relative;flex:0 0 auto;width:84px;padding:6px 4px;display:flex;flex-direction:column;align-items:center;gap:1px;overflow:hidden;border-radius:12px}
+.tool .ic{font-size:22px;line-height:1}
+.tool .tn{font-size:11px;font-weight:700;white-space:nowrap}
+.tool .tc{font-size:10px;color:var(--atp)}
+.tool .kb{position:absolute;top:3px;left:5px;font-size:9px;color:var(--muted)}
+.tool.sel{border-color:var(--accent);background:#3a1f35;box-shadow:0 0 0 2px var(--accent) inset}
+.tool.off{opacity:.45}
+.tool::after{content:"";position:absolute;left:0;bottom:0;width:100%;height:calc(var(--cd,0)*100%);background:#000a;pointer-events:none}
+#overlay{position:fixed;inset:0;background:#05020799;backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;z-index:50;padding:16px}
+#overlay.hidden{display:none}
+.modal{background:var(--panel);border:1px solid var(--line);border-radius:18px;max-width:640px;width:100%;max-height:92vh;overflow:auto;padding:20px 22px;box-shadow:0 20px 60px #000a}
+.modal h1{margin:0 0 4px;font-size:30px;letter-spacing:.02em}
+.modal h2{margin:0 0 8px;font-size:20px}
+.modal p,.modal li{line-height:1.55;font-size:14px}
+.modal .muted{color:var(--muted)}
+.modal .row{display:flex;gap:8px;justify-content:flex-end;margin-top:14px;flex-wrap:wrap}
+.card-ic{font-size:34px;float:left;margin:0 12px 4px 0}
+.tag{display:inline-block;font-size:11px;padding:2px 8px;border-radius:999px;background:#ffffff12;color:var(--muted);margin-bottom:6px}
+.cases{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;margin-top:12px}
+.case{text-align:left;padding:12px;border-radius:14px;display:flex;flex-direction:column;gap:4px}
+.case b{font-size:14px}
+.case small{color:var(--muted);font-size:12px;line-height:1.35}
+.case .st{color:var(--atp);font-size:14px}
+.case[disabled]{opacity:.4;cursor:not-allowed}
+.codex{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-top:10px}
+.codex button{text-align:left;font-size:12px;padding:8px}
+.codex button[disabled]{opacity:.35}
+.opt{display:block;width:100%;text-align:left;margin:6px 0;padding:10px 12px}
+.opt.ok{border-color:var(--good);background:#173a27}
+.opt.no{border-color:var(--bad);background:#3a1720}
+.stars{font-size:34px;color:var(--atp);letter-spacing:4px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:4px 16px;font-size:13px;margin:10px 0}
+.grid2 span{color:var(--muted)}
+@media (max-width:820px){
+ #app{grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr) auto auto;grid-template-areas:"hud" "stage" "tray" "side"}
+ #side{max-height:26vh;border-left:none;border-top:1px solid var(--line);flex-direction:row}
+ #insp{max-height:none;flex:1.4;border-bottom:none;border-right:1px solid var(--line)}
+ #logWrap{flex:1}
+ .stat{min-width:52px}.bar{width:56px}
+ .brand{flex-basis:100%}
+ .tool{width:72px}
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <header id="hud">
+    <div class="brand" id="lvlName">Oncogenesis<small>cancer biology strategy</small></div>
+    <div class="stat"><span>Patient age</span><b id="age">–</b><div class="bar"><i id="ageBar"></i></div></div>
+    <div class="stat"><span>ATP</span><b id="atp">0</b><div class="bar atpb"><i id="atpBar"></i></div></div>
+    <div class="stat"><span>Healthy tissue</span><b id="health">100%</b></div>
+    <div class="stat"><span>Tumour cells</span><b id="tumor">0</b></div>
+    <div class="stat" id="mets"><span>Metastases</span><b id="metsV">○○○</b></div>
+    <div class="ctrl"><button id="pauseBtn" title="Pause (Space)">⏸</button><button id="speedBtn" title="Speed">1×</button><button id="menuBtn" title="Menu">☰</button></div>
+  </header>
+  <div id="stage"><canvas id="cv"></canvas><div id="goal"></div><div id="toasts"></div></div>
+  <aside id="side"><div id="insp"></div><div id="logWrap"><h4>Event log</h4><div id="log"></div></div></aside>
+  <footer id="tray"></footer>
+</div>
+<div id="overlay" class="hidden"><div class="modal" id="modal"></div></div>
+
+<script>
+"use strict";
+const $=s=>document.querySelector(s);
+const rand=(a,b)=>a+Math.random()*(b-a);
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+const SQ3=Math.sqrt(3);
+const COLS=17, ROWS=11, VROWS=[2,8], TELO=9, TMAX=25;
+
+/* ---------------- genes ---------------- */
+const GENES=[
+ {k:'RAS',  lab:'KRAS',  type:'onc',max:1,w:1.3,role:'Growth-signal switch', eff:'Stuck "ON": divides ~2× faster, no growth factor needed'},
+ {k:'TERT', lab:'TERT',  type:'onc',max:1,w:.8, role:'Telomerase',           eff:'Rebuilds telomeres → immortal (no crisis)'},
+ {k:'VEGF', lab:'VEGF',  type:'onc',max:1,w:.8, role:'Vessel growth signal', eff:'Sprouts new capillaries (angiogenesis)'},
+ {k:'PDL1', lab:'PD-L1', type:'onc',max:1,w:.6, role:'Immune checkpoint',    eff:'Switches off attacking T cells'},
+ {k:'TP53', lab:'TP53',  type:'tsg',max:2,w:1.2,role:'Guardian of the genome',eff:'No damage repair / apoptosis; mutations ×3'},
+ {k:'RB1',  lab:'RB1',   type:'tsg',max:2,w:1,  role:'G1→S checkpoint brake',eff:'Ignores contact inhibition, crushes neighbours'},
+ {k:'BRCA1',lab:'BRCA1', type:'tsg',max:2,w:.8, role:'Double-strand-break repair',eff:'Genomic instability: mutations ×3'},
+ {k:'CDH1', lab:'E-cadherin',type:'tsg',max:2,w:.7,role:'Cell–cell glue',    eff:'Detaches & invades vessels → metastasis'},
+ {k:'B2M',  lab:'MHC-I',  type:'tsg',max:2,w:.6, role:'Antigen display (B2M)',eff:'Invisible to T cells (NK cells still see it)'},
+];
+const GK={};GENES.forEach(G=>GK[G.k]=G);
+const BASE=()=>{const o={};GENES.forEach(G=>o[G.k]=0);return o};
+function F(c){const g=c.g;return{ras:g.RAS>0,tert:g.TERT>0,vegf:g.VEGF>0,pdl1:g.PDL1>0,p53L:g.TP53>=2,rbL:g.RB1>=2,brcaL:g.BRCA1>=2,emt:g.CDH1>=2,mhcL:g.B2M>=2}}
+const isTumor=c=>c.g.RAS>0||c.g.RB1>=2;
+const hits=c=>{let s=0;for(const k in c.g)s+=c.g[k];return s};
+const acq=c=>{let n=0;for(const k of c.hist)if(k[0]!=="*")n++;return n};
+function geneEffectOn(c,G){return G.type==='onc'?c.g[G.k]>0:c.g[G.k]>=2}
+
+/* ---------------- tools ---------------- */
+const TOOLS={
+ apop:{n:'Apoptosis',i:'💀',cost:10,cd:.4,mode:'cell',d:'Send a suicide signal to one cell. Only works if the cell still has a working TP53.'},
+ repair:{n:'DNA Repair',i:'🧬',cost:12,cd:.6,mode:'cell',d:'Undo the most recent mutation in one cell.'},
+ scan:{n:'Genome Scan',i:'🔬',cost:15,cd:10,mode:'global',d:'Sequence every cell — reveals hidden mutations for 10 s.'},
+ tcell:{n:'Killer T',i:'🛡️',cost:26,cd:3,mode:'spot',d:'Cytotoxic T cell: hunts cells showing ≥2 mutations on MHC-I. Fooled by PD-L1.'},
+ nk:{n:'NK cell',i:'🟢',cost:26,cd:3,mode:'spot',d:'Natural killer: destroys cells that stopped showing MHC-I ("missing self").'},
+ surgery:{n:'Surgery',i:'🔪',cost:30,cd:12,mode:'area',r:1,d:'Excise everything within 1 cell of the target. Healthy tissue regrows.'},
+ rad:{n:'Radiation',i:'☢️',cost:38,cd:10,mode:'area',r:2,d:'Kills most cells in the zone by DNA damage. p53-lost cells resist; survivors may mutate.'},
+ chemo:{n:'Chemo',i:'💊',cost:50,cd:18,mode:'global',d:'Kills dividing cells everywhere — tumour and healthy alike.'},
+ target:{n:'KRAS drug',i:'🎯',cost:42,cd:22,mode:'global',d:'Targeted therapy (20 s): RAS cells lose their boost and many die of oncogene addiction.'},
+ pd1:{n:'Anti-PD-1',i:'🔓',cost:42,cd:22,mode:'global',d:'Checkpoint inhibitor (20 s): T cells ignore PD-L1. Releases 2 T cells.'},
+ avegf:{n:'Anti-VEGF',i:'🩸',cost:32,cd:22,mode:'global',d:'Bevacizumab (20 s): tumour vessels collapse, no new sprouting.'},
+};
+const ALL_TOOLS=Object.keys(TOOLS);
+
+/* ---------------- levels ---------------- */
+const LEVELS=[
+ {id:'skin',name:'Sunburnt Skin',organ:'Epidermis',patient:'Arjun, 20 — lifeguard',age:[20,70],dur:140,regen:3.6,atp:60,mut:.08,
+  carc:{type:'uv',every:7,r:2,p:.45},tools:['apop','repair','scan'],surveil:0,nk:0,goal:'survive',
+  intro:`Arjun spends every summer on the beach. UV-B light fuses neighbouring thymines in his skin DNA. Most damage is fixed by <b>p53</b>, but some mutations slip through — <b>invisibly</b>. Keep him cancer-free until age 70.
+  <ul><li>Tumour cells look different: <b>darker purple, big irregular nucleus</b>. Select 💀 <b>Apoptosis</b> and tap them.</li>
+  <li>If apoptosis fails, that cell lost p53 — use 🧬 <b>DNA Repair</b> to undo its last mutation.</li>
+  <li>🔬 <b>Genome Scan</b> shows hidden mutations in normal-looking cells before they turn.</li></ul>`},
+ {id:'lung',name:'The Smoker’s Lung',organ:'Bronchial epithelium',patient:'Meera, 30 — 20 cigarettes a day',age:[30,75],dur:150,regen:3.1,atp:60,mut:.08,
+  carc:{type:'smoke',every:4,n:6,p:.65},tools:['apop','repair','scan','tcell'],surveil:22,nk:0,goal:'survive',
+  intro:`Tobacco smoke carries 70+ carcinogens. <b>Benzo[a]pyrene</b> binds DNA and causes G→T mutations, often in KRAS and TP53 — and smoke hits all over the lung, not one spot.
+  <ul><li>Your immune system helps now: <b>killer T cells</b> crawl out of the blood vessels and hunt any cell showing 2+ mutations.</li>
+  <li>Deploy extra 🛡️ T cells where trouble is brewing. Watch for clones that learn to hide.</li></ul>`},
+ {id:'rb',name:'Born With One Hit',organ:'Retina',patient:'Priya, newborn — inherited RB1 mutation',age:[0,40],dur:150,regen:3.3,atp:60,mut:.09,
+  carc:{type:'rand',every:6,n:3,p:.55},inherit:{RB1:1},tools:['apop','repair','scan','tcell','nk'],surveil:20,nk:34,goal:'survive',
+  intro:`Priya was born with <b>one broken copy of RB1 in every cell</b> (a germline mutation). Tumour-suppressor genes only fail when <b>both</b> copies are hit — but she starts with one gone, so a single extra hit anywhere unleashes a tumour.
+  <ul><li>This is <b>Knudson’s two-hit hypothesis</b> (1971), discovered by studying retinoblastoma.</li>
+  <li>Allele dots in the inspector: <span style="color:#5fe08a">●</span> working, <span style="color:#ff5f6d">●</span> broken.</li>
+  <li>New: 🟢 <b>NK cells</b> kill cells that hide their MHC-I.</li></ul>`},
+ {id:'brca',name:'The BRCA1 Carrier',organ:'Breast duct',patient:'Kavya, 25 — inherited BRCA1 mutation',age:[25,70],dur:160,regen:3.5,atp:60,mut:.09,
+  carc:{type:'rand',every:5,n:5,p:.6},inherit:{BRCA1:1},tools:['apop','repair','scan','tcell','nk','surgery','chemo'],surveil:18,nk:30,goal:'survive',
+  intro:`Kavya inherited a faulty <b>BRCA1</b>, a <i>caretaker</i> gene that repairs DNA double-strand breaks by homologous recombination. If a cell loses the second copy, its mutation rate triples — a <b>mutator lineage</b> that races through the hallmarks of cancer.
+  <ul><li>New: 🔪 <b>Surgery</b> removes a small region. 💊 <b>Chemotherapy</b> hits every dividing cell — including healthy ones.</li></ul>`},
+ {id:'stage3',name:'Stage III Colon Tumour',organ:'Colon',patient:'Mr. Rao, 58 — diagnosed today',age:[58,60],dur:180,regen:4.6,atp:80,mut:.09,
+  carc:null,seed:true,tools:ALL_TOOLS,surveil:16,nk:24,goal:'eradicate',
+  intro:`The tumour has been growing for years. It is a <b>mixed population</b>: some clones lost p53, some wear PD-L1, some dropped MHC-I, and a few <b>spindly</b> cells have lost E-cadherin and are ready to metastasise.
+  <ul><li>Tumours are evolving ecosystems — no single drug kills every clone. <b>Combine</b> therapies.</li>
+  <li>Goal: <b>remission</b> (zero tumour cells) before 3 metastases or time runs out. Hunt the spindly cells near vessels first!</li></ul>`},
+ {id:'free',name:'Oncology Sandbox',organ:'Any tissue',patient:'Free play',age:[20,90],dur:320,regen:4.5,atp:100,mut:.09,
+  carc:{type:'rand',every:5,n:4,p:.6},tools:ALL_TOOLS,surveil:20,nk:30,goal:'survive',
+  intro:`Every tool, steady background carcinogens, a long life. Experiment: what happens if you never act? Which drug combos work best?`},
+];
+
+/* ---------------- discovery cards ---------------- */
+const CARDS={
+ uv:{i:'☀️',t:'Carcinogen: UV light',b:`UV-B is absorbed by DNA and joins adjacent thymines into <b>pyrimidine (thymine) dimers</b>. If not repaired, DNA polymerase misreads them and a permanent point mutation is copied into daughter cells. The yellow zone just got hit — some cells there may now carry mutations while looking perfectly normal.`},
+ smoke:{i:'🚬',t:'Carcinogen: tobacco smoke',b:`Smoke deposits chemical mutagens (benzo[a]pyrene, nitrosamines) all over the airway. Enzymes in the cell convert them into reactive forms that bind DNA, forming <b>adducts</b> that cause mutations when the cell copies its DNA. Lung cancer is ~15–30× more common in smokers.`},
+ p53fix:{i:'✨',t:'p53 to the rescue',b:`That green flash was <b>p53</b> doing its job. When DNA is damaged, p53 piles up and <b>halts the cell cycle at G1</b> so the damage can be repaired; if the damage is too severe it triggers <b>apoptosis</b> (programmed cell death). That's why it's called the <i>guardian of the genome</i> — and why TP53 is mutated in about half of all human cancers.`},
+ oncogene:{i:'🚀',t:'Proto-oncogene → oncogene',b:`A cell's <b>KRAS</b> gene just got a gain-of-function mutation. Normal RAS is a switch that turns on briefly when growth factors arrive; mutant RAS is <b>stuck ON</b> — like a jammed accelerator. Only <b>one</b> mutated copy is needed (oncogenes are dominant).<br><br>This cell divides faster, but while <b>contact inhibition</b> works it can only fill empty gaps: a <b>benign</b> growth (hyperplasia). Kill it now while it still has p53!`},
+ rb:{i:'🧱',t:'Brakes gone: RB1 lost',b:`Both copies of <b>RB1</b> are broken. RB protein normally grips the transcription factor <b>E2F</b> and stops the cell passing the G1→S checkpoint. Without it the cell ignores <b>contact inhibition</b> — it keeps dividing even when surrounded and <b>crushes its healthy neighbours</b>. Invasion of surrounding tissue is what makes a tumour <b>malignant</b>.`},
+ p53:{i:'🛑',t:'Apoptosis failed — TP53 is lost',b:`Your death signal had nobody to receive it: this cell has lost <b>both copies of TP53</b>. Cancer cells without p53 ignore DNA damage, refuse to die, and mutate 3× faster (genomic instability).<br><br>Options: 🧬 DNA Repair to undo its latest mutation, immune cells, or therapy.`},
+ telomere:{i:'🧵',t:'Telomere crisis',b:`Every division trims the <b>telomeres</b> — repetitive TTAGGG caps on chromosome ends. After ~50 divisions (the <b>Hayflick limit</b>) they're too short and the cell senesces or dies. This tumour cell just hit that wall. Cancers that switch on <b>telomerase (TERT)</b> rebuild their telomeres and become <b>immortal</b> — like HeLa cells, still dividing in labs since 1951.`},
+ senescence:{i:'🍂',t:'Senescence',b:`A normal cell ran out of telomere length and became <b>senescent</b> (grey): alive but permanently out of the cell cycle. It's a built-in anti-cancer barrier — a cell can't divide forever.`},
+ hypoxia:{i:'🫁',t:'Hypoxia: the tumour is starving',b:`Oxygen only diffuses ~100–200 µm from a capillary. Tumour cells too far from a vessel (3+ cells here) become <b>hypoxic</b>: they stop dividing and the core dies by <b>necrosis</b>. Without new blood vessels a tumour can't grow beyond ~1–2 mm.`},
+ angio:{i:'🩸',t:'Angiogenesis',b:`A tumour cell secreting <b>VEGF</b> just made a new capillary sprout toward itself. This <b>angiogenic switch</b> lets tumours grow beyond 1–2 mm. Tumour vessels are twisted and <b>leaky</b> — and they bring a blood vessel right next to the tumour, giving it a highway out. Drugs like <b>bevacizumab</b> (anti-VEGF) target this.`},
+ emt:{i:'🐍',t:'Invasion: a cell entered the blood',b:`A spindly cell that lost <b>E-cadherin</b> (the protein gluing epithelial cells together) let go of its neighbours and squeezed into a blood vessel — <b>intravasation</b>. This shape change is called <b>EMT</b> (epithelial–mesenchymal transition).<br><br>Most circulating tumour cells die from shear stress, immune attack or <i>anoikis</i>. But a survivor can lodge in a distant organ…`},
+ mets:{i:'🌍',t:'Metastasis',b:`A circulating tumour cell survived the bloodstream, exited at a distant organ (liver, lung, bone, brain…) and began a <b>secondary tumour</b>. <b>Metastasis causes ~90% of cancer deaths.</b> At 3 metastases the patient is Stage IV. Stop spindly cells beside vessels!`},
+ ctcdie:{i:'💥',t:'Circulating tumour cell destroyed',b:`Good news: that escaped cell died in the bloodstream. Only a tiny fraction (well under 1%) of cells that enter the blood ever form a metastasis — but a big tumour sheds millions per day.`},
+ immuno:{i:'🛡️',t:'Immune surveillance',b:`A <b>cytotoxic (CD8⁺) T cell</b> left the blood. Mutated proteins are chopped into peptides and displayed on <b>MHC class I</b>; these <b>neoantigens</b> look foreign, so T cells kill the cell with <b>perforin</b> and <b>granzymes</b>. The more mutations, the easier the cell is to spot (≥2 here).`},
+ pdl1:{i:'🎭',t:'Immune evasion: PD-L1',b:`That T cell is standing next to a mutated cell and doing nothing. The tumour cell expresses <b>PD-L1</b>, which binds <b>PD-1</b> on the T cell — a "don't attack me" checkpoint that normally prevents autoimmunity. <b>Checkpoint inhibitors</b> (anti-PD-1 like pembrolizumab) block this; Allison & Honjo won the 2018 Nobel Prize for it.`},
+ mhc:{i:'👻',t:'Hiding from T cells: MHC-I lost',b:`Some cells stopped displaying <b>MHC class I</b> (lost B2M) — T cells can no longer read their neoantigens. But our <b>NK cells</b> check for MHC-I on every cell; a cell <b>"missing self"</b> is killed. Two arms of immunity, two escape routes: <b>immunoediting</b> in action.`},
+ scan:{i:'🔬',t:'Genome sequencing',b:`Most mutated cells look <b>completely normal</b> under the microscope — damage is in the DNA, not the shape. The coloured rings show each cell's mutation count. Tumours are clonal: one ancestor's mutations are inherited by all its descendants, so you'll see <b>patches</b> of related cells.`},
+ chemo:{i:'💊',t:'Chemotherapy',b:`Cytotoxic drugs (alkylating agents, antimetabolites, taxanes…) damage DNA or block mitosis, so they kill <b>rapidly dividing</b> cells. Tumours divide a lot — but so do hair follicles, gut lining and bone marrow, causing <b>hair loss, nausea and low blood counts</b>.`},
+ rad:{i:'☢️',t:'Radiotherapy',b:`Ionising radiation (X-rays, γ-rays) causes DNA double-strand breaks, mostly via free radicals. Cells with working p53 detect this and die; <b>p53-lost cells are more radio-resistant</b>. It's precise in space, but surviving cells nearby may pick up new mutations.`},
+ surgery:{i:'🔪',t:'Surgery',b:`For a localised (non-metastatic) solid tumour, cutting it out with a margin of healthy tissue is often curative. But surgery can't reach cells that have already spread — and tiny invisible clusters left behind can regrow.`},
+ target:{i:'🎯',t:'Targeted therapy',b:`Drugs like <b>sotorasib</b> block one specific mutant protein (KRAS G12C). Tumours often depend on their driver — <b>oncogene addiction</b> — so blocking it kills many cells while sparing normal ones. Downside: cells without that mutation are unaffected, and resistance evolves.`},
+ pd1:{i:'🔓',t:'Immunotherapy: checkpoint blockade',b:`Anti-PD-1 antibodies stop tumour PD-L1 from switching T cells off. The immune system then attacks cells it already recognised. NCERT also mentions <b>α-interferon</b> — a biological response modifier that activates the immune system against tumours.`},
+ avegf:{i:'🩸',t:'Anti-angiogenic therapy',b:`Blocking VEGF makes the fragile tumour vessels regress. Cells that depended on them become hypoxic and starve. The main blood vessels are untouched because mature vessels don't need VEGF to survive.`},
+};
+const CARD_ORDER=['uv','smoke','p53fix','scan','oncogene','rb','p53','senescence','telomere','hypoxia','angio','immuno','pdl1','mhc','emt','ctcdie','mets','surgery','chemo','rad','target','pd1','avegf'];
+
+/* ---------------- quiz ---------------- */
+const QUIZ=[
+ {q:'A proto-oncogene usually becomes an oncogene through…',o:['Loss of both alleles','A gain-of-function mutation in one allele','Methylation of telomeres','Loss of MHC-I'],a:1,e:'Oncogenes act dominantly: one activated copy (e.g., KRAS stuck ON) is enough.'},
+ {q:'Knudson’s two-hit hypothesis came from studying…',o:['Melanoma','Chronic myeloid leukaemia','Retinoblastoma','Lung adenocarcinoma'],a:2,e:'Inherited retinoblastoma appears early & in both eyes because one RB1 hit is inherited.'},
+ {q:'p53 is called the "guardian of the genome" because it…',o:['Builds telomeres','Halts the cell cycle and triggers apoptosis after DNA damage','Makes blood vessels','Glues cells together'],a:1,e:'p53 arrests cells at G1 to repair DNA, or triggers apoptosis if damage is severe.'},
+ {q:'Contact inhibition means normal cells…',o:['Stop dividing when they touch neighbouring cells','Kill neighbouring cells','Divide faster when crowded','Fuse with neighbours'],a:0,e:'Cancer cells lose contact inhibition and keep piling up.'},
+ {q:'Telomerase allows cancer cells to…',o:['Metastasise','Avoid T cells','Divide indefinitely by maintaining chromosome ends','Make VEGF'],a:2,e:'Replicative immortality — one of the hallmarks of cancer.'},
+ {q:'Tumour angiogenesis is mainly driven by…',o:['Insulin','VEGF','E-cadherin','Perforin'],a:1,e:'VEGF (vascular endothelial growth factor) triggers capillary sprouting.'},
+ {q:'Loss of E-cadherin mainly promotes…',o:['Faster mitosis','Metastasis via reduced cell–cell adhesion','Apoptosis','Telomere shortening'],a:1,e:'Cells detach (EMT), invade and enter vessels.'},
+ {q:'Anti-PD-1 checkpoint inhibitors work by…',o:['Killing all dividing cells','Releasing the brake on T cells','Blocking VEGF','Repairing DNA'],a:1,e:'They stop PD-L1/PD-1 signalling that switches T cells off.'},
+ {q:'NK cells recognise tumour cells that…',o:['Show many neoantigens on MHC-I','Have lost MHC class I ("missing self")','Express telomerase','Divide slowly'],a:1,e:'NK cells kill cells lacking MHC-I — the escape route from T cells.'},
+ {q:'UV radiation mainly damages DNA by forming…',o:['Thymine (pyrimidine) dimers','Double helix unwinding','Purine deletions only','Peptide bonds'],a:0,e:'Adjacent thymines get covalently linked.'},
+ {q:'Benign tumours differ from malignant ones because they…',o:['Grow faster','Stay localised and do not metastasise','Have no mutations','Always cause death'],a:1,e:'Malignant tumours invade surrounding tissue and spread (metastasis).'},
+ {q:'Chemotherapy causes hair loss because it targets…',o:['Only tumour cells','Rapidly dividing cells','Nerve cells','Red blood cells'],a:1,e:'Hair follicles, gut lining and bone marrow divide rapidly too.'},
+ {q:'BRCA1 normally functions in…',o:['DNA double-strand break repair','Making PD-L1','Telomere elongation','Cell adhesion'],a:0,e:'BRCA1 is a caretaker gene in homologous recombination repair.'},
+ {q:'Which is NOT used to detect cancer?',o:['Biopsy & histopathology','MRI','CT scan','Widal test'],a:3,e:'Widal test detects typhoid.'},
+ {q:'α-interferon in cancer treatment acts as a…',o:['Cytotoxic drug','Biological response modifier that activates immunity','Radiation sensitiser','VEGF blocker'],a:1,e:'NCERT: α-interferon activates the immune system to destroy tumours.'},
+ {q:'RB protein blocks the cell cycle by binding…',o:['p53','E2F transcription factor','Cyclin-B','Telomerase'],a:1,e:'RB–E2F binding prevents the G1→S transition.'},
+ {q:'Metastasis is…',o:['Programmed cell death','Spread of cancer cells to distant sites via blood/lymph','Formation of new blood vessels','Shortening of telomeres'],a:1,e:'It causes most cancer deaths.'},
+ {q:'A cell with only ONE broken RB1 copy (and one working copy)…',o:['Is already a tumour','Behaves normally — one working copy is enough','Dies immediately','Becomes immortal'],a:1,e:'Tumour suppressors are recessive at the cellular level.'},
+];
+
+/* ---------------- save ---------------- */
+let SAVE={unlocked:1,stars:{},seen:{}};
+try{const s=JSON.parse(localStorage.getItem('oncogenesis.v1'));if(s)SAVE=Object.assign(SAVE,s)}catch(e){}
+function save(){try{localStorage.setItem('oncogenesis.v1',JSON.stringify(SAVE))}catch(e){}}
+
+/* ---------------- grid ---------------- */
+let tiles=[], S=null;
+const cv=$('#cv'), ctx=cv.getContext('2d');
+let DPR=1,HEX=20,VW=0,VH=0;
+function buildGrid(){
+ tiles=[];
+ for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++)
+  tiles.push({i:tiles.length,c,r,v:VROWS.includes(r)?1:0,cell:null,dist:0,nb:[],cx:c-(r-(r&1))/2,cz:r,x:0,y:0});
+ const E=[[1,0],[0,-1],[-1,-1],[-1,0],[-1,1],[0,1]],O=[[1,0],[1,-1],[0,-1],[-1,0],[0,1],[1,1]];
+ for(const t of tiles)for(const [dc,dr] of (t.r&1?O:E)){const c=t.c+dc,r=t.r+dr;if(c>=0&&c<COLS&&r>=0&&r<ROWS)t.nb.push(r*COLS+c)}
+}
+function hd(a,b){const ay=-a.cx-a.cz,by=-b.cx-b.cz;return Math.max(Math.abs(a.cx-b.cx),Math.abs(ay-by),Math.abs(a.cz-b.cz))}
+function calcDist(){const q=[];for(const t of tiles){if(t.v){t.dist=0;q.push(t)}else t.dist=99}
+ let h=0;while(h<q.length){const t=q[h++];for(const n of t.nb){const u=tiles[n];if(u.dist>t.dist+1){u.dist=t.dist+1;q.push(u)}}}S.distDirty=false}
+function layout(){
+ const st=$('#stage');VW=st.clientWidth;VH=st.clientHeight;DPR=Math.min(2,window.devicePixelRatio||1);
+ cv.width=Math.round(VW*DPR);cv.height=Math.round(VH*DPR);
+ const pad=8;HEX=Math.max(6,Math.min((VW-2*pad)/(SQ3*(COLS+.5)),(VH-2*pad-20)/(1.5*(ROWS-1)+2)));
+ const gw=SQ3*HEX*(COLS+.5),gh=HEX*(1.5*(ROWS-1)+2);
+ const ox=(VW-gw)/2+SQ3*HEX/2,oy=(VH-gh)/2+HEX+8;
+ for(const t of tiles){t.x=ox+SQ3*HEX*(t.c+.5*(t.r&1));t.y=oy+1.5*HEX*t.r}
+}
+new ResizeObserver(()=>{if(tiles.length)layout()}).observe($('#stage'));
+
+/* ---------------- cells ---------------- */
+let CID=0;
+function makeCell(g){return{id:++CID,g:Object.assign(BASE(),g||{}),hist:[],telo:TELO,divT:rand(2,6),sprT:0,seed:Math.random(),anim:1,sen:false,known:false,hyp:false,mit:false,lastDiv:-99}}
+
+/* ---------------- level start ---------------- */
+function startLevel(idx){
+ const L=LEVELS[idx];
+ buildGrid();
+ S={li:idx,lvl:L,time:0,dur:L.dur,atp:L.atp,cd:{},buff:{target:0,pd1:0,vegf:0},scanT:0,agents:[],corpses:[],fx:[],ctc:[],mets:0,speed:1,paused:false,
+   sel:null,tool:null,hover:null,carcT:4,survT:L.surveil?6:0,nkT:L.nk?12:0,over:false,distDirty:true,health:1,tumorN:0,flash:0,focus:null,
+   stats:{muts:0,p53fix:0,tumorsFormed:0,tumorKilled:0,immuneKills:0,crushed:0,vessels:0,ctc:0,ctcDied:0,peak:0}};
+ for(const t of tiles)if(!t.v){const c=makeCell(L.inherit);for(const k in (L.inherit||{}))for(let n=0;n<L.inherit[k];n++)c.hist.push('*'+k);c.telo=Math.floor(rand(TELO-2,TELO+1));t.cell=c}
+ if(L.seed){
+  const ctr=tiles[4*COLS+8];
+  const sats=[tiles[6*COLS+2],tiles[7*COLS+14],tiles[1*COLS+13]];
+  for(const t of tiles){if(t.v||!t.cell||(hd(t,ctr)>3&&!sats.includes(t)))continue;const g=t.cell.g;g.RAS=1;g.RB1=2;
+   if(Math.random()<.75)g.TERT=1;if(Math.random()<.6)g.TP53=2;if(Math.random()<.35)g.VEGF=1;if(Math.random()<.45)g.PDL1=1;
+   if(Math.random()<.3)g.B2M=2;if(Math.random()<.08)g.CDH1=2;t.cell.hist=[];for(const k in g)for(let n=0;n<g[k];n++)t.cell.hist.push(k);t.cell.known=true;t.cell.telo=TELO}
+  // guarantee one spindly and one PD-L1 cell
+  const ring=tiles.filter(t=>t.cell&&t.cell.g.RAS&&hd(t,ctr)===3);
+  if(ring.length){const a=pick(ring);a.cell.g.CDH1=2;a.cell.hist.push('CDH1','CDH1');}
+ }
+ S.initTissue=tiles.filter(t=>!t.v).length;
+ layout();calcDist();
+ $('#lvlName').innerHTML=`${L.name}<small>${L.organ} · ${L.patient}</small>`;
+ $('#goal').textContent=L.goal==='eradicate'?'🎯 Goal: remission — destroy every tumour cell':`🎯 Goal: keep the patient alive & cancer-free to age ${L.age[1]}`;
+ $('#log').innerHTML='';
+ buildTray();renderInsp();
+ log(`Case opened: ${L.patient}.`);
+ openModal(`<span class="tag">Case ${idx+1} · ${L.organ}</span><h2>${L.name}</h2><p>${L.intro}</p>
+  <p class="muted" style="font-size:12px">Tap any cell to inspect it. Lose if healthy tissue drops below 40%, 3 metastases form${L.goal==="survive"?", or tumour cells reach "+TMAX:""}. Space = pause.</p>
+  <div class="row"><button onclick="showMenu()">Back</button><button class="primary" onclick="closeModal()">Start ▶</button></div>`);
+}
+
+/* ---------------- logging & toasts ---------------- */
+function yearNow(){const L=S.lvl;return Math.floor(L.age[0]+(L.age[1]-L.age[0])*Math.min(1,S.time/S.dur))}
+function log(msg){const d=document.createElement('div');d.innerHTML=`<span class="y">${S?('age '+yearNow()):''}</span>${msg}`;const lg=$('#log');lg.prepend(d);while(lg.children.length>60)lg.lastChild.remove()}
+function toast(msg,cls=''){const d=document.createElement('div');d.className='toast '+cls;d.innerHTML=msg;$('#toasts').appendChild(d);setTimeout(()=>d.remove(),2600);while($('#toasts').children.length>3)$('#toasts').firstChild.remove()}
+
+/* ---------------- modal / cards ---------------- */
+const cardQ=[];
+function modalOpen(){return !$('#overlay').classList.contains('hidden')}
+function openModal(html){$('#modal').innerHTML=html;$('#overlay').classList.remove('hidden');$('#modal').scrollTop=0}
+function closeModal(){$('#overlay').classList.add('hidden');S&&(S.focus=null);setTimeout(nextCard,60)}
+function discover(key,tile){
+ if(SAVE.seen[key])return;SAVE.seen[key]=1;save();cardQ.push({key,tile});if(!modalOpen())nextCard();
+}
+function nextCard(){if(modalOpen()||!cardQ.length||(S&&S.over))return;const {key,tile}=cardQ.shift();const C=CARDS[key];if(S)S.focus=tile||null;
+ openModal(`<div class="card-ic">${C.i}</div><span class="tag">New discovery · added to Codex</span><h2>${C.t}</h2><p>${C.b}</p><div class="row"><button class="primary" onclick="closeModal()">Got it</button></div>`)}
+
+/* ---------------- mutation & death ---------------- */
+function mutate(c,t,src){
+ const opts=GENES.filter(G=>c.g[G.k]<G.max);if(!opts.length)return false;
+ let tw=0;for(const G of opts)tw+=G.w;let r=Math.random()*tw,G=opts[opts.length-1];for(const o of opts){r-=o.w;if(r<=0){G=o;break}}
+ if(c.g.TP53<2&&src!=='rad'){const q=Math.random();
+  if(q<.3){S.fx.push({k:'heal',tile:t,t:0,d:.9});S.stats.p53fix++;if(S.stats.p53fix>=2)discover('p53fix',t);return false}
+  if(q<.4){killCell(t,"p53");return false}}
+ const was=isTumor(c);
+ c.g[G.k]++;c.hist.push(G.k);S.stats.muts++;
+ if(!was&&isTumor(c)){c.anim=.4;S.stats.tumorsFormed++;
+  log(G.k==='RAS'?'⚠ <b>KRAS</b> activated — a cell turned cancerous.':'⚠ Both <b>RB1</b> copies lost — a cell escaped its brakes.');
+  discover(G.k==='RAS'?'oncogene':'rb',t);}
+ return true;
+}
+function killCell(t,cause){const c=t.cell;if(!c)return;t.cell=null;S.corpses.push({t:0,tile:t,c,cause,tum:isTumor(c)});if(isTumor(c))S.stats.tumorKilled++}
+
+/* ---------------- simulation ---------------- */
+function divTargets(t,f){const e=[],o=[];for(const n of t.nb){const u=tiles[n];if(u.v)continue;if(!u.cell)e.push(u);else if((f.rbL||f.ras)&&!isTumor(u.cell))o.push(u)}return e.length?[e,false]:[o,true]}
+function cellUpdate(t,c,dt){
+ const f=F(c),tum=isTumor(c);
+ if(c.anim<1)c.anim=Math.min(1,c.anim+dt*2.5);
+ let death=c.sen?.012:tum?.0015:.0028;
+ if(f.ras&&!f.p53L&&!(S.buff.target>0))death+=.004; // oncogene-induced apoptosis via p53
+ const hyp=tum&&t.dist>=3;c.hyp=hyp;
+ if(hyp)death+=f.vegf?.003:.035;
+ if(Math.random()<death*dt){killCell(t,hyp?'necrosis':'apoptosis');if(hyp&&!f.vegf)discover('hypoxia',t);return}
+ if(f.vegf&&t.dist>=2&&!(S.buff.vegf>0)){c.sprT+=dt;if(c.sprT>6){c.sprT=0;sprout(t)}}
+ if(f.emt&&t.dist===1&&Math.random()<.028*dt){intravasate(t);return}
+ c.mit=false;
+ if(c.sen||hyp)return;
+ const [cand,crush]=divTargets(t,f);if(!cand.length)return;
+ let rate=(f.ras&&!(S.buff.target>0))?2.4:1;if(crush)rate*=f.rbL?.24:.13;
+ c.divT-=dt*rate;c.mit=c.divT<.7;
+ if(c.divT<=0)divide(t,c,f,cand);
+}
+function divide(t,c,f,cand){
+ c.divT=rand(3.5,6);c.lastDiv=S.time;c.telo--;
+ if(c.telo<=0){
+  if(f.tert)c.telo=TELO;
+  else if(isTumor(c)){killCell(t,'crisis');log('🧵 Telomere crisis killed a tumour cell.');discover('telomere',t);return}
+  else{c.sen=true;discover('senescence',t);return}
+ }
+ const u=pick(cand);if(u.cell){killCell(u,'crushed');S.stats.crushed++}
+ const d=makeCell(c.g);d.hist=c.hist.slice();d.telo=c.telo;d.anim=.35;d.from=t;d.divT=rand(3.5,6);d.lastDiv=S.time;u.cell=d;
+ const p=S.lvl.mut*(isTumor(d)?2:1)*(f.p53L?3:1)*(f.brcaL?3:1);
+ if(Math.random()<p)mutate(d,u,'rep');
+}
+function sprout(t){
+ let cur=t,g=0;while(cur.dist>1&&g++<20){const nx=cur.nb.map(n=>tiles[n]).filter(u=>u.dist===cur.dist-1);if(!nx.length)break;cur=pick(nx)}
+ if(cur===t||cur.dist!==1)return;
+ if(cur.cell)killCell(cur,'vessel');cur.v=2;S.distDirty=true;S.stats.vessels++;
+ S.fx.push({k:'sprout',tile:cur,t:0,d:1});
+ if(S.stats.vessels===1)log('🩸 A tumour grew its own blood vessel (VEGF).');
+ discover('angio',cur);
+}
+function nearestMain(tile){let best=VROWS[0];for(const r of VROWS)if(Math.abs(r-tile.r)<Math.abs(best-tile.r))best=r;return tiles[best*COLS+tile.c]}
+function intravasate(t){
+ const c=t.cell;const vs=t.nb.map(n=>tiles[n]).filter(u=>u.v);if(!vs.length)return;
+ t.cell=null;const v=pick(vs);const m=nearestMain(v);const e=tiles[m.r*COLS+COLS-1];
+ const path=[t,v];if(m!==v)path.push(m);if(e!==path[path.length-1])path.push(e);
+ S.ctc.push({path,seg:0,p:0,c,survive:Math.random()<.42});S.stats.ctc++;
+ log('🐍 A spindly cell broke away and entered the bloodstream!');
+ discover('emt',t);toast('🐍 Tumour cell entered the blood!','bad');
+}
+function ctcUpdate(dt){
+ for(const o of S.ctc){const a=o.path[o.seg],b=o.path[o.seg+1];const len=Math.max(1,hd(a,b));o.p+=dt*2.2/len;
+  if(o.p>=1){o.p=0;o.seg++;if(o.seg>=o.path.length-1){o.done=true;
+   if(o.survive){S.mets++;S.flash=1;log(`🌍 <b>Metastasis ${S.mets}/3</b> — a secondary tumour formed elsewhere.`);toast(`🌍 Metastasis ${S.mets}/3`,'bad');discover('mets')}
+   else{S.stats.ctcDied++;log('💥 Circulating tumour cell died in the blood.');discover('ctcdie')}}}}
+ S.ctc=S.ctc.filter(o=>!o.done);
+}
+function carcinogen(C){
+ const L=S.lvl;
+ if(C.type==='uv'){const ctr=pick(tiles.filter(t=>!t.v));S.fx.push({k:'uv',tile:ctr,r:C.r,t:0,d:1.6});
+  for(const t of tiles)if(t.cell&&hd(t,ctr)<=C.r&&Math.random()<C.p)mutate(t.cell,t,'uv');
+  log('☀ UV burst hit the skin.');discover('uv',ctr)}
+ else{const cells=tiles.filter(t=>t.cell);
+  for(let i=0;i<C.n&&cells.length;i++){const t=pick(cells);S.fx.push({k:C.type==='smoke'?'smoke':'hit',tile:t,t:0,d:1.4});if(t.cell&&Math.random()<C.p)mutate(t.cell,t,C.type)}
+  if(C.type==='smoke'){log('🚬 Smoke deposited carcinogens.');discover('smoke')}}
+}
+function randomVessel(){return pick(tiles.filter(t=>t.v))}
+function spawnAgent(type,tile){S.agents.push({type,tile,from:tile,mv:1,life:type==='T'?26:22,kill:0,max:type==='T'?26:22});if(type==='T')discover('immuno',tile)}
+function validTarget(a,c){if(a.type==="T")return acq(c)>=2&&c.g.B2M<2&&(c.g.PDL1===0||S.buff.pd1>0);return c.g.B2M>=2}
+function agentsUpdate(dt){
+ for(const a of S.agents){
+  a.life-=dt;a.mv=Math.min(1,a.mv+dt/.42);
+  const here=a.tile.cell;
+  if(here&&validTarget(a,here)){if(a.mv>=1){a.kill+=dt;if(a.kill>.7){if(here.g.B2M>=2)discover('mhc',a.tile);killCell(a.tile,a.type);a.kill=0;S.atp=Math.min(100,S.atp+3);S.stats.immuneKills++;S.fx.push({k:'zap',tile:a.tile,t:0,d:.5,col:a.type==='T'?'#5aaeff':'#41d39a'})}}continue}
+  a.kill=0;if(a.mv<1)continue;
+  let best=null,bd=1e9;
+  for(const t of tiles){if(t.cell&&validTarget(a,t.cell)){const d=hd(a.tile,t)+Math.random()*.5;if(d<bd){bd=d;best=t}}
+   else if(a.type==='T'&&t.cell&&t.cell.g.PDL1>0&&acq(t.cell)>=2&&!(S.buff.pd1>0)&&hd(a.tile,t)<=1&&!SAVE.seen.pdl1){discover('pdl1',t)}}
+  const nbs=a.tile.nb.map(n=>tiles[n]);let next;
+  if(best){let md=1e9;for(const u of nbs){const d=hd(u,best)+Math.random()*.3;if(d<md){md=d;next=u}}}else next=pick(nbs);
+  a.from=a.tile;a.tile=next;a.mv=0;
+ }
+ S.agents=S.agents.filter(a=>a.life>0);
+}
+function update(dt){
+ const L=S.lvl;S.time+=dt;
+ S.atp=Math.min(100,S.atp+L.regen*dt);
+ for(const k in S.cd)S.cd[k]=Math.max(0,S.cd[k]-dt);
+ for(const k in S.buff){const was=S.buff[k];S.buff[k]=Math.max(0,S.buff[k]-dt);if(was>0&&S.buff[k]===0)toast(`${TOOLS[k==='vegf'?'avegf':k].i} ${TOOLS[k==='vegf'?'avegf':k].n} wore off`)}
+ S.scanT=Math.max(0,S.scanT-dt);S.flash=Math.max(0,S.flash-dt);
+ if(S.distDirty)calcDist();
+ if(L.carc){S.carcT-=dt;if(S.carcT<=0){S.carcT=L.carc.every*rand(.75,1.25);carcinogen(L.carc)}}
+ if(L.surveil){S.survT-=dt;if(S.survT<=0){S.survT=L.surveil*rand(.8,1.2);spawnAgent('T',randomVessel())}}
+ if(L.nk){S.nkT-=dt;if(S.nkT<=0){S.nkT=L.nk*rand(.8,1.2);spawnAgent('NK',randomVessel())}}
+ const n=tiles.length,off=Math.floor(Math.random()*n);
+ for(let k=0;k<n;k++){const t=tiles[(k+off)%n];if(t.cell)cellUpdate(t,t.cell,dt)}
+ if(S.distDirty)calcDist();
+ agentsUpdate(dt);ctcUpdate(dt);
+ for(const o of S.corpses)o.t+=dt;S.corpses=S.corpses.filter(o=>o.t<.9);
+ for(const o of S.fx)o.t+=dt;S.fx=S.fx.filter(o=>o.t<o.d);
+ checkEnd();
+}
+function counts(){let h=0,tm=0;for(const t of tiles){if(!t.cell)continue;if(isTumor(t.cell))tm++;else h++}S.health=h/S.initTissue;S.tumorN=tm;S.stats.peak=Math.max(S.stats.peak,tm)}
+function checkEnd(){
+ counts();if(S.over)return;const L=S.lvl;
+ if(S.mets>=3)return endLevel(false,'Stage IV — the cancer spread to three distant organs.');
+ if(S.health<.4)return endLevel(false,'Organ failure — too little healthy tissue left.');
+ if(L.goal==='survive'&&S.tumorN>=TMAX)return endLevel(false,`A tumour reached ${TMAX} cells — an invasive cancer has formed.`);
+ if(L.goal==='eradicate'){if(S.tumorN===0&&S.time>1)return endLevel(true,'Remission! No tumour cells remain.');if(S.time>=S.dur)return endLevel(false,'Time ran out — the tumour kept growing.')}
+ else if(S.time>=S.dur)return endLevel(true,`${L.patient.split(',')[0]} reached age ${L.age[1]}.`);
+}
+
+/* ---------------- tools ---------------- */
+function useTool(id,tile){
+ const T=TOOLS[id];if(S.over)return;
+ if((S.cd[id]||0)>0)return toast(`${T.i} recharging…`);
+ if(S.atp<T.cost)return toast(`Not enough ATP (${T.cost} needed)`,'bad');
+ const c=tile&&tile.cell;
+ if(T.mode==='cell'&&!c)return toast('Tap a cell.');
+ let ok=true;
+ switch(id){
+  case 'apop':
+   if(c.g.TP53>=2){toast('💀 Failed — this cell has no working p53!','bad');c.known=true;discover('p53',tile);}
+   else{killCell(tile,'apop');}break;
+  case 'repair':{
+   const real=c.hist.filter(k=>k[0]!=='*');
+   if(!real.length){toast(c.hist.length?'Inherited (germline) mutations are in every cell — they can\'t be repaired.':'No acquired mutations in this cell.');ok=false;break}
+   for(let i=c.hist.length-1;i>=0;i--){if(c.hist[i][0]!=='*'){const k=c.hist.splice(i,1)[0];c.g[k]--;toast(`🧬 Repaired ${GK[k].lab}`,'good');break}}
+   c.known=true;S.fx.push({k:'heal',tile,t:0,d:.9});break}
+  case 'scan':S.scanT=10;for(const t of tiles)if(t.cell)t.cell.known=true;discover('scan');
+   if(tiles.some(t=>t.cell&&t.cell.g.B2M>=2))setTimeout(()=>discover('mhc'),50);break;
+  case 'tcell':spawnAgent('T',tile);break;
+  case 'nk':spawnAgent('NK',tile);break;
+  case 'surgery':for(const t of tiles)if(hd(t,tile)<=T.r){if(t.cell)killCell(t,'surgery');if(t.v===2){t.v=0;S.distDirty=true}}S.fx.push({k:'cut',tile,t:0,d:.7});break;
+  case 'rad':for(const t of tiles)if(t.cell&&hd(t,tile)<=T.r){const cc=t.cell;const p=isTumor(cc)?(cc.g.TP53>=2?.45:.88):.35;if(Math.random()<p)killCell(t,'rad');else if(Math.random()<.4)mutate(cc,t,'rad')}S.fx.push({k:'rad',tile,r:T.r,t:0,d:1});break;
+  case 'chemo':{let k=0;for(const t of tiles)if(t.cell){const cc=t.cell;const recent=S.time-cc.lastDiv<6||cc.mit;const p=isTumor(cc)?.55:recent?.3:.05;if(Math.random()<p){killCell(t,'chemo');k++}}S.fx.push({k:'chemo',t:0,d:1.2});toast(`💊 Chemo killed ${k} cells. Side effects: hair loss, nausea, low blood counts.`);break}
+  case 'target':{let k=0;for(const t of tiles)if(t.cell&&t.cell.g.RAS>0&&Math.random()<.4){killCell(t,'target');k++}S.buff.target=20;toast(`🎯 ${k} KRAS-addicted cells died.`);break}
+  case 'pd1':S.buff.pd1=20;spawnAgent('T',randomVessel());spawnAgent('T',randomVessel());break;
+  case 'avegf':{let k=0;for(const t of tiles)if(t.v===2){t.v=0;k++}S.distDirty=true;S.buff.vegf=20;toast(`🩸 ${k} tumour vessels collapsed.`);break}
+ }
+ if(!ok)return;
+ S.atp-=T.cost;S.cd[id]=T.cd;
+ if(CARDS[id])discover(id,tile);
+ if(S.distDirty)calcDist();
+ renderInsp();
+}
+
+/* ---------------- tray ---------------- */
+function buildTray(){
+ const tr=$('#tray');tr.innerHTML='';
+ S.lvl.tools.forEach((id,i)=>{const T=TOOLS[id];const b=document.createElement('button');b.className='tool';b.dataset.id=id;b.title=T.d;
+  b.innerHTML=`<span class="kb">${i<9?i+1:i===9?0:''}</span><span class="ic">${T.i}</span><span class="tn">${T.n}</span><span class="tc">${T.cost} ATP</span>`;
+  b.onclick=()=>selectTool(id);tr.appendChild(b)});
+}
+function selectTool(id){
+ if(!S)return;const T=TOOLS[id];
+ if(!T){S.tool=null;for(const b of document.querySelectorAll('.tool'))b.classList.remove('sel');return}
+ if(S.over)return;
+ if(T.mode==='global'){useTool(id,null);return}
+ S.tool=S.tool===id?null:id;
+ if(S.tool)toast(`${T.i} ${T.n}: ${T.d}`);
+ for(const b of document.querySelectorAll('.tool'))b.classList.toggle('sel',b.dataset.id===S.tool);
+}
+function trayTick(){for(const b of document.querySelectorAll('.tool')){const id=b.dataset.id,T=TOOLS[id];b.classList.toggle('off',S.atp<T.cost);b.style.setProperty('--cd',(S.cd[id]||0)/T.cd)}}
+
+/* ---------------- inspector ---------------- */
+function renderInsp(){
+ const el=$('#insp');if(!S)return;const t=S.sel;
+ if(!t){el.innerHTML=`<h3>Field guide</h3><div class="sub">Tap a cell to inspect it. Tissue under the microscope (H&E stain).</div>
+  <div class="legend">
+  <span class="sw" style="background:#efb3c6;box-shadow:inset 0 0 0 5px #efb3c6,inset 0 0 0 9px #6a3f8a"></span><span>Normal cell</span>
+  <span class="sw" style="background:#c95ea3;box-shadow:inset 0 0 0 3px #c95ea3,inset 0 0 0 9px #3b1350"></span><span>Tumour cell (big dark nucleus)</span>
+  <span class="sw" style="background:linear-gradient(135deg,#c95ea3 40%,#3b1350 40% 60%,#c95ea3 60%)"></span><span>Spindly — lost E-cadherin, can metastasise</span>
+  <span class="sw" style="background:#8f7f86"></span><span>Hypoxic / senescent</span>
+  <span class="sw" style="background:#8a1a2b"></span><span>Blood vessel</span>
+  <span class="sw" style="background:#5a1240;outline:2px dashed #c33"></span><span>Tumour vessel (angiogenesis)</span>
+  <span class="sw" style="background:#5aaeff;border-radius:50%"></span><span>Killer T cell</span>
+  <span class="sw" style="background:#41d39a;border-radius:50%"></span><span>NK cell</span>
+  <span class="sw" style="background:#e040fb;border-radius:50%"></span><span>Circulating tumour cell</span>
+  </div>`;return}
+ if(t.v){el.innerHTML=t.v===1?`<h3>Blood vessel</h3><div class="sub">Capillary. Brings oxygen to cells within ~2 cells. Immune cells exit here; escaped tumour cells enter here.</div>`:
+  `<h3>Tumour blood vessel</h3><div class="sub">Grown by VEGF signalling (angiogenesis). Twisted and leaky. Destroyed by Anti-VEGF or surgery.</div>`;return}
+ const c=t.cell;
+ if(!c){el.innerHTML=`<h3>Empty space</h3><div class="sub">A neighbouring cell will divide to fill this gap (tissue repair). Normal cells divide only when there's room — contact inhibition.</div>`;return}
+ const f=F(c),tum=isTumor(c),vis=tum||c.known||S.scanT>0;
+ const oxy=t.dist<=1?'Rich':t.dist===2?'Good':'Low (hypoxic for tumours)';
+ let title=c.sen?'Senescent cell':tum?(f.rbL&&f.ras?'Malignant tumour cell':f.rbL?'Invasive tumour cell':'Benign tumour cell (hyperplasia)'):'Epithelial cell';
+ let h=`<h3>${title}</h3><div class="sub">${c.sen?'Out of telomere — permanently stopped dividing.':tum?'Abnormal shape, large nucleus, frequent mitosis.':'Looks normal under the microscope.'}</div>
+ <div class="kv"><span>Oxygen</span><b>${oxy}</b></div>
+ <div class="kv"><span>Telomeres</span><b>${f.tert?'∞ (telomerase)':'▮'.repeat(Math.max(0,c.telo))+'▯'.repeat(Math.max(0,TELO-c.telo))}</b></div>`;
+ if(vis){h+=`<div class="kv"><span>Mutations</span><b>${hits(c)}</b></div><div style="margin-top:6px">`;
+  for(const G of GENES){const v=c.g[G.k];let al='';for(let i=0;i<G.max;i++)al+=`<i class="${i<v?'x':''}"></i>`;const on=geneEffectOn(c,G);
+   h+=`<div class="gene"><div class="nm">${G.lab}<span class="ty">${G.type==='onc'?'proto-oncogene':'tumour suppressor'}</span></div><div class="al">${al}</div><div class="eff ${on?'on':''}">${on?G.eff:G.role}</div></div>`}
+  h+='</div>';if(c.hist.some(k=>k[0]==='*'))h+=`<div class="sub" style="margin-top:6px">Inherited (germline) mutation present in every cell.</div>`}
+ else h+=`<div class="lock" style="margin-top:8px">🔒 Genome unknown. This cell could be carrying silent mutations. Run a 🔬 Genome Scan or repair it to sequence it.</div>`;
+ el.innerHTML=h;
+}
+
+/* ---------------- end / quiz ---------------- */
+function endLevel(win,msg){
+ S.over=true;S.tool=null;cardQ.length=0;const L=S.lvl;let stars=0;
+ if(win){if(L.goal==='eradicate')stars=S.mets===0&&S.health>=.7?3:S.mets<=1?2:1;else stars=S.mets===0&&S.tumorN===0?3:S.mets===0&&S.tumorN<=6?2:1;
+  SAVE.stars[L.id]=Math.max(SAVE.stars[L.id]||0,stars);SAVE.unlocked=Math.max(SAVE.unlocked,Math.min(LEVELS.length,S.li+2));save()}
+ const st=S.stats;
+ const qs=[...QUIZ].sort(()=>Math.random()-.5).slice(0,3);
+ window._quiz={qs,i:0,score:0,win,stars};
+ openModal(`<span class="tag">${L.name}</span><h2>${win?'✅ Patient saved':'❌ Patient lost'}</h2><p>${msg}</p>
+  ${win?`<div class="stars">${'★'.repeat(stars)}${'☆'.repeat(3-stars)}</div>`:''}
+  <div class="grid2"><span>Mutations that stuck</span><b>${st.muts}</b><span>Mutations fixed by p53</span><b>${st.p53fix}</b>
+  <span>Tumour clones started</span><b>${st.tumorsFormed}</b><span>Tumour cells destroyed</span><b>${st.tumorKilled}</b>
+  <span>Immune kills</span><b>${st.immuneKills}</b><span>Healthy cells crushed</span><b>${st.crushed}</b>
+  <span>Tumour vessels grown</span><b>${st.vessels}</b><span>Cells escaped to blood</span><b>${st.ctc} (${st.ctcDied} died)</b>
+  <span>Peak tumour size</span><b>${st.peak} cells</b><span>Healthy tissue left</span><b>${Math.round(S.health*100)}%</b></div>
+  <p class="muted">Before the next case: a 3-question viva.</p>
+  <div class="row"><button onclick="startLevel(${S.li})">Retry</button><button class="primary" onclick="quizStep()">Start viva →</button></div>`);
+}
+function quizStep(){
+ const Q=window._quiz;
+ if(Q.i>=Q.qs.length){const next=S.li+1<LEVELS.length&&SAVE.unlocked>S.li+1;
+  openModal(`<h2>Viva result: ${Q.score}/3</h2><p class="muted">${Q.score===3?'Perfect — oncology ready.':Q.score===2?'Solid. Check the Codex for the one you missed.':'Revise the Codex cards and try again.'}</p>
+  <div class="row"><button onclick="showMenu()">Menu</button><button onclick="startLevel(${S.li})">Retry case</button>${next?`<button class="primary" onclick="startLevel(${S.li+1})">Next case →</button>`:''}</div>`);return}
+ const q=Q.qs[Q.i];
+ openModal(`<span class="tag">Question ${Q.i+1}/3</span><h2>${q.q}</h2>${q.o.map((o,i)=>`<button class="opt" data-i="${i}">${o}</button>`).join('')}<p id="qe" class="muted"></p><div class="row"><button class="primary" id="qn" style="display:none">Next</button></div>`);
+ for(const b of document.querySelectorAll('.opt'))b.onclick=()=>{if(b.parentNode.dataset.done)return;b.parentNode.dataset.done=1;const i=+b.dataset.i;
+  document.querySelectorAll('.opt')[q.a].classList.add('ok');if(i!==q.a)b.classList.add('no');else Q.score++;
+  $('#qe').innerHTML=(i===q.a?'✅ ':'❌ ')+q.e;$('#qn').style.display='';$('#qn').onclick=()=>{Q.i++;quizStep()}};
+}
+
+/* ---------------- menu ---------------- */
+function showMenu(){
+ if(S)S.paused=true;cardQ.length=0;
+ const cases=LEVELS.map((L,i)=>{const lock=i>=SAVE.unlocked&&L.id!=='free';const s=SAVE.stars[L.id]||0;
+  return `<button class="case" ${lock?'disabled':''} onclick="startLevel(${i})"><small>${L.id==='free'?'Sandbox':'Case '+(i+1)} · ${L.organ}</small><b>${lock?'🔒 ':''}${L.name}</b><small>${L.patient}</small><span class="st">${'★'.repeat(s)}${'☆'.repeat(3-s)}</span></button>`}).join('');
+ const nSeen=CARD_ORDER.filter(k=>SAVE.seen[k]).length;
+ openModal(`<h1>🧫 Oncogenesis</h1><p class="muted" style="margin-top:0">A cancer biology strategy game. You are the body's defences. Mutations pile up silently — stop the hallmarks of cancer before a single cell becomes a killer.</p>
+  <div class="cases">${cases}</div>
+  <div class="row" style="justify-content:space-between"><button onclick="showHow()">How to play</button><button onclick="showCodex()">📖 Codex (${nSeen}/${CARD_ORDER.length})</button>${S&&!S.over?`<button class="primary" onclick="resume()">Resume</button>`:''}</div>`);
+}
+function resume(){S.paused=false;closeModal();updPause()}
+function showHow(){openModal(`<h2>How to play</h2><ul>
+ <li>The grid is a slice of tissue. Normal cells divide only to fill gaps (<b>contact inhibition</b>) and die of old age.</li>
+ <li>Carcinogens and copying errors cause <b>mutations</b> — usually invisible. p53 fixes many (green flash).</li>
+ <li><b>Oncogenes</b> (KRAS, TERT, VEGF, PD-L1) need 1 hit. <b>Tumour suppressors</b> (TP53, RB1, BRCA1, E-cadherin, MHC-I) need 2 hits.</li>
+ <li>Each mutation unlocks a <b>hallmark of cancer</b>: faster growth, invading neighbours, immortality, angiogenesis, metastasis, immune evasion.</li>
+ <li>Spend <b>ATP</b> (regenerates) on tools in the bottom tray. Keys 1–9 select tools, Esc cancels, Space pauses.</li>
+ <li>You lose if healthy tissue falls below 40%, 3 metastases form, or (in prevention cases) tumour cells reach 25.</li></ul>
+ <div class="row"><button class="primary" onclick="showMenu()">Back</button></div>`)}
+function showCodex(){
+ openModal(`<h2>📖 Codex</h2><p class="muted">Discoveries unlock as they happen in your patients.</p><div class="codex">${CARD_ORDER.map(k=>`<button ${SAVE.seen[k]?'':'disabled'} onclick="codexCard('${k}')">${SAVE.seen[k]?CARDS[k].i+' '+CARDS[k].t:'🔒 ???'}</button>`).join('')}</div>
+ <div class="row"><button class="primary" onclick="showMenu()">Back</button></div>`)}
+function codexCard(k){const C=CARDS[k];openModal(`<div class="card-ic">${C.i}</div><h2>${C.t}</h2><p>${C.b}</p><div class="row"><button class="primary" onclick="showCodex()">Back</button></div>`)}
+
+/* ---------------- drawing ---------------- */
+function hexPath(x,y,s,jit,seed){ctx.beginPath();for(let i=0;i<6;i++){const a=Math.PI/180*(60*i-30);const rr=s*(jit?1+jit*Math.sin(seed*40+i*2.3):1);const px=x+rr*Math.cos(a),py=y+rr*Math.sin(a);i?ctx.lineTo(px,py):ctx.moveTo(px,py)}ctx.closePath()}
+const ease=x=>1-Math.pow(1-x,3);
+function drawVessel(t,now){
+ const neo=t.v===2;hexPath(t.x,t.y,HEX*(neo?.92:1.02));ctx.fillStyle=neo?'#5a1240':'#7d1828';ctx.fill();
+ if(neo){ctx.setLineDash([3,3]);ctx.strokeStyle='#d0406a';ctx.lineWidth=1.2;ctx.stroke();ctx.setLineDash([])}
+ ctx.fillStyle=neo?'#3d0b2c':'#5a0f1c';ctx.beginPath();ctx.ellipse(t.x,t.y,HEX*.75,HEX*.42,0,0,7);ctx.fill();
+ ctx.fillStyle='#e0434f';
+ for(let k=0;k<2;k++){const ph=((now*.5+t.c*.37+t.r*.21+k*.5)%1);const x=t.x+(ph-.5)*HEX*1.4;ctx.beginPath();ctx.ellipse(x,t.y+(k?-1:1)*HEX*.12,HEX*.17,HEX*.11,0,0,7);ctx.fill()}
+}
+function cellColors(c,f,tum){
+ if(c.sen)return['#a39087','#6b5a66',.3];
+ let fill=tum?(f.rbL&&f.ras?'#b94e97':'#cf73ad'):'#efb3c6',nuc=tum?'#3b1350':'#6a3f8a',nr=tum?.44+.08*Math.sin(c.seed*9):.3;
+ if(c.hyp){fill='#8f7f86';nuc='#4a3a48'}
+ return[fill,nuc,nr];
+}
+function drawCellBody(x,y,s,c,now,alpha=1){
+ const f=F(c),tum=isTumor(c);const [fill,nuc,nr]=cellColors(c,f,tum);
+ ctx.globalAlpha=alpha;
+ if(f.emt&&tum){ctx.save();ctx.translate(x,y);ctx.rotate(c.seed*Math.PI);ctx.beginPath();ctx.ellipse(0,0,s*1,s*.5,0,0,7);ctx.fillStyle=fill;ctx.fill();ctx.strokeStyle='#00000055';ctx.lineWidth=1;ctx.stroke();
+  ctx.beginPath();ctx.ellipse(0,0,s*.42,s*.2,0,0,7);ctx.fillStyle=nuc;ctx.fill();ctx.restore()}
+ else{
+  hexPath(x,y,s,tum?.09:0,c.seed);ctx.fillStyle=fill;ctx.fill();ctx.strokeStyle=tum?'#2a0a2a88':'#7a4a6a55';ctx.lineWidth=1;ctx.stroke();
+  if(c.mit&&!c.sen){ // mitotic figure
+   ctx.fillStyle=nuc;const g=s*.22;ctx.save();ctx.translate(x,y);ctx.rotate(c.seed*3);
+   for(const sd of[-1,1]){ctx.beginPath();ctx.ellipse(sd*g*.9,0,g*.35,g*1.2,0,0,7);ctx.fill()}ctx.restore()}
+  else{ctx.beginPath();ctx.ellipse(x,y,s*nr,s*nr*(tum?.78:.9),c.seed*6,0,7);ctx.fillStyle=nuc;ctx.fill();
+   if(tum){ctx.fillStyle='#e7c6ff';ctx.beginPath();ctx.arc(x+s*.1,y-s*.06,s*.08,0,7);ctx.fill()}}
+ }
+ if(f.vegf&&tum&&!(S.buff.vegf>0)){ctx.strokeStyle='#ff4d6d';ctx.lineWidth=1.3;for(let i=0;i<3;i++){const a=c.seed*20+i*2.1+Math.sin(now*2+i)*.2;ctx.beginPath();ctx.moveTo(x+Math.cos(a)*s*.6,y+Math.sin(a)*s*.6);ctx.lineTo(x+Math.cos(a)*s*1.02,y+Math.sin(a)*s*1.02);ctx.stroke()}}
+ ctx.globalAlpha=1;
+}
+function draw(now){
+ ctx.setTransform(DPR,0,0,DPR,0,0);ctx.fillStyle='#120b16';ctx.fillRect(0,0,VW,VH);
+ if(!S)return;
+ for(const t of tiles){if(!t.v){hexPath(t.x,t.y,HEX*.99);ctx.fillStyle='#24152a';ctx.fill()}}
+ for(const t of tiles)if(t.v)drawVessel(t,now);
+ const showG=S.scanT>0;
+ for(const t of tiles){const c=t.cell;if(!c)continue;
+  let x=t.x,y=t.y,a=ease(c.anim);if(c.from&&c.anim<1){x=c.from.x+(t.x-c.from.x)*a;y=c.from.y+(t.y-c.from.y)*a}
+  drawCellBody(x,y,HEX*.9*(.55+.45*a),c,now);
+  if((showG||(c.known&&S.sel===t))&&hits(c)>0){const h=hits(c);const col=h>=4?'#ff3355':h>=2?'#ff9f40':'#ffe066';
+   hexPath(t.x,t.y,HEX*.86);ctx.strokeStyle=col;ctx.lineWidth=2.2;ctx.stroke();
+   if(showG){ctx.fillStyle='#000c';ctx.beginPath();ctx.arc(t.x+HEX*.45,t.y-HEX*.45,HEX*.28,0,7);ctx.fill();ctx.fillStyle=col;ctx.font=`bold ${Math.round(HEX*.36)}px system-ui`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(h,t.x+HEX*.45,t.y-HEX*.43)}}
+ }
+ // corpses
+ for(const o of S.corpses){const t=o.tile,p=o.t/.9;
+  if(o.cause==='necrosis'||o.cause==='crushed'||o.cause==='surgery'||o.cause==='vessel'){ctx.globalAlpha=1-p;ctx.fillStyle=o.cause==='necrosis'?'#6b5a55':'#a8707f';ctx.beginPath();ctx.arc(t.x,t.y,HEX*.8*(1+p*.3),0,7);ctx.fill();ctx.globalAlpha=1}
+  else{const s=HEX*.9*(1-p*.6);drawCellBody(t.x,t.y,s*(1-p*.4),o.c,now,1-p);ctx.fillStyle=`rgba(230,170,210,${1-p})`;
+   for(let i=0;i<5;i++){const a=o.c.seed*10+i*1.26;const d=HEX*(.2+p*.7);ctx.beginPath();ctx.arc(t.x+Math.cos(a)*d,t.y+Math.sin(a)*d,HEX*.12*(1-p*.5),0,7);ctx.fill()}}}
+ // fx
+ for(const o of S.fx){const p=o.t/o.d,t=o.tile;
+  if(o.k==='heal'){ctx.strokeStyle=`rgba(95,224,138,${1-p})`;ctx.lineWidth=2.5;ctx.beginPath();ctx.arc(t.x,t.y,HEX*(.4+p*.8),0,7);ctx.stroke()}
+  else if(o.k==='uv'){ctx.fillStyle=`rgba(255,224,90,${.32*(1-p)})`;for(const u of tiles)if(hd(u,t)<=o.r){hexPath(u.x,u.y,HEX);ctx.fill()}
+   ctx.strokeStyle=`rgba(255,230,120,${.8*(1-p)})`;ctx.lineWidth=2;for(let i=0;i<7;i++){const dx=(i-3)*HEX*.9;const yy=t.y-HEX*3+p*HEX*3;ctx.beginPath();ctx.moveTo(t.x+dx-HEX,yy-HEX*1.5);ctx.lineTo(t.x+dx,yy);ctx.stroke()}}
+  else if(o.k==='smoke'||o.k==='hit'){ctx.fillStyle=o.k==='smoke'?`rgba(170,165,160,${.6*(1-p)})`:`rgba(255,200,90,${.5*(1-p)})`;for(let i=0;i<3;i++){ctx.beginPath();ctx.arc(t.x+Math.sin(i*2)*HEX*.4,t.y-p*HEX*.8+Math.cos(i*2)*HEX*.3,HEX*(.3+p*.5),0,7);ctx.fill()}}
+  else if(o.k==='zap'){ctx.strokeStyle=o.col;ctx.globalAlpha=1-p;ctx.lineWidth=2;for(let i=0;i<6;i++){const a=i*1.047;ctx.beginPath();ctx.moveTo(t.x+Math.cos(a)*HEX*.3,t.y+Math.sin(a)*HEX*.3);ctx.lineTo(t.x+Math.cos(a)*HEX*(.6+p*.6),t.y+Math.sin(a)*HEX*(.6+p*.6));ctx.stroke()}ctx.globalAlpha=1}
+  else if(o.k==='sprout'){ctx.strokeStyle=`rgba(255,77,109,${1-p})`;ctx.lineWidth=3;ctx.beginPath();ctx.arc(t.x,t.y,HEX*(.5+p),0,7);ctx.stroke()}
+  else if(o.k==='rad'){ctx.fillStyle=`rgba(180,255,120,${.4*(1-p)})`;for(const u of tiles)if(hd(u,t)<=o.r){hexPath(u.x,u.y,HEX);ctx.fill()}}
+  else if(o.k==='cut'){ctx.strokeStyle=`rgba(255,255,255,${1-p})`;ctx.lineWidth=3;ctx.beginPath();ctx.arc(t.x,t.y,HEX*2.1,0,7);ctx.stroke()}
+  else if(o.k==='chemo'){ctx.fillStyle=`rgba(120,200,255,${.18*(1-p)})`;ctx.fillRect(0,0,VW,VH)}}
+ // CTCs
+ for(const o of S.ctc){const a=o.path[o.seg],b=o.path[o.seg+1];if(!b)continue;const x=a.x+(b.x-a.x)*o.p,y=a.y+(b.y-a.y)*o.p;
+  ctx.shadowColor='#e040fb';ctx.shadowBlur=10;ctx.fillStyle='#e040fb';ctx.beginPath();ctx.arc(x,y,HEX*.32,0,7);ctx.fill();ctx.shadowBlur=0}
+ // agents
+ for(const a of S.agents){const e=ease(a.mv);const x=a.from.x+(a.tile.x-a.from.x)*e,y=a.from.y+(a.tile.y-a.from.y)*e;const al=Math.min(1,a.life/3);
+  const col=a.type==='T'?'#5aaeff':'#41d39a';const r=HEX*.4;ctx.globalAlpha=al;
+  ctx.strokeStyle=col;ctx.lineWidth=1.5;for(let i=0;i<10;i++){const an=i*.628+now*(a.type==='T'?1:-1);ctx.beginPath();ctx.moveTo(x+Math.cos(an)*r,y+Math.sin(an)*r);ctx.lineTo(x+Math.cos(an)*r*1.35,y+Math.sin(an)*r*1.35);ctx.stroke()}
+  ctx.fillStyle=col;ctx.beginPath();ctx.arc(x,y,r,0,7);ctx.fill();
+  ctx.fillStyle='#0b2a44';ctx.beginPath();ctx.arc(x,y,r*.55,0,7);ctx.fill();
+  if(a.type==='NK'){ctx.fillStyle='#d8ffe9';for(let i=0;i<4;i++){ctx.beginPath();ctx.arc(x+Math.cos(i*1.6)*r*.62,y+Math.sin(i*1.6)*r*.62,r*.12,0,7);ctx.fill()}}
+  if(a.kill>0){ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.beginPath();ctx.arc(x,y,r*1.5,-Math.PI/2,-Math.PI/2+a.kill/.7*Math.PI*2);ctx.stroke()}
+  ctx.globalAlpha=1}
+ // hover & selection
+ const T=S.tool&&TOOLS[S.tool];
+ if(S.hover&&T){const r=T.mode==='area'?T.r:0;ctx.strokeStyle=S.atp>=T.cost?'#ffffffcc':'#ff5f6dcc';ctx.lineWidth=1.6;for(const u of tiles)if(hd(u,S.hover)<=r){hexPath(u.x,u.y,HEX*.96);ctx.stroke()}}
+ if(S.sel){hexPath(S.sel.x,S.sel.y,HEX*.98);ctx.strokeStyle='#fff';ctx.lineWidth=2.5;ctx.stroke()}
+ if(S.focus&&modalOpen()){const t=S.focus;ctx.strokeStyle='#ffd34d';ctx.lineWidth=3;ctx.beginPath();ctx.arc(t.x,t.y,HEX*(1.3+.25*Math.sin(now*6)),0,7);ctx.stroke()}
+ if(S.flash>0){ctx.fillStyle=`rgba(255,40,80,${S.flash*.35})`;ctx.fillRect(0,0,VW,VH)}
+ // buff indicator
+ const bf=[];if(S.buff.target>0)bf.push('🎯 '+Math.ceil(S.buff.target));if(S.buff.pd1>0)bf.push('🔓 '+Math.ceil(S.buff.pd1));if(S.buff.vegf>0)bf.push('🩸 '+Math.ceil(S.buff.vegf));if(S.scanT>0)bf.push('🔬 '+Math.ceil(S.scanT));
+ if(bf.length){ctx.font='13px system-ui';ctx.textAlign='right';ctx.textBaseline='top';ctx.fillStyle='#000a';const w=ctx.measureText(bf.join('   ')).width;ctx.fillRect(VW-w-20,6,w+14,22);ctx.fillStyle='#fff';ctx.fillText(bf.join('   '),VW-13,10)}
+ if(S.paused&&!modalOpen()){ctx.fillStyle='#0008';ctx.fillRect(0,0,VW,VH);ctx.fillStyle='#fff';ctx.font='bold 28px system-ui';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('Paused',VW/2,VH/2)}
+}
+
+/* ---------------- HUD ---------------- */
+let inspT=0;
+function hud(dt){
+ if(!S)return;const L=S.lvl;
+ $('#age').textContent=yearNow();$('#ageBar').style.width=Math.min(100,S.time/S.dur*100)+'%';
+ $('#atp').textContent=Math.floor(S.atp);$('#atpBar').style.width=S.atp+'%';
+ const hp=Math.round(S.health*100);$('#health').textContent=hp+'%';$('#health').style.color=hp<55?'var(--bad)':hp<75?'var(--atp)':'';
+ $('#tumor').textContent=S.tumorN+(S.lvl.goal==='survive'?' / '+TMAX:'');$('#tumor').style.color=S.tumorN?'var(--accent)':'';
+ $('#metsV').textContent='●'.repeat(S.mets)+'○'.repeat(Math.max(0,3-S.mets));$('#metsV').style.color=S.mets?'var(--bad)':'';
+ trayTick();inspT-=dt;if(inspT<=0){inspT=.25;renderInsp()}
+}
+
+/* ---------------- loop ---------------- */
+let last=performance.now();
+function frame(nowMs){
+ const dt=Math.min(.05,(nowMs-last)/1000);last=nowMs;
+ if(S&&!S.paused&&!S.over&&!modalOpen()){for(let i=0;i<S.speed;i++){update(dt);if(S.over)break}}
+ draw(nowMs/1000);hud(dt);requestAnimationFrame(frame);
+}
+
+/* ---------------- input ---------------- */
+function tileAt(e){const r=cv.getBoundingClientRect();const x=e.clientX-r.left,y=e.clientY-r.top;let best=null,bd=1e9;for(const t of tiles){const d=(t.x-x)**2+(t.y-y)**2;if(d<bd){bd=d;best=t}}return bd<HEX*HEX*1.1?best:null}
+cv.addEventListener('pointerdown',e=>{if(!S||S.over)return;const t=tileAt(e);if(!t)return;
+ if(e.button===2){S.tool=null;selectTool(null);return}
+ if(S.tool){const T=TOOLS[S.tool];if(T.mode==='cell'&&!t.cell){S.sel=t;renderInsp();return}useTool(S.tool,t);S.sel=t}else S.sel=S.sel===t?null:t;renderInsp()});
+cv.addEventListener('pointermove',e=>{if(S)S.hover=tileAt(e)});
+cv.addEventListener('pointerleave',()=>{if(S)S.hover=null});
+cv.addEventListener('contextmenu',e=>e.preventDefault());
+function updPause(){$('#pauseBtn').textContent=S&&S.paused?'▶':'⏸'}
+$('#pauseBtn').onclick=()=>{if(!S)return;S.paused=!S.paused;updPause()};
+$('#speedBtn').onclick=()=>{if(!S)return;S.speed=S.speed===1?2:S.speed===2?4:1;$('#speedBtn').textContent=S.speed+'×'};
+$('#menuBtn').onclick=showMenu;
+window.addEventListener('keydown',e=>{
+ if(modalOpen()){if(e.key==='Enter'||e.key===' '){const p=$('#modal .primary');if(p&&p.style.display!=='none'){e.preventDefault();p.click()}}return}
+ if(!S)return;
+ if(e.key===' '){e.preventDefault();S.paused=!S.paused;updPause()}
+ else if(e.key==='Escape'){S.tool=null;S.sel=null;selectTool(null);renderInsp()}
+ else if(/^[0-9]$/.test(e.key)){const i=e.key==='0'?9:+e.key-1;const id=S.lvl.tools[i];if(id)selectTool(id)}
+});
+
+buildGrid();S=null;
+requestAnimationFrame(frame);
+showMenu();
+</script>
+</body>
+</html>

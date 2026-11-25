@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JEEbook Labs</title>
+<meta name="description" content="Interactive chemistry, physics and biology labs for JEE and NEET, plus games. All free and running in your browser.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;800&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #f6f4ef; --surface: #ffffff; --text: #1d1b18; --muted: #6b665d; --line: #e4dfd5;
+  --chem: #0e7c66; --bio: #b4445c; --phys: #3a5bd9; --game: #c4741a; --exp: #6b5fa8;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #14130f; --surface: #1e1c18; --text: #f1ede4; --muted: #a39d91; --line: #2f2c26;
+    --chem: #3cc4a4; --bio: #ef7f96; --phys: #8aa2ff; --game: #f0a54a; --exp: #b0a4ee; }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.55 "IBM Plex Sans", system-ui, sans-serif; }
+.wrap { max-width: 1100px; margin: 0 auto; padding: 0 16px; }
+header { padding: 56px 0 28px; }
+h1 { font: 800 clamp(2.2rem, 6vw, 3.6rem)/1.05 "Bricolage Grotesque", sans-serif; margin: 0 0 12px; letter-spacing: -0.02em; }
+.lede { color: var(--muted); max-width: 40rem; margin: 0; font-size: 1.1rem; }
+nav { display: flex; flex-wrap: wrap; gap: 8px; margin: 24px 0 8px; }
+nav a { text-decoration: none; color: var(--text); border: 1px solid var(--line); background: var(--surface);
+  padding: 6px 14px; border-radius: 999px; font-size: .9rem; font-weight: 500; }
+nav a:hover { border-color: var(--text); }
+section { padding: 28px 0 8px; }
+h2 { font: 600 1.4rem "Bricolage Grotesque", sans-serif; margin: 0 0 14px; display: flex; align-items: center; gap: 10px; }
+h2::before { content: ""; width: 12px; height: 12px; border-radius: 3px; background: var(--c); }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px; }
+.card { display: flex; flex-direction: column; gap: 6px; text-decoration: none; color: inherit; background: var(--surface);
+  border: 1px solid var(--line); border-top: 3px solid var(--c); border-radius: 12px; padding: 16px 18px 18px;
+  transition: transform .15s, box-shadow .15s; }
+.card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgb(0 0 0 / .08); }
+.card .ico { font-size: 1.6rem; line-height: 1; }
+.card h3 { margin: 4px 0 0; font-size: 1.05rem; font-weight: 600; }
+.card p { margin: 0; color: var(--muted); font-size: .92rem; }
+.tag { align-self: flex-start; margin-top: auto; padding-top: 8px; font-size: .75rem; font-weight: 600; color: var(--c); letter-spacing: .03em; text-transform: uppercase; }
+.chem { --c: var(--chem); } .bio { --c: var(--bio); } .phys { --c: var(--phys); } .game { --c: var(--game); } .exp { --c: var(--exp); }
+footer { color: var(--muted); font-size: .85rem; padding: 40px 0 48px; border-top: 1px solid var(--line); margin-top: 40px; }
+@media (prefers-reduced-motion: reduce) { .card { transition: none; } .card:hover { transform: none; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>JEEbook Labs</h1>
+  <p class="lede">Interactive simulations for chemistry, physics and biology, plus a few games. Move the sliders and watch why the formulas work. Everything runs in your browser, free, on a phone or a laptop.</p>
+  <nav>
+    <a href="#chemistry">Chemistry</a><a href="#biology">Biology</a><a href="#physics">Physics &amp; Maths</a><a href="#games">Games</a><a href="#experiments">Experiments</a>
+  </nav>
+</header>
+
+<section id="chemistry" class="chem">
+  <h2>Chemistry</h2>
+  <div class="grid">
+    <a class="card chem" href="chemlab/"><span class="ico">🧪</span><h3>ChemLab</h3><p>A virtual chemistry lab. Mix reagents, run experiments and see the molecules in 3D.</p><span class="tag">Lab</span></a>
+    <a class="card chem" href="titration.html"><span class="ico">💧</span><h3>Titration Curves Lab</h3><p>Open the stopcock and watch pH change drop by drop. Polyprotic acids, indicators, and the JEE shortcut next to the exact answer.</p><span class="tag">Ionic equilibrium</span></a>
+    <a class="card chem" href="le-chatelier.html"><span class="ico">⚖️</span><h3>Le Chatelier Lab</h3><p>Gas-phase equilibria with real thermodynamics. Change temperature, pressure or volume and watch the shift.</p><span class="tag">Equilibrium</span></a>
+    <a class="card chem" href="kinetics.html"><span class="ico">⏱️</span><h3>Reaction Kinetics Lab</h3><p>Zero, first, second and nth order reactions, Arrhenius temperature control and mechanisms.</p><span class="tag">Kinetics</span></a>
+    <a class="card chem" href="ideal-gas.html"><span class="ico">🎈</span><h3>Ideal Gas Box</h3><p>Watch molecules bounce and see pressure, temperature and molecular speeds emerge from them.</p><span class="tag">States of matter</span></a>
+    <a class="card chem" href="atomic-orbitals.html"><span class="ico">⚛️</span><h3>Atomic Orbitals 3D</h3><p>Orbitals, hybrids and superpositions solved on a 3D grid and drawn as clouds you can spin.</p><span class="tag">Atomic structure</span></a>
+  </div>
+</section>
+
+<section id="biology" class="bio">
+  <h2>Biology</h2>
+  <div class="grid">
+    <a class="card bio" href="action-potential.html"><span class="ico">⚡</span><h3>Action Potential Lab</h3><p>A Hodgkin–Huxley neuron with theory and a quiz. Covers NEET core and advanced topics.</p><span class="tag">Neurobiology</span></a>
+    <a class="card bio" href="cytoclash.html"><span class="ico">🦠</span><h3>Cytoclash</h3><p>Build an army of cells from ATP and amino acids, then attack the enemy colony.</p><span class="tag">Strategy game</span></a>
+    <a class="card bio" href="oncogenesis.html"><span class="ico">🧬</span><h3>Oncogenesis</h3><p>A cancer biology strategy game. Mutate genes, outgrow healthy tissue and spread.</p><span class="tag">Strategy game</span></a>
+    <a class="card bio" href="evolution.html"><span class="ico">🌊</span><h3>Primordial</h3><p>You are a single cell in an ancient sea. Eat, earn DNA and evolve to survive.</p><span class="tag">Evolution game</span></a>
+  </div>
+</section>
+
+<section id="physics" class="phys">
+  <h2>Physics &amp; Maths</h2>
+  <div class="grid">
+    <a class="card phys" href="formula-intuition.html"><span class="ico">📐</span><h3>Formula Intuition Lab</h3><p>Don't memorise the formula. Move the sliders and see why it has to be that way.</p><span class="tag">Intuition</span></a>
+    <a class="card phys" href="flight-sim.html"><span class="ico">✈️</span><h3>Skyward Flight</h3><p>Fly a small plane over an island and watch lift, drag, thrust and weight act on it.</p><span class="tag">Mechanics</span></a>
+    <a class="card phys" href="fourier.html"><span class="ico">🌀</span><h3>Fourier Epicycles</h3><p>Draw any closed shape and watch spinning circles redraw it.</p><span class="tag">Fourier series</span></a>
+    <a class="card phys" href="photo-fourier.html"><span class="ico">📷</span><h3>Photo Fourier Drawing</h3><p>Upload a photo and watch it traced by Fourier circles.</p><span class="tag">Fourier series</span></a>
+  </div>
+</section>
+
+<section id="games" class="game">
+  <h2>Games</h2>
+  <div class="grid">
+    <a class="card game" href="wildbound.html"><span class="ico">🌿</span><h3>Wildbound</h3><p>A handheld-style adventure through Fernvale Valley.</p><span class="tag">Adventure</span></a>
+    <a class="card game" href="time-machine.html"><span class="ico">⏳</span><h3>Chronoskip Time Machine</h3><p>Dial in a destination year and see where you end up.</p><span class="tag">Toy</span></a>
+    <a class="card game" href="gamebox/"><span class="ico">🎮</span><h3>Game Box</h3><p>More than 20 quick games: snake, maze, memory, typing, maths and more.</p><span class="tag">Collection</span></a>
+  </div>
+</section>
+
+<section id="experiments" class="exp">
+  <h2>Experiments</h2>
+  <div class="grid">
+    <a class="card exp" href="product-3d/"><span class="ico">🎧</span><h3>Orbit S1</h3><p>A 3D product page built with three.js.</p><span class="tag">Web design</span></a>
+    <a class="card exp" href="web-hero/"><span class="ico">🕸️</span><h3>Web Hero</h3><p>A swinging-rope platformer prototype.</p><span class="tag">Prototype</span></a>
+  </div>
+</section>
+
+<footer>Everything here works in Chrome, Edge, Firefox and Safari.</footer>
+</div>
+</body>
+</html>

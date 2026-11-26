@@ -4,109 +4,689 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>JEEbook Labs</title>
-<meta name="description" content="Interactive chemistry, physics and biology labs for JEE and NEET, plus games. All free and running in your browser.">
+<meta name="description" content="Climb the mountain, reach the atom. Free interactive chemistry, physics and biology labs and games for JEE and NEET, running in your browser.">
+<meta name="theme-color" content="#07081a">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;800&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 :root {
-  --bg: #f6f4ef; --surface: #ffffff; --text: #1d1b18; --muted: #6b665d; --line: #e4dfd5;
-  --chem: #0e7c66; --bio: #b4445c; --phys: #3a5bd9; --game: #c4741a; --exp: #6b5fa8;
-}
-@media (prefers-color-scheme: dark) {
-  :root { --bg: #14130f; --surface: #1e1c18; --text: #f1ede4; --muted: #a39d91; --line: #2f2c26;
-    --chem: #3cc4a4; --bio: #ef7f96; --phys: #8aa2ff; --game: #f0a54a; --exp: #b0a4ee; }
+  --bg: #07081a; --ink: #f4f1ea; --muted: #aaa7bd; --line: rgba(255,255,255,.14);
+  --glass: rgba(12,13,32,.58); --accent: #ffb36b;
+  --chem: #3cd6b0; --bio: #ff7f9e; --phys: #8fa6ff; --game: #ffb54d; --exp: #c3a8ff;
 }
 * { box-sizing: border-box; }
-body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.55 "IBM Plex Sans", system-ui, sans-serif; }
-.wrap { max-width: 1100px; margin: 0 auto; padding: 0 16px; }
-header { padding: 56px 0 28px; }
-h1 { font: 800 clamp(2.2rem, 6vw, 3.6rem)/1.05 "Bricolage Grotesque", sans-serif; margin: 0 0 12px; letter-spacing: -0.02em; }
-.lede { color: var(--muted); max-width: 40rem; margin: 0; font-size: 1.1rem; }
-nav { display: flex; flex-wrap: wrap; gap: 8px; margin: 24px 0 8px; }
-nav a { text-decoration: none; color: var(--text); border: 1px solid var(--line); background: var(--surface);
-  padding: 6px 14px; border-radius: 999px; font-size: .9rem; font-weight: 500; }
-nav a:hover { border-color: var(--text); }
-section { padding: 28px 0 8px; }
-h2 { font: 600 1.4rem "Bricolage Grotesque", sans-serif; margin: 0 0 14px; display: flex; align-items: center; gap: 10px; }
-h2::before { content: ""; width: 12px; height: 12px; border-radius: 3px; background: var(--c); }
-.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px; }
-.card { display: flex; flex-direction: column; gap: 6px; text-decoration: none; color: inherit; background: var(--surface);
-  border: 1px solid var(--line); border-top: 3px solid var(--c); border-radius: 12px; padding: 16px 18px 18px;
-  transition: transform .15s, box-shadow .15s; }
-.card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgb(0 0 0 / .08); }
-.card .ico { font-size: 1.6rem; line-height: 1; }
-.card h3 { margin: 4px 0 0; font-size: 1.05rem; font-weight: 600; }
-.card p { margin: 0; color: var(--muted); font-size: .92rem; }
-.tag { align-self: flex-start; margin-top: auto; padding-top: 8px; font-size: .75rem; font-weight: 600; color: var(--c); letter-spacing: .03em; text-transform: uppercase; }
-.chem { --c: var(--chem); } .bio { --c: var(--bio); } .phys { --c: var(--phys); } .game { --c: var(--game); } .exp { --c: var(--exp); }
-footer { color: var(--muted); font-size: .85rem; padding: 40px 0 48px; border-top: 1px solid var(--line); margin-top: 40px; }
-@media (prefers-reduced-motion: reduce) { .card { transition: none; } .card:hover { transform: none; } }
+html { scroll-behavior: smooth; background: var(--bg); }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.55 "IBM Plex Sans", system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+a { color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 8px; }
+
+#scene { position: fixed; inset: 0; width: 100%; height: 100%; display: block; z-index: 0; }
+.fallback-bg { position: fixed; inset: 0; z-index: -1; background:
+  radial-gradient(120% 70% at 20% 100%, #f39a62 0%, transparent 55%),
+  linear-gradient(#0d0f2a 0%, #2c2d63 45%, #b86a6a 80%, #f0a066 100%); }
+html.no3d #scene, html.no3d #labels { display: none; }
+
+.skip { position: absolute; left: -999px; top: 8px; z-index: 20; background: var(--accent); color: #1b1206; padding: 8px 14px; border-radius: 8px; }
+.skip:focus { left: 8px; }
+
+.top { position: fixed; inset: 0 0 auto 0; z-index: 6; display: flex; justify-content: space-between; align-items: center;
+  padding: 16px clamp(16px, 4vw, 40px); pointer-events: none; }
+.brand { pointer-events: auto; font: 800 1.15rem/1 "Bricolage Grotesque", sans-serif; letter-spacing: -.01em; text-decoration: none; display: flex; align-items: center; gap: 10px; }
+.brand i { width: 26px; height: 26px; border-radius: 50%; border: 2px solid var(--accent); position: relative; display: inline-block; }
+.brand i::after { content: ""; position: absolute; inset: 7px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 10px var(--accent); }
+.pill { pointer-events: auto; text-decoration: none; font-weight: 600; font-size: .92rem; padding: 9px 16px; border-radius: 999px;
+  background: rgba(10,11,28,.5); border: 1px solid var(--line); backdrop-filter: blur(8px); }
+.pill:hover { border-color: var(--accent); }
+
+#hud { position: fixed; right: clamp(12px, 3vw, 30px); top: 50%; transform: translateY(-50%); z-index: 6;
+  display: flex; flex-direction: column; align-items: flex-end; gap: 16px; transition: opacity .4s; }
+#hud.gone { opacity: 0; pointer-events: none; }
+.alt { font: 600 .7rem/1.2 "IBM Plex Sans", sans-serif; letter-spacing: .16em; text-transform: uppercase; color: var(--muted); text-align: right; }
+.alt b { display: block; margin-top: 4px; font: 800 1.3rem/1 "Bricolage Grotesque", sans-serif; letter-spacing: 0; color: var(--ink); font-variant-numeric: tabular-nums; }
+.dots { display: flex; flex-direction: column; gap: 12px; align-items: flex-end; }
+.dots a { display: flex; align-items: center; gap: 10px; text-decoration: none; font-size: .78rem; color: var(--muted); }
+.dots a span { opacity: 0; transform: translateX(6px); transition: .25s; }
+.dots a:hover span, .dots a.on span { opacity: 1; transform: none; }
+.dots a::after { content: ""; width: 9px; height: 9px; border-radius: 50%; background: rgba(255,255,255,.28); transition: .25s; }
+.dots a.on { color: var(--ink); }
+.dots a.on::after { background: var(--accent); box-shadow: 0 0 14px var(--accent); transform: scale(1.3); }
+
+#labels { position: fixed; inset: 0; z-index: 4; pointer-events: none; overflow: hidden; }
+.orbit-label { position: absolute; left: 0; top: 0; pointer-events: auto; cursor: pointer; white-space: nowrap;
+  display: flex; align-items: center; gap: 8px; padding: 7px 14px 7px 8px; border-radius: 999px;
+  background: rgba(8,9,24,.74); border: 1px solid var(--c); color: var(--ink); font: 600 .95rem "IBM Plex Sans", sans-serif;
+  backdrop-filter: blur(6px); box-shadow: 0 0 24px -6px var(--c); transition: opacity .35s, box-shadow .2s; will-change: transform; }
+.orbit-label .e { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; background: color-mix(in srgb, var(--c) 28%, transparent); font-size: 1rem; }
+.orbit-label small { color: var(--muted); font-weight: 500; }
+.orbit-label:hover { box-shadow: 0 0 30px -2px var(--c); }
+
+main { position: relative; z-index: 2; }
+.step { min-height: 100vh; min-height: 100svh; display: flex; align-items: center; padding: 96px clamp(16px, 6vw, 96px); }
+.step.right { justify-content: flex-end; padding-right: clamp(16px, 12vw, 180px); }
+.card { width: min(500px, 100%); background: var(--glass); border: 1px solid var(--line); border-radius: 20px; padding: 24px 26px;
+  backdrop-filter: blur(12px) saturate(1.2); -webkit-backdrop-filter: blur(12px) saturate(1.2); box-shadow: 0 20px 60px -20px rgba(0,0,0,.5); }
+.eyebrow { font: 600 .76rem/1 "IBM Plex Sans", sans-serif; letter-spacing: .16em; text-transform: uppercase; color: var(--accent); }
+.eyebrow b { color: var(--ink); font-weight: 600; }
+.hero .eyebrow { text-shadow: 0 1px 12px rgba(20,10,40,.8); }
+h1 { font: 800 clamp(2.9rem, 8.5vw, 6.4rem)/.92 "Bricolage Grotesque", sans-serif; letter-spacing: -.035em; margin: .35em 0 .3em; text-shadow: 0 6px 50px rgba(10,6,30,.45); }
+h1 em { font-style: normal; color: var(--accent); }
+h2 { font: 800 clamp(1.9rem, 4.6vw, 3rem)/1 "Bricolage Grotesque", sans-serif; letter-spacing: -.025em; margin: .4em 0 .35em; }
+.lede { font-size: clamp(1.05rem, 1.6vw, 1.22rem); color: #ece7f2; max-width: 34rem; margin: 0; text-shadow: 0 2px 20px rgba(10,6,30,.5); }
+.card p { margin: 0; color: #dedae8; }
+.hero { align-items: flex-end; padding-bottom: 12vh; }
+.hero-inner { max-width: 760px; }
+.btns { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 26px; }
+.btn { display: inline-flex; align-items: center; gap: 8px; padding: 13px 20px; border-radius: 999px; font: 600 1rem "IBM Plex Sans", sans-serif;
+  text-decoration: none; color: #1d1206; background: var(--accent); border: 0; cursor: pointer; box-shadow: 0 10px 30px -10px var(--accent); }
+.btn.ghost { background: rgba(255,255,255,.08); color: var(--ink); border: 1px solid var(--line); box-shadow: none; backdrop-filter: blur(8px); }
+.btn:hover { filter: brightness(1.08); }
+.stats { display: flex; gap: 28px; margin-top: 34px; flex-wrap: wrap; }
+.stats div { font-size: .85rem; color: var(--muted); }
+.stats b { display: block; font: 800 1.6rem/1 "Bricolage Grotesque", sans-serif; color: var(--ink); margin-bottom: 4px; }
+.hint { position: absolute; left: 50%; bottom: 22px; transform: translateX(-50%); font-size: .75rem; letter-spacing: .2em; text-transform: uppercase; color: var(--muted);
+  display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.hint::after { content: ""; width: 1px; height: 34px; background: linear-gradient(var(--ink), transparent); animation: drip 1.8s ease-in-out infinite; }
+@keyframes drip { 0% { transform: scaleY(0); transform-origin: top; } 50% { transform: scaleY(1); transform-origin: top; } 51% { transform-origin: bottom; } 100% { transform: scaleY(0); transform-origin: bottom; } }
+
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
+.chip { display: inline-flex; gap: 8px; align-items: center; padding: 8px 14px 8px 10px; border-radius: 999px; text-decoration: none; font-size: .93rem;
+  background: rgba(255,255,255,.07); border: 1px solid var(--line); transition: border-color .2s, background .2s; }
+.chip:hover { border-color: var(--c, var(--accent)); background: rgba(255,255,255,.12); }
+.cat-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 18px; }
+.cat-btn { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 14px; cursor: pointer; text-align: left;
+  font: 600 .98rem "IBM Plex Sans", sans-serif; color: var(--ink); background: rgba(255,255,255,.06); border: 1px solid var(--line); border-left: 3px solid var(--c); }
+.cat-btn small { display: block; color: var(--muted); font-weight: 500; font-size: .8rem; }
+.cat-btn:hover { background: rgba(255,255,255,.11); }
+
+#all { position: relative; z-index: 2; padding: 200px clamp(16px, 5vw, 64px) 40px;
+  background: linear-gradient(to bottom, transparent 0, rgba(7,8,26,.85) 120px, var(--bg) 200px); }
+#all > header { max-width: 1160px; margin: 0 auto 10px; }
+#all > header p { color: var(--muted); margin: 0; }
+.group { max-width: 1160px; margin: 0 auto; padding-top: 30px; }
+.group h3 { font: 700 1.25rem "Bricolage Grotesque", sans-serif; margin: 0 0 14px; display: flex; align-items: center; gap: 10px; }
+.group h3::before { content: ""; width: 10px; height: 10px; border-radius: 50%; background: var(--c); box-shadow: 0 0 12px var(--c); }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+.app { display: flex; flex-direction: column; gap: 6px; text-decoration: none; padding: 16px 18px 18px; border-radius: 16px;
+  background: linear-gradient(160deg, rgba(255,255,255,.07), rgba(255,255,255,.025)); border: 1px solid var(--line);
+  transition: transform .18s, border-color .18s, background .18s; }
+.app:hover { transform: translateY(-3px); border-color: var(--c); background: linear-gradient(160deg, rgba(255,255,255,.1), rgba(255,255,255,.04)); }
+.app .ico { font-size: 1.6rem; line-height: 1; }
+.app h4 { margin: 6px 0 0; font-size: 1.03rem; font-weight: 600; }
+.app p { margin: 0; color: var(--muted); font-size: .9rem; }
+.app .tag { margin-top: auto; padding-top: 8px; font-size: .72rem; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--c); }
+.new { margin-left: 6px; font-size: .65rem; padding: 2px 7px; border-radius: 99px; background: var(--c); color: #120d07; vertical-align: 2px; letter-spacing: .04em; }
+footer { position: relative; z-index: 2; background: var(--bg); color: var(--muted); font-size: .85rem; text-align: center; padding: 40px 16px 56px; }
+
+.panel-wrap { position: fixed; inset: 0; z-index: 10; display: flex; justify-content: flex-end; background: rgba(4,4,14,.45); backdrop-filter: blur(3px); }
+.panel-wrap[hidden] { display: none; }
+.panel { width: min(440px, 100%); height: 100%; overflow-y: auto; background: rgba(12,13,32,.94); border-left: 1px solid var(--line);
+  padding: 22px 22px 40px; animation: slide .28s ease-out; }
+@keyframes slide { from { transform: translateX(40px); opacity: 0; } }
+.panel header { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 8px; }
+.panel h2 { font-size: 1.8rem; margin: 0; display: flex; align-items: center; gap: 10px; }
+.panel h2::before { content: ""; width: 12px; height: 12px; border-radius: 50%; background: var(--c); box-shadow: 0 0 14px var(--c); }
+.panel .close { background: rgba(255,255,255,.08); border: 1px solid var(--line); color: var(--ink); width: 40px; height: 40px; border-radius: 50%; font-size: 1.2rem; cursor: pointer; }
+.panel .sub { color: var(--muted); margin: 0 0 16px; }
+.panel .grid { grid-template-columns: 1fr; }
+
+@media (max-width: 760px) {
+  .step, .step.right { justify-content: center; align-items: flex-end; padding: 80px 16px 28px; }
+  .card { padding: 18px 18px; }
+  .hero { padding-bottom: 90px; }
+  #hud .alt { display: none; }
+  #hud { right: 8px; }
+  .dots a span { display: none; }
+  .stats { gap: 20px; margin-top: 24px; }
+  .orbit-label { padding: 4px; }
+  .orbit-label .t { display: none; }
+  .orbit-label .e { width: 34px; height: 34px; font-size: 1.15rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .hint::after, .panel { animation: none; }
+  .app { transition: none; }
+}
 </style>
 </head>
 <body>
-<div class="wrap">
-<header>
-  <h1>JEEbook Labs</h1>
-  <p class="lede">Interactive simulations for chemistry, physics and biology, plus a few games. Move the sliders and watch why the formulas work. Everything runs in your browser, free, on a phone or a laptop.</p>
-  <nav>
-    <a href="#chemistry">Chemistry</a><a href="#biology">Biology</a><a href="#physics">Physics &amp; Maths</a><a href="#games">Games</a><a href="#experiments">Experiments</a>
-  </nav>
+<a class="skip" href="#all">Skip to all apps</a>
+<div class="fallback-bg" aria-hidden="true"></div>
+<canvas id="scene" aria-hidden="true"></canvas>
+<div id="labels"></div>
+
+<header class="top">
+  <a class="brand" href="./"><i aria-hidden="true"></i>JEEbook Labs</a>
+  <a class="pill" href="#all">All apps</a>
 </header>
 
-<section id="chemistry" class="chem">
-  <h2>Chemistry</h2>
-  <div class="grid">
-    <a class="card chem" href="chemlab/"><span class="ico">🧪</span><h3>ChemLab</h3><p>A virtual chemistry lab. Mix reagents, run experiments and see the molecules in 3D.</p><span class="tag">Lab</span></a>
-    <a class="card chem" href="titration.html"><span class="ico">💧</span><h3>Titration Curves Lab</h3><p>Open the stopcock and watch pH change drop by drop. Polyprotic acids, indicators, and the JEE shortcut next to the exact answer.</p><span class="tag">Ionic equilibrium</span></a>
-    <a class="card chem" href="le-chatelier.html"><span class="ico">⚖️</span><h3>Le Chatelier Lab</h3><p>Gas-phase equilibria with real thermodynamics. Change temperature, pressure or volume and watch the shift.</p><span class="tag">Equilibrium</span></a>
-    <a class="card chem" href="kinetics.html"><span class="ico">⏱️</span><h3>Reaction Kinetics Lab</h3><p>Zero, first, second and nth order reactions, Arrhenius temperature control and mechanisms.</p><span class="tag">Kinetics</span></a>
-    <a class="card chem" href="ideal-gas.html"><span class="ico">🎈</span><h3>Ideal Gas Box</h3><p>Watch molecules bounce and see pressure, temperature and molecular speeds emerge from them.</p><span class="tag">States of matter</span></a>
-    <a class="card chem" href="atomic-orbitals.html"><span class="ico">⚛️</span><h3>Atomic Orbitals 3D</h3><p>Orbitals, hybrids and superpositions solved on a 3D grid and drawn as clouds you can spin.</p><span class="tag">Atomic structure</span></a>
+<nav id="hud" aria-label="Journey">
+  <div class="alt">Altitude<b id="alt">0 m</b></div>
+  <div class="dots">
+    <a href="#s0"><span>Start</span></a>
+    <a href="#s1"><span>Base camp</span></a>
+    <a href="#s2"><span>The ridge</span></a>
+    <a href="#s3"><span>Summit</span></a>
+    <a href="#s4"><span>Above the clouds</span></a>
+    <a href="#s5"><span>The atom</span></a>
   </div>
-</section>
+</nav>
 
-<section id="biology" class="bio">
-  <h2>Biology</h2>
-  <div class="grid">
-    <a class="card bio" href="heart-ecg.html"><span class="ico">❤️</span><h3>Cardiac Conduction Lab</h3><p>Watch the heartbeat spread through the heart and see every ECG wave computed from it. Add scars, shocks and probes.</p><span class="tag">Physiology</span></a>
-    <a class="card bio" href="action-potential.html"><span class="ico">⚡</span><h3>Action Potential Lab</h3><p>A Hodgkin–Huxley neuron with theory and a quiz. Covers NEET core and advanced topics.</p><span class="tag">Neurobiology</span></a>
-    <a class="card bio" href="cytoclash.html"><span class="ico">🦠</span><h3>Cytoclash</h3><p>Build an army of cells from ATP and amino acids, then attack the enemy colony.</p><span class="tag">Strategy game</span></a>
-    <a class="card bio" href="oncogenesis.html"><span class="ico">🧬</span><h3>Oncogenesis</h3><p>A cancer biology strategy game. Defend the body: stop mutated cells before they invade, grow vessels and spread.</p><span class="tag">Strategy game</span></a>
-    <a class="card bio" href="evolution.html"><span class="ico">🌊</span><h3>Primordial</h3><p>You are a single cell in an ancient sea. Eat, earn DNA and evolve to survive.</p><span class="tag">Evolution game</span></a>
+<main>
+  <div id="story">
+    <section class="step hero" id="s0">
+      <div class="hero-inner">
+        <div class="eyebrow">JEE <b>·</b> NEET <b>·</b> Interactive labs</div>
+        <h1>Climb the mountain.<br><em>Reach the atom.</em></h1>
+        <p class="lede">Free simulations and games that make physics, chemistry and biology click. Move a slider, watch the formula move. No sign-up, no install.</p>
+        <div class="btns">
+          <a class="btn" href="#s1">Start the climb ↓</a>
+          <a class="btn ghost" href="#all">See every app</a>
+        </div>
+        <div class="stats">
+          <div><b id="n-apps">25</b>apps</div>
+          <div><b>3</b>subjects</div>
+          <div><b>₹0</b>forever</div>
+        </div>
+      </div>
+      <div class="hint" aria-hidden="true">Scroll</div>
+    </section>
+
+    <section class="step" id="s1">
+      <div class="card">
+        <div class="eyebrow">Base camp · 1,200 m</div>
+        <h2>Start with why.</h2>
+        <p>Every formula has a reason. Drag the sliders and see why it has to be that way, before you ever memorise it.</p>
+        <div class="chips" data-apps="formula-intuition.html,ideal-gas.html,fourier.html"></div>
+      </div>
+    </section>
+
+    <section class="step right" id="s2">
+      <div class="card">
+        <div class="eyebrow">The ridge · 5,400 m</div>
+        <h2>Where it gets steep.</h2>
+        <p>Equilibrium, kinetics, titration curves: the chapters that decide ranks. Here you run the experiment yourself, drop by drop.</p>
+        <div class="chips" data-apps="titration.html,kinetics.html,le-chatelier.html,chemlab/"></div>
+      </div>
+    </section>
+
+    <section class="step" id="s3">
+      <div class="card">
+        <div class="eyebrow">The summit · 8,848 m</div>
+        <h2>JEE Advanced. NEET.</h2>
+        <p>Orbitals you can spin, a neuron that fires, a heart whose every ECG wave is computed live. The hard stuff, made visible.</p>
+        <div class="chips" data-apps="atomic-orbitals.html,action-potential.html,heart-ecg.html"></div>
+      </div>
+    </section>
+
+    <section class="step right" id="s4">
+      <div class="card">
+        <div class="eyebrow">Above the clouds</div>
+        <h2>Take a breather.</h2>
+        <p>Every climber rests. These games still teach: catch concepts in a notebook, evolve a cell, run an election.</p>
+        <div class="chips" data-apps="aspirant.html,evolution.html,chunav/,gamebox/"></div>
+      </div>
+    </section>
+
+    <section class="step" id="s5">
+      <div class="card">
+        <div class="eyebrow">Orbit · 400 km</div>
+        <h2>It's all one atom.</h2>
+        <p>Physics, chemistry and biology circle the same nucleus. Tap an orbit to open its labs.</p>
+        <div class="cat-btns" id="cat-btns"></div>
+      </div>
+    </section>
   </div>
-</section>
 
-<section id="physics" class="phys">
-  <h2>Physics &amp; Maths</h2>
-  <div class="grid">
-    <a class="card phys" href="formula-intuition.html"><span class="ico">📐</span><h3>Formula Intuition Lab</h3><p>Don't memorise the formula. Move the sliders and see why it has to be that way.</p><span class="tag">Intuition</span></a>
-    <a class="card phys" href="flight-sim.html"><span class="ico">✈️</span><h3>Skyward Flight</h3><p>Fly a small plane over an island and watch lift, drag, thrust and weight act on it.</p><span class="tag">Mechanics</span></a>
-    <a class="card phys" href="fourier.html"><span class="ico">🌀</span><h3>Fourier Epicycles</h3><p>Draw any closed shape and watch spinning circles redraw it.</p><span class="tag">Fourier series</span></a>
-    <a class="card phys" href="photo-fourier.html"><span class="ico">📷</span><h3>Photo Fourier Drawing</h3><p>Upload a photo and watch it traced by Fourier circles.</p><span class="tag">Fourier series</span></a>
+  <section id="all">
+    <header>
+      <div class="eyebrow">Everything</div>
+      <h2>Every app, in one place.</h2>
+      <p>All free. All run in your browser, on a phone or a laptop.</p>
+    </header>
+    <div id="groups"></div>
+  </section>
+</main>
+
+<footer>JEEbook Labs · Works in Chrome, Edge, Firefox and Safari · Made for JEE and NEET aspirants</footer>
+
+<div class="panel-wrap" id="panel-wrap" hidden>
+  <div class="panel" role="dialog" aria-modal="true" aria-labelledby="panel-title">
+    <header>
+      <h2 id="panel-title">Labs</h2>
+      <button class="close" id="panel-close" aria-label="Close">✕</button>
+    </header>
+    <p class="sub" id="panel-sub"></p>
+    <div class="grid" id="panel-grid"></div>
   </div>
-</section>
-
-<section id="games" class="game">
-  <h2>Games</h2>
-  <div class="grid">
-    <a class="card game" href="wildbound.html"><span class="ico">🌿</span><h3>Wildbound</h3><p>A handheld-style adventure through Fernvale Valley.</p><span class="tag">Adventure</span></a>
-    <a class="card game" href="aspirant.html"><span class="ico">📓</span><h3>Aspirant</h3><p>A JEE life story. Walk through the tall grass, meet wild concepts and catch them in your notebook.</p><span class="tag">Adventure</span></a>
-    <a class="card game" href="chunav/"><span class="ico">🗳️</span><h3>Chunav 2029</h3><p>A Lok Sabha election simulator. Campaign across India's 543 seats and race to 272.</p><span class="tag">Strategy</span></a>
-    <a class="card game" href="time-machine.html"><span class="ico">⏳</span><h3>Chronoskip Time Machine</h3><p>Dial in a destination year and see where you end up.</p><span class="tag">Toy</span></a>
-    <a class="card game" href="gamebox/"><span class="ico">🎮</span><h3>Game Box</h3><p>More than 20 quick games: snake, maze, memory, typing, maths and more.</p><span class="tag">Collection</span></a>
-  </div>
-</section>
-
-<section id="experiments" class="exp">
-  <h2>Experiments</h2>
-  <div class="grid">
-    <a class="card exp" href="product-3d/"><span class="ico">🎧</span><h3>Orbit S1</h3><p>A 3D product page built with three.js.</p><span class="tag">Web design</span></a>
-    <a class="card exp" href="web-hero/"><span class="ico">🕸️</span><h3>Web Hero</h3><p>A swinging-rope platformer prototype.</p><span class="tag">Prototype</span></a>
-  </div>
-</section>
-
-<footer>Everything here works in Chrome, Edge, Firefox and Safari.</footer>
 </div>
+
+<script>
+/* ---------- App list: add a line here for every new app ---------- */
+window.CATS = {
+  chem: { name: "Chemistry",        emoji: "🧪", color: "var(--chem)", hex: "#3cd6b0", blurb: "Run the reactions yourself." },
+  bio:  { name: "Biology",          emoji: "🧬", color: "var(--bio)",  hex: "#ff7f9e", blurb: "Neurons, hearts, cells and evolution." },
+  phys: { name: "Physics & Maths",  emoji: "📐", color: "var(--phys)", hex: "#8fa6ff", blurb: "See why the formulas work." },
+  game: { name: "Games",            emoji: "🎮", color: "var(--game)", hex: "#ffb54d", blurb: "Play, and learn while you rest." },
+  exp:  { name: "Experiments",      emoji: "✨", color: "var(--exp)",  hex: "#c3a8ff", blurb: "Prototypes and design experiments." }
+};
+window.APPS = [
+  { cat: "chem", href: "chemlab/",               emoji: "🧪", title: "ChemLab",                 tag: "Lab",                desc: "A virtual chemistry lab. Mix reagents, run experiments and see the molecules in 3D." },
+  { cat: "chem", href: "titration.html",         emoji: "💧", title: "Titration Curves Lab",    tag: "Ionic equilibrium",  desc: "Open the stopcock and watch pH change drop by drop, with the JEE shortcut next to the exact answer." },
+  { cat: "chem", href: "le-chatelier.html",      emoji: "⚖️", title: "Le Chatelier Lab",        tag: "Equilibrium",        desc: "Change temperature, pressure or volume and watch a real gas equilibrium shift." },
+  { cat: "chem", href: "kinetics.html",          emoji: "⏱️", title: "Reaction Kinetics Lab",   tag: "Kinetics",           desc: "Zero, first, second and nth order reactions, Arrhenius and mechanisms." },
+  { cat: "chem", href: "ideal-gas.html",         emoji: "🎈", title: "Ideal Gas Box",           tag: "States of matter",   desc: "Watch molecules bounce and see pressure and temperature emerge from them." },
+  { cat: "chem", href: "atomic-orbitals.html",   emoji: "⚛️", title: "Atomic Orbitals 3D",      tag: "Atomic structure",   desc: "Orbitals, hybrids and superpositions drawn as clouds you can spin." },
+  { cat: "bio",  href: "heart-ecg.html",         emoji: "❤️", title: "Cardiac Conduction Lab",  tag: "Physiology",         desc: "Watch the heartbeat spread and every ECG wave computed from it. Add scars, shocks and probes.", isNew: true },
+  { cat: "bio",  href: "action-potential.html",  emoji: "⚡", title: "Action Potential Lab",    tag: "Neurobiology",       desc: "A Hodgkin–Huxley neuron with theory and a quiz, for NEET core and advanced." },
+  { cat: "bio",  href: "cytoclash.html",         emoji: "🦠", title: "Cytoclash",               tag: "Strategy game",      desc: "Build an army of cells from ATP and amino acids, then attack the enemy colony." },
+  { cat: "bio",  href: "oncogenesis.html",       emoji: "🧬", title: "Oncogenesis",             tag: "Strategy game",      desc: "Defend the body: stop mutated cells before they invade, grow vessels and spread." },
+  { cat: "bio",  href: "evolution.html",         emoji: "🌊", title: "Primordial",              tag: "Evolution game",     desc: "You are a single cell in an ancient sea. Eat, earn DNA and evolve to survive." },
+  { cat: "phys", href: "formula-intuition.html", emoji: "📐", title: "Formula Intuition Lab",   tag: "Intuition",          desc: "Don't memorise the formula. Move the sliders and see why it has to be that way." },
+  { cat: "phys", href: "flight-sim.html",        emoji: "✈️", title: "Skyward Flight",          tag: "Mechanics",          desc: "Fly a small plane and watch lift, drag, thrust and weight act on it." },
+  { cat: "phys", href: "fourier.html",           emoji: "🌀", title: "Fourier Epicycles",       tag: "Fourier series",     desc: "Draw any closed shape and watch spinning circles redraw it." },
+  { cat: "phys", href: "photo-fourier.html",     emoji: "📷", title: "Photo Fourier Drawing",   tag: "Fourier series",     desc: "Upload a photo and watch it traced by Fourier circles." },
+  { cat: "game", href: "aspirant.html",          emoji: "📓", title: "Aspirant",                tag: "Adventure",          desc: "A JEE life story. Meet wild concepts in the tall grass and catch them in your notebook.", isNew: true },
+  { cat: "game", href: "chunav/",                emoji: "🗳️", title: "Chunav 2029",             tag: "Strategy",           desc: "A Lok Sabha election simulator. Campaign across 543 seats and race to 272.", isNew: true },
+  { cat: "game", href: "wildbound.html",         emoji: "🌿", title: "Wildbound",               tag: "Adventure",          desc: "A handheld-style adventure through Fernvale Valley." },
+  { cat: "game", href: "time-machine.html",      emoji: "⏳", title: "Chronoskip Time Machine", tag: "Toy",                desc: "Dial in a destination year and see where you end up." },
+  { cat: "game", href: "gamebox/",               emoji: "🎮", title: "Game Box",                tag: "Collection",         desc: "More than 20 quick games: snake, maze, memory, typing, maths and more." },
+  { cat: "exp",  href: "product-3d/",            emoji: "⌚", title: "Orbit S1",                tag: "Web design",         desc: "A 3D product page built with three.js." },
+  { cat: "exp",  href: "web-hero/",              emoji: "🕸️", title: "Web Hero",                tag: "Prototype",          desc: "A swinging-rope platformer prototype." }
+];
+
+(function () {
+  const CATS = window.CATS, APPS = window.APPS;
+  const byHref = Object.fromEntries(APPS.map(a => [a.href, a]));
+  const esc = s => s.replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const card = a => `<a class="app" href="${a.href}" style="--c:${CATS[a.cat].color}"><span class="ico">${a.emoji}</span>` +
+    `<h4>${esc(a.title)}${a.isNew ? '<span class="new">NEW</span>' : ""}</h4><p>${esc(a.desc)}</p><span class="tag">${esc(a.tag)}</span></a>`;
+
+  document.getElementById("n-apps").textContent = APPS.length;
+
+  document.getElementById("groups").innerHTML = Object.entries(CATS).map(([id, c]) => {
+    const list = APPS.filter(a => a.cat === id);
+    return `<div class="group" id="cat-${id}" style="--c:${c.color}"><h3>${c.emoji} ${c.name}</h3><div class="grid">${list.map(card).join("")}</div></div>`;
+  }).join("");
+
+  document.querySelectorAll("[data-apps]").forEach(el => {
+    el.innerHTML = el.dataset.apps.split(",").map(h => byHref[h]).filter(Boolean)
+      .map(a => `<a class="chip" href="${a.href}" style="--c:${CATS[a.cat].color}">${a.emoji} ${esc(a.title)}</a>`).join("");
+  });
+
+  document.getElementById("cat-btns").innerHTML = ["chem", "bio", "phys", "game"].map(id => {
+    const c = CATS[id], n = APPS.filter(a => a.cat === id).length;
+    return `<button class="cat-btn" data-cat="${id}" style="--c:${c.color}"><span>${c.emoji}</span><span>${c.name}<small>${n} apps</small></span></button>`;
+  }).join("");
+
+  const wrap = document.getElementById("panel-wrap");
+  let lastFocus = null;
+  window.openCat = function (id) {
+    const c = CATS[id];
+    lastFocus = document.activeElement;
+    wrap.querySelector(".panel").style.setProperty("--c", c.color);
+    document.getElementById("panel-title").textContent = c.name;
+    document.getElementById("panel-sub").textContent = c.blurb;
+    document.getElementById("panel-grid").innerHTML = APPS.filter(a => a.cat === id).map(card).join("");
+    wrap.hidden = false;
+    document.getElementById("panel-close").focus();
+  };
+  function closePanel() { wrap.hidden = true; if (lastFocus) lastFocus.focus(); }
+  document.getElementById("panel-close").onclick = closePanel;
+  wrap.addEventListener("click", e => { if (e.target === wrap) closePanel(); });
+  document.addEventListener("keydown", e => { if (e.key === "Escape" && !wrap.hidden) closePanel(); });
+  document.addEventListener("click", e => {
+    const b = e.target.closest("[data-cat]");
+    if (b) window.openCat(b.dataset.cat);
+  });
+})();
+</script>
+
+<script type="importmap">
+{ "imports": { "three": "./vendor/three-r160/three.module.js" } }
+</script>
+<script type="module">
+import * as THREE from "three";
+
+const root = document.documentElement;
+const canvas = document.getElementById("scene");
+const isSmall = matchMedia("(max-width: 760px)").matches || matchMedia("(pointer: coarse)").matches;
+const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+let renderer;
+try {
+  renderer = new THREE.WebGLRenderer({ canvas, antialias: !isSmall, powerPreference: "high-performance" });
+  if (!renderer.getContext()) throw new Error("no WebGL");
+} catch (e) {
+  root.classList.add("no3d");
+  throw e;
+}
+renderer.setPixelRatio(Math.min(devicePixelRatio, isSmall ? 1.5 : 1.75));
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.05;
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(55, 1, 0.5, 6000);
+
+/* ---------------- terrain ---------------- */
+function hash(x, y) { const h = Math.sin(x * 127.1 + y * 311.7) * 43758.5453; return h - Math.floor(h); }
+function noise(x, y) {
+  const xi = Math.floor(x), yi = Math.floor(y), xf = x - xi, yf = y - yi;
+  const u = xf * xf * (3 - 2 * xf), v = yf * yf * (3 - 2 * yf);
+  const a = hash(xi, yi), b = hash(xi + 1, yi), c = hash(xi, yi + 1), d = hash(xi + 1, yi + 1);
+  return a + (b - a) * u + (c - a) * v + (a - b - c + d) * u * v;
+}
+function ridged(x, y, oct = 5) {
+  let s = 0, amp = 0.5, f = 1;
+  for (let i = 0; i < oct; i++) { const n = 1 - Math.abs(noise(x * f, y * f) * 2 - 1); s += n * n * amp; amp *= 0.5; f *= 2.03; }
+  return s;
+}
+const smooth = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+function H(x, z) {
+  const r = Math.hypot(x, z);
+  const main = 150 * Math.exp(-Math.pow(r / 118, 2));
+  const detail = 34 * ridged(x * 0.011 + 1.7, z * 0.011 + 4.2) * Math.exp(-Math.pow(r / 175, 2));
+  const range = 70 * ridged(x * 0.0055 + 9.1, z * 0.0055 + 2.3) * smooth(130, 300, r) * (1 - smooth(520, 760, r));
+  const floor = 6 * noise(x * 0.02, z * 0.02);
+  return main + detail + range + floor - 8;
+}
+let PEAK = 0, PX = 0, PZ = 0;
+for (let x = -40; x <= 40; x += 2) for (let z = -40; z <= 40; z += 2) { const h = H(x, z); if (h > PEAK) { PEAK = h; PX = x; PZ = z; } }
+
+const SEG = isSmall ? 120 : 200, SIZE = 1500;
+let geo = new THREE.PlaneGeometry(SIZE, SIZE, SEG, SEG);
+geo.rotateX(-Math.PI / 2);
+const pos = geo.attributes.position;
+for (let i = 0; i < pos.count; i++) pos.setY(i, H(pos.getX(i), pos.getZ(i)));
+geo = geo.toNonIndexed();
+geo.computeVertexNormals();
+{
+  const p = geo.attributes.position, n = geo.attributes.normal;
+  const colors = new Float32Array(p.count * 3);
+  const C = {
+    deep: new THREE.Color("#1f3b35"), forest: new THREE.Color("#2f5a43"), meadow: new THREE.Color("#5f7a4a"),
+    rock: new THREE.Color("#6a6371"), rockDark: new THREE.Color("#47424f"), snow: new THREE.Color("#f2f4fa"), snowShade: new THREE.Color("#c9d3ea")
+  };
+  const c = new THREE.Color();
+  for (let i = 0; i < p.count; i += 3) {
+    const y = (p.getY(i) + p.getY(i + 1) + p.getY(i + 2)) / 3;
+    const ny = (n.getY(i) + n.getY(i + 1) + n.getY(i + 2)) / 3;
+    const cx = (p.getX(i) + p.getX(i + 1) + p.getX(i + 2)) / 3, cz = (p.getZ(i) + p.getZ(i + 1) + p.getZ(i + 2)) / 3;
+    const t = y / PEAK, j = hash(cx * 0.37, cz * 0.53);
+    const snowLine = 0.62 + (j - 0.5) * 0.12 - Math.min(0.2, Math.hypot(cx, cz) / 3000);
+    if (t > snowLine && ny > 0.5) c.copy(ny > 0.75 ? C.snow : C.snowShade);
+    else if (t > 0.3 || ny < 0.62) c.copy(C.rock).lerp(C.rockDark, j * 0.8);
+    else if (t > 0.12) c.copy(C.meadow).lerp(C.forest, j);
+    else c.copy(C.forest).lerp(C.deep, j);
+    for (let k = 0; k < 3; k++) { colors[(i + k) * 3] = c.r; colors[(i + k) * 3 + 1] = c.g; colors[(i + k) * 3 + 2] = c.b; }
+  }
+  geo.setAttribute("color", new THREE.BufferAttribute(colors, 3));
+}
+const terrain = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 0.95, metalness: 0 }));
+scene.add(terrain);
+
+/* ---------------- sky, sun, stars, fog ---------------- */
+const SUN_DIR = new THREE.Vector3(-0.55, 0.1, -0.83).normalize();
+const sky = new THREE.Mesh(
+  new THREE.SphereGeometry(2600, 48, 24),
+  new THREE.ShaderMaterial({
+    side: THREE.BackSide, depthWrite: false, fog: false,
+    uniforms: {
+      uSpace: { value: 0 }, uSun: { value: SUN_DIR },
+      uTop: { value: new THREE.Color("#1b1c49") }, uMid: { value: new THREE.Color("#7a4f7c") }, uHorizon: { value: new THREE.Color("#ffad72") },
+      uSpaceTop: { value: new THREE.Color("#02030b") }, uSpaceLow: { value: new THREE.Color("#0b1030") }
+    },
+    vertexShader: `varying vec3 vDir; void main(){ vDir = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`,
+    fragmentShader: `
+      uniform float uSpace; uniform vec3 uSun, uTop, uMid, uHorizon, uSpaceTop, uSpaceLow; varying vec3 vDir;
+      void main(){
+        float h = vDir.y;
+        vec3 dusk = mix(uHorizon, uMid, smoothstep(-0.02, 0.16, h));
+        dusk = mix(dusk, uTop, smoothstep(0.12, 0.6, h));
+        float s = max(dot(vDir, uSun), 0.0);
+        dusk += uHorizon * (pow(s, 6.0) * 0.55 + pow(s, 120.0) * 2.5) * (1.0 - smoothstep(0.0, 0.5, h));
+        vec3 space = mix(uSpaceLow, uSpaceTop, smoothstep(-0.4, 0.5, h));
+        space += vec3(0.25, 0.32, 0.6) * pow(max(1.0 - abs(h + 0.05) * 3.0, 0.0), 3.0) * 0.18;
+        gl_FragColor = vec4(mix(dusk, space, uSpace), 1.0);
+        #include <tonemapping_fragment>
+        #include <colorspace_fragment>
+      }`
+  })
+);
+scene.add(sky);
+
+function glowTexture(inner = "rgba(255,255,255,1)", mid = "rgba(255,255,255,.25)") {
+  const cv = document.createElement("canvas"); cv.width = cv.height = 128;
+  const g = cv.getContext("2d"), gr = g.createRadialGradient(64, 64, 0, 64, 64, 64);
+  gr.addColorStop(0, inner); gr.addColorStop(0.25, mid); gr.addColorStop(1, "rgba(255,255,255,0)");
+  g.fillStyle = gr; g.fillRect(0, 0, 128, 128);
+  const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; return t;
+}
+const GLOW = glowTexture();
+function cloudTexture() {
+  const cv = document.createElement("canvas"); cv.width = cv.height = 256;
+  const g = cv.getContext("2d");
+  for (let i = 0; i < 14; i++) {
+    const x = 70 + hash(i, 1) * 116, y = 90 + hash(i, 2) * 70, r = 40 + hash(i, 3) * 50;
+    const gr = g.createRadialGradient(x, y, 0, x, y, r);
+    gr.addColorStop(0, "rgba(255,255,255,.55)"); gr.addColorStop(1, "rgba(255,255,255,0)");
+    g.fillStyle = gr; g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.fill();
+  }
+  const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; return t;
+}
+
+const skyGroup = new THREE.Group(); // follows the camera so the sky never ends
+scene.add(skyGroup);
+const sunSprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: GLOW, color: "#ffd2a0", transparent: true, depthWrite: false, fog: false, blending: THREE.AdditiveBlending }));
+sunSprite.scale.setScalar(520);
+sunSprite.position.copy(SUN_DIR).multiplyScalar(2300);
+skyGroup.add(sunSprite);
+
+function starLayer(n, size, seed) {
+  const g = new THREE.BufferGeometry(), arr = new Float32Array(n * 3);
+  for (let i = 0; i < n; i++) {
+    const u = hash(i, seed) * 2 - 1, th = hash(seed, i * 1.3) * Math.PI * 2, s = Math.sqrt(1 - u * u);
+    arr[i * 3] = Math.cos(th) * s * 2200; arr[i * 3 + 1] = u * 2200; arr[i * 3 + 2] = Math.sin(th) * s * 2200;
+  }
+  g.setAttribute("position", new THREE.BufferAttribute(arr, 3));
+  const m = new THREE.PointsMaterial({ size, sizeAttenuation: false, color: "#e8ecff", transparent: true, opacity: 0, depthWrite: false, fog: false });
+  const pts = new THREE.Points(g, m); skyGroup.add(pts); return m;
+}
+const stars = [starLayer(isSmall ? 1400 : 2600, 1.3, 7), starLayer(isSmall ? 300 : 600, 2.4, 13)];
+
+const FOG_DUSK = new THREE.Color("#c98a7f"), FOG_SPACE = new THREE.Color("#05061a");
+scene.fog = new THREE.Fog(FOG_DUSK.clone(), 260, 1250);
+
+const hemi = new THREE.HemisphereLight("#ffd6b8", "#2b2445", 1.15);
+scene.add(hemi);
+const sun = new THREE.DirectionalLight("#ffb98a", 2.6);
+sun.position.set(-420, 260, 160);
+scene.add(sun);
+const rim = new THREE.DirectionalLight("#ff9a6a", 1.1);
+rim.position.copy(SUN_DIR).multiplyScalar(500).setY(80);
+scene.add(rim);
+
+/* ---------------- clouds ---------------- */
+const CLOUD = cloudTexture();
+const clouds = [];
+function addCloud(x, y, z, s, op) {
+  const m = new THREE.SpriteMaterial({ map: CLOUD, color: "#ffe3d2", transparent: true, opacity: op, depthWrite: false });
+  const sp = new THREE.Sprite(m); sp.position.set(x, y, z); sp.scale.set(s, s * 0.55, 1);
+  scene.add(sp); clouds.push({ sp, op, high: y > PEAK, drift: (hash(x, z) - 0.5) * 3 });
+}
+for (let i = 0; i < (isSmall ? 50 : 90); i++) {
+  const a = hash(i, 31) * Math.PI * 2, r = 30 + hash(i, 32) * 340;
+  addCloud(Math.cos(a) * r, PEAK + 40 + hash(i, 33) * 60, Math.sin(a) * r, 110 + hash(i, 34) * 150, 0.5 + hash(i, 35) * 0.3);
+}
+for (let i = 0; i < (isSmall ? 18 : 34); i++) {
+  const a = hash(i, 41) * Math.PI * 2, r = 230 + hash(i, 42) * 400;
+  addCloud(Math.cos(a) * r, 45 + hash(i, 43) * 40, Math.sin(a) * r, 160 + hash(i, 44) * 160, 0.35);
+}
+
+/* ---------------- flags at the camps ---------------- */
+function flag(x, z, color, tall = 12) {
+  const y = H(x, z), g = new THREE.Group(); g.position.set(x, y - 0.5, z);
+  const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.25, tall, 6), new THREE.MeshStandardMaterial({ color: "#d9d4cc" }));
+  pole.position.y = tall / 2; g.add(pole);
+  const tri = new THREE.BufferGeometry();
+  tri.setAttribute("position", new THREE.BufferAttribute(new Float32Array([0, tall, 0, 0, tall - 4.5, 0, 7, tall - 2.2, 0]), 3));
+  g.add(new THREE.Mesh(tri, new THREE.MeshBasicMaterial({ color, side: THREE.DoubleSide })));
+  const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: GLOW, color, transparent: true, opacity: 0.9, depthWrite: false, blending: THREE.AdditiveBlending }));
+  glow.position.y = tall - 2; glow.scale.setScalar(16); g.add(glow);
+  scene.add(g); return g;
+}
+const camp1 = new THREE.Vector3(70, 0, 95), camp2 = new THREE.Vector3(62, 0, -40);
+flag(camp1.x, camp1.z, "#3cd6b0");
+flag(camp2.x, camp2.z, "#8fa6ff");
+flag(PX, PZ, "#ffb36b", 16);
+
+/* ---------------- the atom ---------------- */
+const ATOM = new THREE.Vector3(0, PEAK + 330, 0);
+const atom = new THREE.Group(); atom.position.copy(ATOM); scene.add(atom);
+const nucleus = new THREE.Group(); atom.add(nucleus);
+{
+  const pm = new THREE.MeshStandardMaterial({ color: "#ff6a5c", emissive: "#ff4a3a", emissiveIntensity: 0.55, roughness: 0.35 });
+  const nm = new THREE.MeshStandardMaterial({ color: "#b8c4ea", emissive: "#5a6aa8", emissiveIntensity: 0.4, roughness: 0.35 });
+  const sg = new THREE.SphereGeometry(3.4, 24, 16);
+  for (let i = 0; i < 18; i++) {
+    const m = new THREE.Mesh(sg, i % 2 ? nm : pm);
+    const u = hash(i, 51) * 2 - 1, th = hash(i, 52) * Math.PI * 2, r = 2.5 + hash(i, 53) * 4, s = Math.sqrt(1 - u * u);
+    m.position.set(Math.cos(th) * s * r, u * r, Math.sin(th) * s * r); nucleus.add(m);
+  }
+  const ng = new THREE.Sprite(new THREE.SpriteMaterial({ map: GLOW, color: "#ffb38a", transparent: true, opacity: 0.85, depthWrite: false, fog: false, blending: THREE.AdditiveBlending }));
+  ng.scale.setScalar(80); atom.add(ng);
+  const pl = new THREE.PointLight("#ffd9b0", 3, 0, 0); atom.add(pl);
+}
+class Ellipse3 extends THREE.Curve {
+  constructor(a, b) { super(); this.a = a; this.b = b; }
+  getPoint(t, out = new THREE.Vector3()) { const th = t * Math.PI * 2; return out.set(Math.cos(th) * this.a, Math.sin(th) * this.b, 0); }
+}
+const ORBITS = ["chem", "bio", "phys", "game"].map((id, i) => {
+  const c = window.CATS[id], a = 78 + i * 7, b = a * 0.36;
+  const ring = new THREE.Group();
+  ring.rotation.set(i % 2 ? 0.32 : -0.32, 0, (i * Math.PI) / 4 + 0.2);
+  atom.add(ring);
+  ring.add(new THREE.Mesh(new THREE.TubeGeometry(new Ellipse3(a, b), 200, 0.55, 6, true),
+    new THREE.MeshBasicMaterial({ color: c.hex, transparent: true, opacity: 0.75, fog: false })));
+  const e = new THREE.Mesh(new THREE.SphereGeometry(4.6, 24, 16), new THREE.MeshBasicMaterial({ color: c.hex, fog: false }));
+  const eg = new THREE.Sprite(new THREE.SpriteMaterial({ map: GLOW, color: c.hex, transparent: true, depthWrite: false, fog: false, blending: THREE.AdditiveBlending }));
+  eg.scale.setScalar(34); e.add(eg); ring.add(e);
+  const n = window.APPS.filter(x => x.cat === id).length;
+  const label = document.createElement("button");
+  label.className = "orbit-label"; label.style.setProperty("--c", c.color);
+  label.innerHTML = `<span class="e">${c.emoji}</span><span class="t">${c.name} <small>${n} apps</small></span>`;
+  label.setAttribute("aria-label", `${c.name}, ${n} apps`);
+  label.addEventListener("click", () => window.openCat(id));
+  label.tabIndex = -1;
+  document.getElementById("labels").appendChild(label);
+  return { id, ring, e, a, b, phase: i * 1.7, speed: 0.32 - i * 0.04, label };
+});
+
+/* ---------------- camera path ---------------- */
+let posCurve, lookCurve;
+function buildPath() {
+  const aspect = innerWidth / innerHeight;
+  const wide = THREE.MathUtils.clamp(1.3 / aspect, 1, 2.7); // portrait screens need the camera further back
+  const P = [
+    new THREE.Vector3(30, 34, 330 * Math.min(wide, 1.8)),
+    new THREE.Vector3(camp1.x + 120, H(camp1.x, camp1.z) + 30, camp1.z + 125),
+    new THREE.Vector3(camp2.x + 135, H(camp2.x, camp2.z) + 34, camp2.z - 70),
+    new THREE.Vector3(PX + 70, PEAK + 4, PZ + 70),
+    new THREE.Vector3(30, PEAK + 150, 150),
+    new THREE.Vector3(0, ATOM.y + 10, (aspect < 1 ? 140 : 265) * wide)
+  ];
+  const L = [
+    new THREE.Vector3(0, 80, 0),
+    new THREE.Vector3(camp1.x - 10, H(camp1.x, camp1.z) + 10, camp1.z - 20),
+    new THREE.Vector3(camp2.x - 20, H(camp2.x, camp2.z) + 12, camp2.z + 10),
+    new THREE.Vector3(PX - 220, PEAK - 10, PZ - 330),
+    new THREE.Vector3(0, ATOM.y - 40, 0),
+    aspect < 1 ? ATOM.clone().add(new THREE.Vector3(0, -105, 0)) : ATOM.clone().add(new THREE.Vector3(-70, 0, 0))
+  ];
+  posCurve = new THREE.CatmullRomCurve3(P, false, "centripetal");
+  lookCurve = new THREE.CatmullRomCurve3(L, false, "centripetal");
+}
+
+function resize() {
+  const w = innerWidth, h = innerHeight;
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h;
+  camera.fov = w / h < 1 ? 62 : 52;
+  camera.updateProjectionMatrix();
+  buildPath();
+}
+addEventListener("resize", resize);
+resize();
+
+/* ---------------- scroll + loop ---------------- */
+const story = document.getElementById("story"), all = document.getElementById("all");
+const altEl = document.getElementById("alt"), hud = document.getElementById("hud");
+const dots = [...document.querySelectorAll(".dots a")];
+function target() {
+  const max = story.offsetHeight - innerHeight;
+  return THREE.MathUtils.clamp(scrollY / Math.max(1, max), 0, 1);
+}
+let cur = target(), lastAlt = "";
+const tmp = new THREE.Vector3(), look = new THREE.Vector3(), clock = new THREE.Clock();
+const fmt = new Intl.NumberFormat("en-IN");
+
+function frame() {
+  requestAnimationFrame(frame);
+  if (document.hidden) return;
+  const dt = Math.min(clock.getDelta(), 0.05), t = clock.elapsedTime;
+  const tg = target();
+  cur += (tg - cur) * (reduceMotion ? 1 : 1 - Math.pow(0.002, dt));
+  if (Math.abs(tg - cur) < 1e-5) cur = tg;
+
+  posCurve.getPoint(cur, tmp);
+  tmp.y = Math.max(tmp.y, H(tmp.x, tmp.z) + 8);
+  if (!reduceMotion) { tmp.x += Math.sin(t * 0.25) * 2.5; tmp.y += Math.sin(t * 0.33) * 1.5; }
+  camera.position.copy(tmp);
+  lookCurve.getPoint(cur, look);
+  camera.lookAt(look);
+  skyGroup.position.copy(camera.position);
+  sky.position.copy(camera.position);
+
+  const space = smooth(0.6, 0.88, cur);
+  sky.material.uniforms.uSpace.value = space;
+  scene.fog.color.copy(FOG_DUSK).lerp(FOG_SPACE, space);
+  scene.fog.near = 260 + space * 140; scene.fog.far = 1250 - space * 650;
+  stars[0].opacity = 0.05 + space * 0.95; stars[1].opacity = space;
+  sunSprite.material.color.set("#ffd2a0").lerp(new THREE.Color("#fff6e8"), space);
+  hemi.intensity = 1.15 - space * 0.6;
+  for (const c of clouds) {
+    if (!reduceMotion) c.sp.position.x += c.drift * dt;
+    c.sp.material.opacity = c.op * (c.high ? smooth(0.62, 0.72, cur) : 1) * (1 - smooth(0.82, 0.95, cur));
+  }
+
+  atom.visible = space > 0.02;
+  if (!reduceMotion) { atom.rotation.z = t * 0.05; nucleus.rotation.set(t * 0.2, t * 0.3, 0); }
+  const gridTop = all.getBoundingClientRect().top;
+  const show = smooth(0.86, 0.97, cur) * (1 - smooth(innerHeight * 0.95, innerHeight * 0.6, gridTop));
+  for (const o of ORBITS) {
+    const th = o.phase + (reduceMotion ? 0 : t * o.speed);
+    o.e.position.set(Math.cos(th) * o.a, Math.sin(th) * o.b, 0);
+    o.e.getWorldPosition(tmp).project(camera);
+    const visible = show > 0.02 && tmp.z < 1;
+    o.label.style.opacity = visible ? show : 0;
+    o.label.style.pointerEvents = show > 0.6 ? "auto" : "none";
+    o.label.tabIndex = show > 0.6 ? 0 : -1;
+    if (visible) o.label.style.transform =
+      `translate(${((tmp.x + 1) / 2) * innerWidth}px, ${((1 - tmp.y) / 2) * innerHeight}px) translate(-50%, -150%)`;
+  }
+
+  const ALT = [400, 1200, 5400, 8848, 40000, 400000];
+  const k = Math.min(4, Math.floor(cur * 5)), f = cur * 5 - k;
+  const meters = ALT[k] * Math.pow(ALT[k + 1] / ALT[k], f);
+  const alt = meters < 10000 ? fmt.format(Math.round(meters / 10) * 10) + " m" : fmt.format(Math.round(meters / 1000)) + " km";
+  if (alt !== lastAlt) { altEl.textContent = alt; lastAlt = alt; }
+  const step = Math.round(cur * 5);
+  dots.forEach((d, i) => d.classList.toggle("on", i === step));
+  hud.classList.toggle("gone", gridTop < innerHeight * 0.5);
+
+  if (gridTop + 200 > 0) renderer.render(scene, camera);
+}
+frame();
+</script>
 </body>
 </html>

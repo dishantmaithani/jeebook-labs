@@ -1,0 +1,951 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cardiac Conduction Lab</title>
+<style>
+  :root{
+    --bg:#070d14; --panel:#0c1622; --panel2:#0f1c2b; --line:#1c3044; --ink:#e3eef7; --dim:#8aa3b8; --mute:#5b7389;
+    --acc:#5ef2b5; --gold:#ffd166; --red:#ff5d73; --blue:#6cb8ff; --violet:#b48cff;
+    --paper:#0a1210; --trace:#7dffb9;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--ink);font:13px/1.45 system-ui,"Segoe UI",Roboto,sans-serif}
+  button,select,input{font:inherit;color:inherit}
+  header.top{display:flex;flex-wrap:wrap;gap:12px 18px;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--line);background:linear-gradient(180deg,#0b1724,#070d14)}
+  .brand{display:flex;gap:12px;align-items:center}
+  .logo{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;background:radial-gradient(circle at 35% 30%,#ff8a9a,#b3122f);font-size:20px;box-shadow:0 0 18px rgba(255,93,115,.35);animation:beat 1s infinite}
+  @keyframes beat{0%,100%{transform:scale(1)}12%{transform:scale(1.12)}24%{transform:scale(.98)}}
+  h1{margin:0;font-size:17px;letter-spacing:.3px}
+  .sub{margin:0;color:var(--dim);font-size:12px}
+  .transport{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center}
+  .btn{background:var(--acc);color:#03241a;border:0;border-radius:9px;padding:7px 13px;font-weight:700;cursor:pointer}
+  .btn.alt{background:#16283a;color:var(--ink);border:1px solid var(--line)}
+  .btn:hover{filter:brightness(1.1)}
+  .slider{display:flex;align-items:center;gap:7px;color:var(--dim)}
+  .slider b{color:var(--ink);min-width:44px;font-variant-numeric:tabular-nums}
+  input[type=range]{accent-color:var(--acc);width:120px}
+  main.grid{display:grid;grid-template-columns:minmax(330px,.92fr) minmax(420px,1.3fr);gap:12px;padding:12px;max-width:1700px;margin:0 auto}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:10px;min-width:0}
+  .phead{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;margin-bottom:8px}
+  .seg{display:inline-flex;background:#0a131d;border:1px solid var(--line);border-radius:9px;padding:2px;flex-wrap:wrap}
+  .seg button{background:transparent;border:0;border-radius:7px;padding:5px 9px;cursor:pointer;color:var(--dim);white-space:nowrap}
+  .seg button.on{background:#1b3047;color:var(--ink)}
+  .canvwrap{position:relative}
+  canvas{display:block;width:100%}
+  #heart{height:min(560px,62vh);min-height:340px;touch-action:none;cursor:crosshair;border-radius:10px;background:radial-gradient(ellipse at 50% 45%,#0f1d2c,#070d14 70%)}
+  .phase{position:absolute;left:10px;top:10px;right:10px;pointer-events:none;display:flex;flex-direction:column;gap:2px;max-width:420px}
+  .phase b{font-size:15px;color:var(--gold);text-shadow:0 1px 6px #000}
+  .phase span{color:#c9d8e6;font-size:12px;text-shadow:0 1px 4px #000;background:rgba(7,13,20,.55);padding:3px 7px;border-radius:7px;width:fit-content}
+  .legend{position:absolute;right:10px;bottom:10px;background:rgba(7,13,20,.75);border:1px solid var(--line);border-radius:8px;padding:5px 8px;font-size:11px;color:var(--dim);pointer-events:none}
+  .legend .bar{width:150px;height:8px;border-radius:4px;margin:4px 0 2px}
+  .legend .row{display:flex;justify-content:space-between}
+  .toggles{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:8px;color:var(--dim)}
+  .toggles label{display:flex;gap:5px;align-items:center;cursor:pointer}
+  input[type=checkbox]{accent-color:var(--acc)}
+  select{background:#0a131d;border:1px solid var(--line);border-radius:8px;padding:5px 8px}
+  .sub-h{display:flex;justify-content:space-between;color:var(--mute);font-size:11px;text-transform:uppercase;letter-spacing:.8px;margin:8px 2px 4px}
+  #ecg,#ladder,#ap{border-radius:8px;background:var(--paper);touch-action:none;cursor:ew-resize}
+  .hint{color:var(--mute);font-size:11.5px;margin-top:6px}
+  .scale{color:var(--mute);font-size:11.5px}
+  .groups{display:flex;flex-direction:column;gap:10px}
+  .grp h3{margin:0 0 5px;font-size:11px;color:var(--mute);text-transform:uppercase;letter-spacing:.8px;font-weight:600}
+  .chips{display:flex;flex-wrap:wrap;gap:6px}
+  .chip{background:#0f1d2c;border:1px solid var(--line);border-radius:999px;padding:5px 11px;cursor:pointer;color:#cfe0ee}
+  .chip:hover{border-color:#2d5070}
+  .chip.on{background:#123a30;border-color:var(--acc);color:var(--acc)}
+  .mods{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:8px;margin-top:12px;padding-top:10px;border-top:1px solid var(--line)}
+  .mods label{display:flex;justify-content:space-between;align-items:center;gap:8px;color:var(--dim)}
+  .mods select{min-width:118px}
+  .analysis{display:grid;grid-template-columns:1fr 210px;gap:12px}
+  .meas{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+  .m{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:6px 9px}
+  .m .k{color:var(--mute);font-size:10.5px;text-transform:uppercase;letter-spacing:.7px}
+  .m .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums}
+  .m .r{color:var(--mute);font-size:10.5px}
+  .m.bad .v{color:var(--red)} .m.warn .v{color:var(--gold)}
+  .info h2{margin:10px 0 4px;font-size:15px;color:var(--acc)}
+  .info p{margin:4px 0;color:#c4d4e2}
+  .info ul{margin:4px 0 0;padding-left:18px;color:var(--dim)}
+  .info li{margin:2px 0}
+  #vcg{width:210px;height:210px;border-radius:10px;background:#081018}
+  .vcgcap{color:var(--mute);font-size:11px;text-align:center;margin-top:4px}
+  details{margin-top:10px;color:var(--dim)}
+  summary{cursor:pointer;color:var(--ink)}
+  @media (max-width:980px){
+    main.grid{grid-template-columns:1fr;padding:8px}
+    .analysis{grid-template-columns:1fr}
+    #vcg{margin:0 auto}
+    #heart{height:420px}
+  }
+  @media (max-width:520px){ .meas{grid-template-columns:repeat(2,1fr)} input[type=range]{width:90px} }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand"><div class="logo">♥</div><div><h1>Cardiac Conduction Lab</h1><p class="sub">Excitable-tissue model of the heart · every ECG wave is computed from membrane-voltage gradients</p></div></div>
+  <div class="transport">
+    <button id="play" class="btn">❚❚ Pause</button>
+    <button id="step" class="btn alt" title="Advance 5 ms (→ key)">Step ▸</button>
+    <label class="slider">Speed <input id="speed" type="range" min="0" max="100" value="50"><b id="speedV"></b></label>
+    <label class="slider">Sinus rate <input id="hr" type="range" min="30" max="180" value="72"><b id="hrV">72</b></label>
+    <button id="shock" class="btn alt" title="Defibrillate: depolarize every excitable cell at once" style="color:#ffd166">⚡ Shock</button>
+    <button id="reset" class="btn alt">Reset</button>
+  </div>
+</header>
+
+<main class="grid">
+  <section class="panel">
+    <div class="phead">
+      <div class="seg" id="viewSeg"><button data-v="vm" class="on">Voltage</button><button data-v="act">Activation map</button><button data-v="ref">Refractoriness</button></div>
+      <div class="seg" id="toolSeg"><button data-t="stim" class="on" title="Click to fire an ectopic beat. Hold to burst-pace.">⚡ Stimulate</button><button data-t="probe" title="Click a cell to record its action potential">◎ Probe</button><button data-t="scar" title="Paint scar (dead core + slow-conducting border zone)">✎ Scar</button><button data-t="heal">⌫ Heal</button></div>
+    </div>
+    <div class="canvwrap">
+      <canvas id="heart"></canvas>
+      <div class="phase" id="phase"><b></b><span></span></div>
+      <div class="legend" id="legend"></div>
+    </div>
+    <div class="toggles">
+      <label><input type="checkbox" id="tLabels" checked> Labels</label>
+      <label><input type="checkbox" id="tSys" checked> Conduction system</label>
+      <label><input type="checkbox" id="tDip" checked> Heart vector</label>
+      <label><input type="checkbox" id="tAxis" checked> Lead axis</label>
+      <label><input type="checkbox" id="tElec"> Chest electrodes</label>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="phead">
+      <div class="seg" id="layoutSeg"><button data-l="strip" class="on">Rhythm strip</button><button data-l="limb">6 limb leads</button><button data-l="twelve">12-lead</button></div>
+      <label class="slider">Lead <select id="leadSel"></select></label>
+      <span class="scale" id="scaleTxt">25 mm/s · 10 mm/mV · 0.05–40 Hz</span>
+    </div>
+    <canvas id="ecg"></canvas>
+    <div class="sub-h"><span>Ladder diagram · A / AV / V</span><span id="ladderKey">— conducted &nbsp; ⊣ blocked &nbsp; ✱ ectopic</span></div>
+    <canvas id="ladder"></canvas>
+    <div class="sub-h"><span>Action potentials (same time axis)</span><span>−90 … +30 mV</span></div>
+    <canvas id="ap"></canvas>
+    <div class="hint" id="scrubHint">Drag across any trace to scrub time (pauses) — the heart shows that exact instant. Space = play/pause, → = step.</div>
+  </section>
+
+  <section class="panel">
+    <div class="groups" id="presets"></div>
+    <div class="mods">
+      <label>AV node <select id="mAv"><option value="normal">Normal</option><option value="first">1° block</option><option value="wenck">Mobitz I</option><option value="mobitz2">Mobitz II</option><option value="complete">Complete</option></select></label>
+      <label>Bundle branches <select id="mBb"><option value="none">Intact</option><option value="lbbb">LBBB</option><option value="rbbb">RBBB</option></select></label>
+      <label>Atria <select id="mAtr"><option value="sinus">Sinus</option><option value="flutter">Flutter</option><option value="af">Fibrillation</option></select></label>
+      <label>Ventricles <select id="mVent"><option value="none">—</option><option value="vt">VT focus</option><option value="vf">Fibrillation</option></select></label>
+      <label>Ectopy <select id="mEct"><option value="none">None</option><option value="occasional">Occasional PVCs</option><option value="bigeminy">Bigeminy</option></select></label>
+      <label>Ischemia <select id="mIsch"><option value="none">None</option><option value="lateral">Lateral (acute)</option><option value="inferior">Inferior (acute)</option></select></label>
+      <label>Accessory pathway <input type="checkbox" id="mWpw"></label>
+      <label><span>Long QT (I<sub>Kr</sub> block)</span> <input type="checkbox" id="mLqt"></label>
+      <label>VVI pacemaker <input type="checkbox" id="mVvi"></label>
+      <label>Scar <button class="btn alt" id="mScar" style="padding:4px 9px">Clear scars</button></label>
+    </div>
+  </section>
+
+  <section class="panel analysis">
+    <div>
+      <div class="meas" id="meas"></div>
+      <div class="info" id="info"></div>
+      <details>
+        <summary>How this model works</summary>
+        <p>The heart is a 4-chamber section on a 1&nbsp;mm grid (~9,000 cells). Each cell is excitable: when a neighbour fires it activates after <i>distance / conduction velocity</i>, unless it is still refractory. Tissues differ in velocity (AV node lumped at ~0.05&nbsp;m/s, myocardium 0.5–0.9, Purkinje 2.6&nbsp;m/s), action-potential duration, and connectivity — the fibrous annulus insulates atria from ventricles, bundle branches are insulated from septal muscle until their Purkinje terminals.</p>
+        <p>APD and conduction velocity follow restitution curves (shorter/slower when re-excited early), so QT shortens with rate and premature beats conduct slowly. Ventricular APD is longest in early-activated cells, which is why repolarization runs backwards and the T wave is upright.</p>
+        <p>The ECG is not drawn from a template: at every 2&nbsp;ms the model sums the dipole sources (−∇V<sub>m</sub>) of all cells into the lead field of each electrode (RA, LA, LL, V1–V6), forms Einthoven/Goldberger/Wilson leads and passes them through a 0.05–40&nbsp;Hz filter. Bundle-branch blocks, delta waves, ST elevation, Q waves from scar and AV dissociation all emerge from the tissue. Chest leads are approximate because the model is a single plane.</p>
+      </details>
+    </div>
+    <div>
+      <canvas id="vcg"></canvas>
+      <div class="vcgcap">Frontal vectorcardiogram · hexaxial reference<br><span style="color:var(--gold)">━</span> mean QRS axis</div>
+    </div>
+  </section>
+</main>
+
+<script>
+'use strict';
+/* ================================================================
+   GEOMETRY
+   ================================================================ */
+const W=150,H=158,N=W*H;
+const DEG=Math.PI/180, TH=52*DEG, CT=Math.cos(TH), STH=Math.sin(TH);
+const UC=11, VC=0;
+function toLocal(gx,gy){const sx=gx+0.5-W/2, sy=gy+0.5-H/2; return [UC+sx*CT+sy*STH, VC+sx*STH-sy*CT];}
+function toGrid(u,v){const du=u-UC,dv=v-VC; return [du*CT+dv*STH+W/2-0.5, du*STH-dv*CT+H/2-0.5];}
+
+const NONE=0,BLOOD=1,FIB=2,ATR=3,BACH=4,SA=5,HIS=6,LBB=7,RBB=8,PURK=9,VENT=10,ACC=11;
+const GRP=[0,0,0,1,1,1,2,2,2,3,4,5];
+const G_A=1,G_C=2,G_P=3,G_V=4,G_X=5;
+const CVT=[0,0,0,0.85,1.7,0.3,1.4,2.0,2.0,2.6,0.5,0.9];   // mm/ms
+const ERPF=[0,0.85,0.9,0.9,0.9,0.88];
+const RK=[0,0.4,0.45,0.5,0.5,0.15], RT=[1,110,170,170,170,110];   // APD restitution depth per group
+const WGT=[0,0,0,0.7,0.7,0,0.15,0.15,0.15,0.25,1,0.6];
+const UPT=[1,3,2,2,4.5,4];
+const CONN=new Uint8Array(36);
+[[1,1],[1,5],[5,1],[5,5],[5,4],[4,5],[4,4],[3,3],[3,4],[4,3],[2,2],[2,3],[3,2]].forEach(([a,b])=>CONN[a*6+b]=1);
+const OFF=[1,-1,W,-W,W+1,W-1,-W+1,-W-1], DST=[1,1,1,1,Math.SQRT2,Math.SQRT2,Math.SQRT2,Math.SQRT2];
+
+const typ=new Uint8Array(N), cav=new Uint8Array(N), grp=new Uint8Array(N);
+const alive=new Uint8Array(N), blocked=new Uint8Array(N), scar=new Uint8Array(N), avin=new Uint8Array(N), isch=new Uint8Array(N);
+const cvEff=new Float32Array(N), apdBase=new Float32Array(N), rest=new Float32Array(N), amp=new Float32Array(N), tref=new Float32Array(N);
+const locU=new Float32Array(N), locV=new Float32Array(N);
+
+const E=(u,v,cu,cv,ru,rv)=>{const a=(u-cu)/ru,b=(v-cv)/rv;return a*a+b*b<=1;};
+function distSeg(px,py,ax,ay,bx,by){const dx=bx-ax,dy=by-ay;let t=((px-ax)*dx+(py-ay)*dy)/(dx*dx+dy*dy);t=Math.max(0,Math.min(1,t));const x=ax+t*dx-px,y=ay+t*dy-py;return Math.sqrt(x*x+y*y);}
+function paintPath(pts,th,t,skipBlood){
+  for(let i=0;i<N;i++){const u=locU[i],v=locV[i];
+    for(let k=0;k<pts.length-1;k++){ if(distSeg(u,v,pts[k][0],pts[k][1],pts[k+1][0],pts[k+1][1])<=th/2){ if(!(skipBlood&&typ[i]===BLOOD)) typ[i]=t; break; } } }
+}
+const PATHS={
+  bach:[[-40,-12],[-42.5,-3],[-38,10]],
+  his:[[-9.5,-4.5],[-5,-5],[2,-5.5]],
+  lbb:[[2,-5.5],[6,-2.2],[12,-0.8]],
+  rbb:[[2,-6],[10,-9.6],[20,-10.8],[30,-12.3],[37.6,-15.4]],
+  acc:[[-13,29],[-1,30.5]],
+};
+const LM={SA:[-41.5,-27],AVN:[-11,-4.5],HISO:[-8.8,-4.6]};
+
+function build(){
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){
+    const i=y*W+x, [u,v]=toLocal(x,y); locU[i]=u; locV[i]=v; let t=NONE;
+    const vo=E(u,v,18,0,52,40), rao=E(u,v,-26,-21,20,20.5), lao=E(u,v,-25,16,19,18.5), sep=E(u,v,-18,-2,10,5.5);
+    if(vo&&u>=-5)t=VENT;
+    if(u>=-9&&u<-5&&(vo||rao||lao))t=FIB;
+    if(u<-9&&(rao||lao||sep))t=ATR;
+    if(E(u,v,20,13,38,13.5)&&u>=-9.5){t=BLOOD;cav[i]=1}
+    else if(E(u,v,12,-22,30,10.5)&&u>=-9.5){t=BLOOD;cav[i]=2}
+    else if(E(u,v,-24,-21,16,15.5)&&u<-5){t=BLOOD;cav[i]=3}
+    else if(E(u,v,-23,17,15,14)&&u<-5){t=BLOOD;cav[i]=4}
+    typ[i]=t;
+  }
+  // Purkinje endocardial layer
+  const pk=[];
+  for(let i=0;i<N;i++){ if(typ[i]!==VENT)continue; const u=locU[i];
+    for(let k=0;k<8;k++){const c=cav[i+OFF[k]]; if((c===1&&(u>10.5||(u>3&&locV[i]>13)))||(c===2&&u>26)){pk.push(i);break;}} }
+  pk.forEach(i=>typ[i]=PURK);
+  paintPath(PATHS.bach,1.8,BACH,true);
+  for(let i=0;i<N;i++){const du=locU[i]-LM.SA[0],dv=locV[i]-LM.SA[1]; if(du*du+dv*dv<=2.7*2.7)typ[i]=SA;}
+  paintPath(PATHS.his,1.5,HIS,false);
+  paintPath(PATHS.lbb,1.4,LBB,false);
+  paintPath(PATHS.rbb,1.4,RBB,false);
+  paintPath(PATHS.acc,1.6,ACC,true);
+  for(let i=0;i<N;i++){ grp[i]=GRP[typ[i]];
+    if(typ[i]===ATR){const du=locU[i]-LM.AVN[0],dv=locV[i]-LM.AVN[1]; if(du*du+dv*dv<=3.4*3.4)avin[i]=1;} }
+}
+build();
+const tis=[]; for(let i=0;i<N;i++) if(typ[i]>=ATR) tis.push(i);
+const nT=tis.length, TIS=Int32Array.from(tis);
+function nearest(u,v,pred){let best=-1,bd=1e9;for(let i=0;i<N;i++){if(!pred(i))continue;const d=(locU[i]-u)**2+(locV[i]-v)**2;if(d<bd){bd=d;best=i;}}return best;}
+const saCell=nearest(...LM.SA,i=>typ[i]===SA);
+const hisO=nearest(...LM.HISO,i=>typ[i]===HIS);
+const vEsc=nearest(56,12,i=>typ[i]===PURK);
+const pvcCell=nearest(30,34,i=>typ[i]===VENT);
+const vtCell=nearest(46,30,i=>typ[i]===VENT);
+const flCell=nearest(-16,-37,i=>typ[i]===ATR);
+const paceCell=nearest(40,-31,i=>typ[i]===VENT);
+const atrPool=TIS.filter(i=>grp[i]===G_A&&typ[i]!==SA);
+const laPool=atrPool.filter(i=>locV[i]>4);
+let vPool=TIS.filter(i=>grp[i]===G_V);
+
+/* ================================================================
+   ELECTRODES & LEAD FIELDS
+   ================================================================ */
+const EL=[ // x,y (mm, screen frame centred on grid), z (anterior)
+  [-450*Math.cos(30*DEG),-450*0.5,0],[450*Math.cos(30*DEG),-450*0.5,0],[0,450,0],
+  [-26,-2,55],[12,21,58],[20,30,56],[40,50,48],[64,48,32],[86,36,12]];
+// The section is tilted out of the frontal plane: its v-axis (toward the LV) runs posteriorly at PHI,
+// so the RV is anterior and the LV posterior. Gradients along v therefore carry an antero-posterior part.
+const PHI=40*DEG, CPH=Math.cos(PHI), SPH=Math.sin(PHI);
+const NE=EL.length, LX=new Float32Array(nT*NE), LY=new Float32Array(nT*NE);
+for(let j=0;j<nT;j++){const i=TIS[j], x=(i%W)+0.5-W/2, y=((i/W)|0)+0.5-H/2, z=-SPH*locV[i], w=WGT[typ[i]];
+  for(let e=0;e<NE;e++){const dx=EL[e][0]-x,dy=EL[e][1]-y,dz=EL[e][2]-z,r2=dx*dx+dy*dy+dz*dz,r3=r2*Math.sqrt(r2);
+    LX[j*NE+e]=w*(CT*dx+STH*dy)/r3; LY[j*NE+e]=w*(CPH*(STH*dx-CT*dy)-SPH*dz)/r3;}}
+const LEADS=['I','II','III','aVR','aVL','aVF','V1','V2','V3','V4','V5','V6'];
+const LEAD_ANG={I:0,II:60,III:120,aVR:-150,aVL:-30,aVF:90};
+
+/* ================================================================
+   STATE
+   ================================================================ */
+const DEF={hr:72,av:'normal',bb:'none',wpw:false,atr:'sinus',vent:'none',ect:'none',isch:'none',lqt:false,vvi:false};
+let S={...DEF};
+const K=8;
+const lastAct=new Float64Array(N), erpEnd=new Float64Array(N), sched=new Float64Array(N), apdCur=new Float32Array(N);
+const histT=new Float64Array(N*K), histA=new Float32Array(N*K), histH=new Uint8Array(N);
+const cellBeatV=new Int32Array(N), cellBeatA=new Int32Array(N);
+let hT=new Float64Array(1<<16), hC=new Int32Array(1<<16), hN=0, popT=0, popC=0;
+function hpush(t,c){ if(hN>=hT.length){const a=new Float64Array(hT.length*2);a.set(hT);hT=a;const b=new Int32Array(hC.length*2);b.set(hC);hC=b;}
+  let i=hN++; while(i>0){const p=(i-1)>>1; if(hT[p]<=t)break; hT[i]=hT[p];hC[i]=hC[p];i=p;} hT[i]=t;hC[i]=c; }
+function hpop(){ popT=hT[0];popC=hC[0]; hN--; if(hN===0)return; const t=hT[hN],c=hC[hN]; let i=0;
+  for(;;){const l=2*i+1; if(l>=hN)break; const r=l+1; const m=(r<hN&&hT[r]<hT[l])?r:l; if(hT[m]>=t)break; hT[i]=hT[m];hC[i]=hC[m];i=m;} hT[i]=t;hC[i]=c; }
+
+let now=0, nextS=0, sIdx=0, saCL=833, calibrating=false;
+const DT=2, BUF=6000;
+const ring=LEADS.map(()=>new Float32Array(BUF));
+const PROBES=[
+  {name:'SA node',cell:saCell,col:'#ffd166'},
+  {name:'Right atrium',cell:nearest(-25,-38,i=>typ[i]===ATR),col:'#ff9f6b'},
+  {name:'AV node',cell:-1,col:'#ff6bd6'},
+  {name:'Purkinje',cell:nearest(52,22,i=>typ[i]===PURK),col:'#6cb8ff'},
+  {name:'LV endocardium',cell:nearest(36,27.5,i=>typ[i]===VENT),col:'#5ef2b5'},
+  {name:'LV epicardium',cell:nearest(36,38.5,i=>typ[i]===VENT),col:'#b48cff'},
+];
+let userProbe=null;
+const pring=Array.from({length:7},()=>new Float32Array(BUF));
+let gL=1,gC=1, mxL=0,mxC=0;
+const filt=LEADS.map(()=>({hx:0,hy:0,z1:0,z2:0}));
+const HPA=(1/(2*Math.PI*0.05))/((1/(2*Math.PI*0.05))+DT/1000);
+const LPc=(()=>{const K=Math.tan(Math.PI*40/500),Q=Math.SQRT1_2,n=1/(1+K/Q+K*K);return{b0:K*K*n,b1:2*K*K*n,b2:K*K*n,a1:2*(K*K-1)*n,a2:(1-K/Q+K*K)*n};})();
+let spike=0;
+
+let AVH=[], avLastArr=-1e9, avLastOut=-1e9, m2cnt=0, hisFromAV=-1e9, apAct=-1e9;
+let aBeat=null, aId=0, aStarts=new Float64Array(4096);
+let vb=null, vId=0, vStarts=new Float64Array(4096), beats=[], markers=[], lastMeas=null, rrHist=[];
+let afFoci=[], vfFoci=[], pvcAt=0, stimQ=[], holdStim=null, sparks=[];
+let nVAlive=0, nAAlive=0, lastVAct=0;
+
+const AVP={normal:{ah:85,A:160,tau:90,erp:220},first:{ah:265,A:160,tau:90,erp:220},wenck:{ah:120,A:1600,tau:300,erp:380},mobitz2:{ah:85,A:160,tau:90,erp:220},complete:{ah:85,A:160,tau:90,erp:220}};
+
+function applyState(){
+  for(let j=0;j<nT;j++){const i=TIS[j],t=typ[i],g=grp[i];
+    alive[i]=(t===ACC&&!S.wpw)||scar[i]===1||t<ATR?0:1;
+    blocked[i]=(t===LBB&&S.bb==='lbbb')||(t===RBB&&S.bb==='rbbb')?1:0;
+    let isc=0;
+    if(S.isch==='lateral'&&(g===G_V||g===G_P)&&((i%W)+0.5-W/2)>22&&((i/W)|0)+0.5-H/2<30)isc=1;
+    if(S.isch==='inferior'&&(g===G_V||g===G_P)&&((i/W)|0)+0.5-H/2>25)isc=1;
+    isch[i]=isc;
+    let apd;
+    if(g===G_A) apd=(t===SA?160:150)*(S.atr==='af'?0.62:1);
+    else if(g===G_V) apd=Math.max(190,Math.min(400,292-TUNE.k*(tref[i]-refMean)-TUNE.epi*(locV[i]<-11?1:TUNE.lvEpi)*Math.max(0,1-epiD[i]/7)-(locV[i]<-11?TUNE.rv:0)-TUNE.ap*(locU[i]-30)/40));
+    else if(g===G_X) apd=255; else apd=330;
+    if(S.lqt&&(g===G_V||g===G_P)) apd*=1.38;
+    if(isc) apd*=0.78;
+    apdBase[i]=apd;
+    rest[i]=isc?-62:(g===G_A?-82:-85);
+    amp[i]=(isc?0.72:1)*(g===G_A?100:115);
+    cvEff[i]=CVT[t]*(scar[i]===2?0.12:1)*(isc?0.8:1);
+  }
+  nVAlive=0;nAAlive=0; for(let j=0;j<nT;j++){const i=TIS[j]; if(!alive[i])continue; if(grp[i]===G_V)nVAlive++; else if(grp[i]===G_A)nAAlive++;}
+  saCL=60000/S.hr;
+}
+let refMean=0; const unreach=[]; const TUNE={k:1.3,epi:30,rv:80,ap:20,lvEpi:0.5};
+// distance (mm) from the epicardial surface, for the transmural APD gradient (epicardium repolarizes first)
+const epiD=new Float32Array(N).fill(99);
+(()=>{const q=[]; for(let i=W;i<N-W;i++){ if(grp[i]!==G_V&&grp[i]!==G_P)continue; for(let k=0;k<4;k++) if(typ[i+OFF[k]]===NONE){epiD[i]=0;q.push(i);break;} }
+  for(let h=0;h<q.length;h++){const i=q[h]; for(let k=0;k<4;k++){const n=i+OFF[k]; if((grp[n]===G_V||grp[n]===G_P)&&epiD[n]>epiD[i]+1){epiD[n]=epiD[i]+1;q.push(n);}}}})();
+
+function resetState(){
+  lastAct.fill(-1e9); erpEnd.fill(-1e9); sched.fill(-1e9); histT.fill(-1e9); histH.fill(0); apdCur.set(apdBase);
+  cellBeatV.fill(0); cellBeatA.fill(0);
+  hN=0; now=0; nextS=0; sIdx=0; ring.forEach(r=>r.fill(0)); pring.forEach(r=>r.fill(0));
+  filt.forEach(f=>{f.hx=f.hy=f.z1=f.z2=0;});
+  AVH=[];avLastArr=-1e9;avLastOut=-1e9;m2cnt=0;hisFromAV=-1e9;apAct=-1e9;aBeat=null;vb=null;beats=[];markers=[];lastMeas=null;rrHist=[];
+  afFoci=[];vfFoci=[];pvcAt=0;stimQ=[];sparks=[];lastVAct=0;
+  lastAct[saCell]=-saCL+160; lastAct[hisO]=0; lastAct[vEsc]=0; lastAct[paceCell]=0;
+}
+
+/* ================================================================
+   ENGINE
+   ================================================================ */
+function activate(i,t){
+  const g=grp[i];
+  const DI=t-(lastAct[i]+apdCur[i]);
+  const apd=apdBase[i]*(1-RK[g]*Math.exp(-(DI>0?DI:0)/RT[g]));
+  lastAct[i]=t; apdCur[i]=apd; erpEnd[i]=t+apd*ERPF[g];
+  const h=(histH[i]+1)&7; histH[i]=h; histT[i*K+h]=t; histA[i*K+h]=apd;
+  if(g===G_A){ aTrack(t,i); if(avin[i]) avInput(t); }
+  else if(g===G_V) vTrack(t,i,apd);
+  else if(g===G_X) apAct=t;
+  if(i===hisO) onHis(t);
+  for(let k=0;k<8;k++){const n=i+OFF[k];
+    if(!alive[n]||blocked[n]||!CONN[g*6+grp[n]])continue;
+    const cv=cvEff[n], jd=(g===G_V&&grp[n]===G_P)?50:0; let ta=t+jd+DST[k]/cv; const ee=erpEnd[n];
+    if(ta<ee)continue;
+    const f=1-0.6*Math.exp(-(ta-ee)/30); ta=t+jd+DST[k]/(cv*f);
+    if(sched[n]>t&&sched[n]<=ta)continue;   // an earlier arrival is already pending
+    sched[n]=ta; hpush(ta,n);
+  }
+}
+function processTo(T){ while(hN>0&&hT[0]<=T){hpop(); const c=popC,t=popT; if(t<erpEnd[c]||!alive[c]||blocked[c])continue; activate(c,t);} }
+function stim(i,t){ if(i>=0&&alive[i]&&!blocked[i]&&t>=erpEnd[i]){activate(i,t);return true;} return false; }
+
+function avInput(t){
+  if(t-avLastArr<60)return; avLastArr=t;
+  const p=AVP[S.av], R=t-avLastOut; let blk=false,tout=0;
+  if(S.av==='complete'||R<p.erp){ blk='node';
+    // concealed conduction: a blocked impulse can still penetrate partway and re-set nodal refractoriness
+    if(S.atr==='af'&&R>0.5*p.erp&&Math.random()<0.45) avLastOut=t-p.erp*0.6; }
+  else { tout=t+p.ah+p.A*Math.exp(-R/p.tau); avLastOut=tout;
+    if(S.av==='mobitz2'){ m2cnt++; if(m2cnt%3===0) blk='infra'; }
+    if(!blk){ sched[hisO]=tout; hpush(tout,hisO); } }
+  AVH.push({tin:t,tout,blk,aS:aBeat?aBeat.start:t-20});
+  if(AVH.length>300)AVH.splice(0,100);
+  if(blk&&S.atr==='sinus') markers.push({t:t+40,txt:'✕',k:'blk'});
+}
+function onHis(t){
+  if(t>=avLastOut-0.5&&t<=avLastOut+0.5) hisFromAV=t; else return;
+  if(S.ect!=='none'&&!calibrating&&(S.ect==='bigeminy'||Math.random()<0.22)) pvcAt=t+440;
+}
+function aTrack(t,i){
+  if(!aBeat||t-aBeat.last>45){ aBeat={start:t,last:t}; aId++; aStarts[aId&4095]=t;
+    if(S.atr==='sinus') markers.push({t:t+45,txt:'P',k:'p'}); else if(S.atr==='flutter') markers.push({t:t+50,txt:'F',k:'p'}); }
+  aBeat.last=t; cellBeatA[i]=aId;
+}
+function vTrack(t,i,apd){
+  lastVAct=t;
+  if(!vb||(t-vb.last>40&&t-vb.start>160)||(cellBeatV[i]===vb.id&&t-vb.start>150)){
+    if(vb&&!vb.done) vb.done=true;
+    let origin='ect'; if(t-hisFromAV<70&&t-hisFromAV>=0) origin='his'; if(t-apAct<30&&t-apAct>=0&&S.wpw) origin='ap';
+    if(origin==='ect'&&t-lastAct[hisO]<70&&t-lastAct[hisO]>=0) origin='jx';
+    vId++; vb={id:vId,start:t,last:t,n:0,rep:[],qrsEnd:0,done:false,origin,aS:aBeat?aBeat.start:null,axisAt:0};
+    vStarts[vId&4095]=t; beats.push(vb); if(beats.length>60)beats.shift();
+    const prev=beats[beats.length-2]; if(prev){rrHist.push(t-prev.start); if(rrHist.length>6)rrHist.shift();}
+  }
+  vb.last=t;
+  if(cellBeatV[i]!==vb.id){ cellBeatV[i]=vb.id; vb.n++; vb.rep.push(t+apd); }
+  if(!vb.qrsEnd&&vb.n>=0.96*nVAlive){ vb.qrsEnd=t; finishBeat(vb); }
+}
+function finishBeat(b){
+  const r=b.rep.slice().sort((a,c)=>a-c), tEnd=r[Math.floor(r.length*0.97)]+22, tPk=r[Math.floor(r.length*0.6)];
+  b.qrs=b.qrsEnd-b.start+6; b.qt=tEnd-b.start; b.tEnd=tEnd; b.axisAt=b.qrsEnd+24;
+  let pr=null; if(b.aS!=null&&(b.origin==='his'||b.origin==='ap')){pr=b.start-b.aS; if(pr<40||pr>700)pr=null;}
+  b.pr=pr;
+  markers.push({t:b.start+b.qrs*0.45,txt:b.origin==='his'||b.origin==='ap'||b.origin==='jx'?'QRS':'PVC',k:'q'});
+  markers.push({t:tPk,txt:'T',k:'t'});
+  if(markers.length>400)markers.splice(0,150);
+}
+function computeAxis(b){
+  const s0=Math.floor(b.start/DT)+3, s1=Math.floor(b.qrsEnd/DT)+5; let aI=0,aF=0;
+  for(let s=s0;s<=s1;s++){ if(s<sIdx-BUF+1||s>=sIdx)continue; const p=s%BUF; aI+=ring[0][p]; aF+=ring[5][p]; }
+  b.axis=Math.round(Math.atan2(aF/1.5,aI/1.732)/DEG);
+  const rr=rrHist.length?rrHist.slice(-4).reduce((a,c)=>a+c,0)/Math.min(4,rrHist.length):null;
+  lastMeas={hr:rr?60000/rr:null,pr:b.pr,qrs:b.qrs,qt:b.qt,qtc:rr?b.qt/Math.sqrt(rr/1000):null,axis:b.axis,beat:b};
+}
+
+function pacemakers(t){
+  if(t-lastAct[saCell]>=saCL&&t>=erpEnd[saCell]){ stim(saCell,t); saCL=60000/S.hr*(1+0.04*(Math.random()-0.5)); }
+  if(t-lastAct[hisO]>=1600&&t-lastVAct>=1600&&t>=erpEnd[hisO]) stim(hisO,t);
+  if(t-lastVAct>=2700&&t>=erpEnd[vEsc]) stim(vEsc,t);
+  if(S.atr==='flutter'&&t-lastAct[flCell]>=200) stim(flCell,t);
+  if(S.atr==='af'){ if(!afFoci.length) for(let k=0;k<6;k++) afFoci.push({next:t+Math.random()*150});
+    for(const f of afFoci) if(t>=f.next){ const pool=Math.random()<0.7?laPool:atrPool; stim(pool[(Math.random()*pool.length)|0],t); f.next=t+90+Math.random()*110; } }
+  else afFoci=[];
+  if(S.vent==='vt'&&t-lastAct[vtCell]>=330) stim(vtCell,t);
+  if(S.vent==='vf'){ if(!vfFoci.length) for(let k=0;k<6;k++) vfFoci.push({next:t+Math.random()*120});
+    for(const f of vfFoci) if(t>=f.next){ stim(vPool[(Math.random()*vPool.length)|0],t); f.next=t+110+Math.random()*110; } }
+  else vfFoci=[];
+  if(vb&&!vb.qrsEnd&&t-vb.last>25){ vb.qrsEnd=vb.last; finishBeat(vb); }
+  if(pvcAt&&t>=pvcAt){ stim(pvcCell,t); pvcAt=0; }
+  if(S.vvi&&t-lastAct[paceCell]>=1000){ if(stim(paceCell,t)){ spike=1; markers.push({t,txt:'pace',k:'pace'}); } else lastAct[paceCell]=t-700; }
+  while(stimQ.length){ const c=stimQ.shift(); if(stim(c,t)) markers.push({t,txt:'⚡',k:'stim'}); }
+  if(holdStim&&t>=holdStim.next){ if(stim(holdStim.cell,t)) markers.push({t,txt:'⚡',k:'stim'}); holdStim.next=t+260; }
+}
+
+/* ---------- membrane potential ---------- */
+const LS=400, LN=Math.ceil(1.6*LS)+2;
+const LUTV=new Float32Array(LN), LUTA=new Float32Array(LN);
+for(let k=0;k<LN;k++){const s=k/LS; LUTV[k]=(1-0.18*s)/(1+Math.exp((s-0.95)/0.06)); LUTA[k]=Math.max(0,(1-0.3*s)/(1+Math.exp((s-0.8)/0.09)));}
+const V=new Float32Array(N), FRONT=new Uint8Array(N), DTA=new Float32Array(N), DA=new Float32Array(N);
+let STATS={aF:0,vF:0,cF:0,vD:0,vR:0,aD:0};
+function saVm(dt,d){ if(dt>1e8)return -48; if(dt<d){ if(dt<12)return -42+50*dt/12; return -60+68*LUTA[Math.min(LN-1,(dt/d*LS)|0)]; } return -60+18*Math.min(1,(dt-d)/Math.max(60,saCL-d)); }
+function computeVm(tau,stats){
+  let aF=0,vF=0,cF=0,vD=0,vR=0,aD=0;
+  for(let j=0;j<nT;j++){const i=TIS[j];
+    if(!alive[i]){V[i]=-85;if(stats){FRONT[i]=0;DTA[i]=1e9;}continue;}
+    const b=i*K; let h=histH[i], a=histT[b+h], d=histA[b+h];
+    if(a>tau){let k=1;for(;k<K;k++){h=(h+K-1)&7;a=histT[b+h];d=histA[b+h];if(a<=tau)break;} if(k===K){a=-1e9;d=200;}}
+    const dt=tau-a, g=grp[i]; let v;
+    if(typ[i]===SA) v=saVm(dt,d);
+    else if(dt>=d*1.6) v=rest[i];
+    else { const up=dt<UPT[g]?dt/UPT[g]:1, notch=(g!==G_A&&dt<12)?1+0.12*(1-dt/12):1;
+      v=rest[i]+amp[i]*up*notch*(g===G_A?LUTA:LUTV)[(dt/d*LS)|0]; }
+    V[i]=v;
+    if(stats){ const fr=dt<7; FRONT[i]=fr?1:0; DTA[i]=dt; DA[i]=d;
+      if(g===G_A){if(fr)aF++; if(dt<d)aD++;} else if(g===G_V){if(fr)vF++; if(dt<d*0.86)vD++; else if(dt<d*1.12)vR++;} else if(g===G_C||g===G_P){if(fr&&!blocked[i])cF++;} }
+  }
+  if(stats) STATS={aF,vF,cF,vD,vR,aD};
+}
+function avVm(tau){
+  let r=null; for(let k=AVH.length-1;k>=0;k--){ if(AVH[k].tin<=tau){r=AVH[k];break;} }
+  if(!r) return -60;
+  const dt=tau-r.tin;
+  if(r.blk==='node'){ return -60+14*Math.exp(-dt/40)*Math.min(1,dt/10); }
+  const ah=r.tout-r.tin;
+  if(dt<ah*0.75) return -60+18*dt/(ah*0.75);
+  if(dt<ah*0.75+20) return -42+47*(dt-ah*0.75)/20;
+  const s=(dt-ah*0.75-20)/200; if(s<1.4) return -60+65*LUTA[Math.min(LN-1,(s*LS)|0)];
+  return -60+10*Math.min(1,(s-1.4)/3);
+}
+
+const phi=new Float64Array(NE);
+function sample(t){
+  computeVm(t,false);
+  phi.fill(0);
+  for(let j=0;j<nT;j++){const i=TIS[j]; if(!alive[i])continue; const vi=V[i];
+    const gx=((alive[i+1]?V[i+1]:vi)-(alive[i-1]?V[i-1]:vi))*0.5, gy=((alive[i+W]?V[i+W]:vi)-(alive[i-W]?V[i-W]:vi))*0.5;
+    if(gx<0.02&&gx>-0.02&&gy<0.02&&gy>-0.02)continue;
+    const gu=gx*CT+gy*STH, gv=gx*STH-gy*CT;
+    const o=j*NE; for(let e=0;e<NE;e++) phi[e]-=gu*LX[o+e]+gv*LY[o+e];
+  }
+  const RA=phi[0],LA=phi[1],LL=phi[2],wct=(RA+LA+LL)/3;
+  const raw=[LA-RA,LL-RA,LL-LA,RA-(LA+LL)/2,LA-(RA+LL)/2,LL-(RA+LA)/2,phi[3]-wct,phi[4]-wct,phi[5]-wct,phi[6]-wct,phi[7]-wct,phi[8]-wct];
+  if(calibrating){ mxL=Math.max(mxL,Math.abs(raw[1])); for(let k=6;k<12;k++)mxC=Math.max(mxC,Math.abs(raw[k])); }
+  const pos=sIdx%BUF;
+  for(let k=0;k<12;k++){ const x=raw[k]*(k<6?gL:gC), f=filt[k];
+    const hy=HPA*(f.hy+x-f.hx); f.hx=x; f.hy=hy;
+    const y=LPc.b0*hy+f.z1; f.z1=LPc.b1*hy-LPc.a1*y+f.z2; f.z2=LPc.b2*hy-LPc.a2*y;
+    ring[k][pos]=y+(spike?(k===3?-3:3.2):0); }
+  spike=0;
+  for(let p=0;p<6;p++){ const pr=PROBES[p]; pring[p][pos]=pr.cell<0?avVm(t):V[pr.cell]; }
+  pring[6][pos]=userProbe!=null?V[userProbe]:0;
+  sIdx++;
+  for(const b of beats) if(b.axisAt&&t>=b.axisAt&&b.axis==null) computeAxis(b);
+}
+function advance(ms){
+  const target=now+ms;
+  while(nextS<=target){ processTo(nextS); pacemakers(nextS); processTo(nextS); sample(nextS); nextS+=DT; }
+  processTo(target); now=target;
+}
+
+/* ---------- init: reference activation map & calibration ---------- */
+(function init(){
+  for(let j=0;j<nT;j++){const i=TIS[j]; alive[i]=typ[i]===ACC?0:1; apdBase[i]=300; cvEff[i]=CVT[typ[i]];}
+  resetState(); activate(hisO,0); processTo(400);
+  let s=0,n=0; for(const i of vPool){ if(lastAct[i]>-1e8){tref[i]=lastAct[i]; s+=tref[i]; n++;} else unreach.push(i); } refMean=s/n;
+  for(const i of unreach){ tref[i]=refMean; typ[i]=FIB; grp[i]=0; }   // enclosed upper septum = membranous (fibrous) septum
+  vPool=vPool.filter(i=>typ[i]===VENT);
+  applyState(); resetState(); calibrating=true; mxL=0;mxC=0;
+  while(now<1500) advance(20);
+  calibrating=false; gL=1.35/mxL; gC=2.2/mxC;
+  resetState();
+})();
+
+/* ================================================================
+   UI / RENDERING
+   ================================================================ */
+const $=id=>document.getElementById(id);
+const hc=$('heart'), hx=hc.getContext('2d'), ec=$('ecg'), ex=ec.getContext('2d'), lc=$('ladder'), lx=lc.getContext('2d'), ac=$('ap'), ax=ac.getContext('2d'), vc=$('vcg'), vx=vc.getContext('2d');
+let running=true, speed=0.15, view='vm', tool='stim', layout='strip', mainLead=1, scrubT=null;
+const off=document.createElement('canvas'); off.width=W; off.height=H; const ox=off.getContext('2d'); const img=ox.createImageData(W,H); const px32=new Uint32Array(img.data.buffer);
+const goff=document.createElement('canvas'); goff.width=W; goff.height=H; const gox=goff.getContext('2d'); const gimg=gox.createImageData(W,H); const g32=new Uint32Array(gimg.data.buffer);
+const rgba=(r,g,b,a=255)=>((a<<24)|(b<<16)|(g<<8)|r)>>>0;
+const STOPS=[[-90,[10,14,40]],[-72,[22,40,104]],[-48,[88,44,150]],[-20,[190,48,110]],[5,[245,104,48]],[30,[255,232,140]]];
+const CMAP=new Uint32Array(256);
+for(let k=0;k<256;k++){const v=-90+120*k/255; let a=STOPS[0],b=STOPS[STOPS.length-1];
+  for(let s=0;s<STOPS.length-1;s++) if(v>=STOPS[s][0]&&v<=STOPS[s+1][0]){a=STOPS[s];b=STOPS[s+1];break;}
+  const f=b[0]===a[0]?0:Math.max(0,Math.min(1,(v-a[0])/(b[0]-a[0]))); CMAP[k]=rgba(...a[1].map((c,q)=>Math.round(c+(b[1][q]-c)*f)));}
+function hsl(h,s,l){s/=100;l/=100;const k=n=>(n+h/30)%12,a=s*Math.min(l,1-l),f=n=>l-a*Math.max(-1,Math.min(k(n)-3,Math.min(9-k(n),1)));return rgba(Math.round(255*f(0)),Math.round(255*f(8)),Math.round(255*f(4)));}
+const ACTMAP=new Uint32Array(128); for(let k=0;k<128;k++) ACTMAP[k]=hsl(k/127*270,88,56);
+const BLOODC=[rgba(62,10,22),rgba(70,12,26),rgba(56,9,20),rgba(64,11,24),rgba(60,10,22)];
+for(let i=0;i<N;i++){const t=typ[i]; px32[i]=t===BLOOD?BLOODC[cav[i]]:t===FIB?rgba(70,66,78):0;}
+const basePx=px32.slice(); const ACT=new Int16Array(N).fill(-1);
+const BB={x0:W,x1:0,y0:H,y1:0}; for(let i=0;i<N;i++) if(typ[i]!==NONE){const x=i%W,y=(i/W)|0; BB.x0=Math.min(BB.x0,x);BB.x1=Math.max(BB.x1,x);BB.y0=Math.min(BB.y0,y);BB.y1=Math.max(BB.y1,y);}
+
+let HS={s:1,ox:0,oy:0};
+function g2c(gx,gy){return [HS.ox+(gx+0.5)*HS.s, HS.oy+(gy+0.5)*HS.s];}
+function l2c(u,v){const [gx,gy]=toGrid(u,v);return g2c(gx,gy);}
+function sizeCanvas(c,h){const d=devicePixelRatio||1, r=c.getBoundingClientRect(); const w=Math.max(10,r.width); if(h)c.style.height=h+'px'; const hh=h||r.height;
+  if(c.width!==Math.round(w*d)||c.height!==Math.round(hh*d)){c.width=Math.round(w*d);c.height=Math.round(hh*d);} return {w,h:hh,d};}
+
+function drawHeart(tau){
+  const {w,h,d}=sizeCanvas(hc); hx.setTransform(d,0,0,d,0,0); hx.clearRect(0,0,w,h);
+  const bw=BB.x1-BB.x0+1, bh=BB.y1-BB.y0+1, padX=w<480?40:95, padT=w<480?70:64, padB=34;
+  const s=Math.min((w-2*padX)/bw,(h-padT-padB)/bh); HS={s,ox:(w-bw*s)/2-BB.x0*s,oy:padT+(h-padT-padB-bh*s)/2-BB.y0*s};
+  px32.set(basePx); g32.fill(0);
+  const vb0=vId;
+  for(let j=0;j<nT;j++){const i=TIS[j]; const g=grp[i];
+    if(!alive[i]){ px32[i]=scar[i]===1?rgba(52,50,54):rgba(70,66,78); continue; }
+    let c;
+    if(view==='vm'){ const k=Math.max(0,Math.min(255,((V[i]+90)/120*255)|0)); c=CMAP[k]; if(FRONT[i]&&!blocked[i]) g32[i]=g===G_A?rgba(255,220,170,230):rgba(255,250,215,255); }
+    else if(view==='act'){
+      let rel=-1, span=120;
+      if(g===G_A){ const id=cellBeatA[i]; if(id>0&&id>=aId-1){rel=lastAct[i]-aStarts[id&4095]; span=110;} }
+      else { const id=cellBeatV[i]; if(g===G_V){ if(id>0&&id>=vb0-1) rel=lastAct[i]-vStarts[id&4095]; } else { if(vb0>0){const r=lastAct[i]-vStarts[vb0&4095]; rel=r>-60&&r<300?Math.max(0,r):-1;} } span=g===G_V?150:150; }
+      if(rel<0||rel>400){ c=rgba(40,46,58); ACT[i]=-1; }
+      else { c=ACTMAP[Math.min(127,(rel/span*127)|0)]; ACT[i]=Math.floor(rel/10); }
+    } else {
+      const dt=DTA[i],dd=DA[i],e=dd*ERPF[g];
+      if(dt<e){const f=dt/e; c=rgba(200+Math.round(40*f),40+Math.round(60*f),60);} else if(dt<dd*1.08){c=rgba(240,170,60);} else c=rgba(24,90,80);
+    }
+    if(scar[i]===2){ c=((c&0xff)*0.55|0)|((((c>>8)&0xff)*0.55|0)<<8)|((((c>>16)&0xff)*0.6|0)<<16)|(255<<24); }
+    if(blocked[i]) c=rgba(90,90,96);
+    if(isch[i]&&view==='vm'){ const r=c&0xff,gg=(c>>8)&0xff,bb=(c>>16)&0xff; c=rgba(Math.min(255,r+18),gg,Math.max(0,bb-10)); }
+    px32[i]=c>>>0;
+  }
+  if(view==='act') for(let j=0;j<nT;j++){const i=TIS[j]; const a=ACT[i]; if(a<0||!alive[i])continue;
+    const r=ACT[i+1], d=ACT[i+W]; if((alive[i+1]&&r>=0&&r!==a)||(alive[i+W]&&d>=0&&d!==a)){const c=px32[i]; px32[i]=rgba((c&0xff)*0.35|0,((c>>8)&0xff)*0.35|0,((c>>16)&0xff)*0.35|0);} }
+  ox.putImageData(img,0,0); gox.putImageData(gimg,0,0);
+  hx.save(); hx.imageSmoothingEnabled=true; hx.imageSmoothingQuality='high';
+  hx.shadowColor='rgba(255,60,90,.18)'; hx.shadowBlur=30;
+  hx.drawImage(off,HS.ox,HS.oy,W*s,H*s); hx.restore();
+  if(view==='vm'){ hx.save(); hx.globalCompositeOperation='lighter'; hx.filter='blur('+Math.max(2,s*1.6)+'px)'; hx.drawImage(goff,HS.ox,HS.oy,W*s,H*s); hx.filter='none'; hx.globalAlpha=0.55; hx.drawImage(goff,HS.ox,HS.oy,W*s,H*s); hx.restore(); }
+  // scars hatch
+  if(view!=='x'){ hx.save(); hx.strokeStyle='rgba(150,150,160,.35)'; hx.lineWidth=1; hx.beginPath();
+    for(let i=0;i<N;i++) if(scar[i]===1&&((i%W)+((i/W)|0))%3===0){const [x,y]=g2c(i%W,(i/W)|0); hx.moveTo(x-s*.6,y+s*.6); hx.lineTo(x+s*.6,y-s*.6);} hx.stroke(); hx.restore(); }
+  if($('tSys').checked) drawSystem(tau);
+  drawNodes(tau);
+  if($('tAxis').checked) drawLeadAxis(tau);
+  if($('tDip').checked) drawDipole(tau);
+  if($('tElec').checked||layout==='twelve'&&mainLead>=6) drawElectrodes();
+  if($('tLabels').checked) drawLabels();
+  // probe marker
+  const pc=userProbe!=null?[userProbe]:[];
+  for(const c of pc){const [x,y]=g2c(c%W,(c/W)|0); hx.strokeStyle='#fff'; hx.lineWidth=1.5; hx.beginPath(); hx.arc(x,y,6,0,7); hx.stroke(); hx.beginPath(); hx.moveTo(x-10,y);hx.lineTo(x+10,y);hx.moveTo(x,y-10);hx.lineTo(x,y+10);hx.stroke();}
+  const tnow=performance.now();
+  sparks=sparks.filter(sp=>tnow-sp.t<700);
+  for(const sp of sparks){const f=(tnow-sp.t)/700; hx.strokeStyle=`rgba(255,240,150,${1-f})`; hx.lineWidth=2; hx.beginPath(); hx.arc(sp.x,sp.y,4+f*26,0,7); hx.stroke();}
+}
+function strokePath(pts,col,wid){hx.strokeStyle=col;hx.lineWidth=wid;hx.lineCap='round';hx.lineJoin='round';hx.beginPath();pts.forEach((p,k)=>{const [x,y]=l2c(p[0],p[1]); k?hx.lineTo(x,y):hx.moveTo(x,y);});hx.stroke();}
+function cellAt(u,v){const [gx,gy]=toGrid(u,v);return Math.round(gy)*W+Math.round(gx);}
+function drawSystem(tau){
+  const segs=[['bach',PATHS.bach],['his',PATHS.his],['lbb',PATHS.lbb],['rbb',PATHS.rbb]];
+  if(S.wpw) segs.push(['acc',PATHS.acc]);
+  for(const [nm,pts] of segs){
+    for(let k=0;k<pts.length-1;k++){const a=pts[k],b=pts[k+1],L=Math.hypot(b[0]-a[0],b[1]-a[1]),n=Math.max(1,Math.ceil(L/1.5));
+      for(let q=0;q<n;q++){const p0=[a[0]+(b[0]-a[0])*q/n,a[1]+(b[1]-a[1])*q/n],p1=[a[0]+(b[0]-a[0])*(q+1)/n,a[1]+(b[1]-a[1])*(q+1)/n];
+        const c=cellAt((p0[0]+p1[0])/2,(p0[1]+p1[1])/2); let col='rgba(120,200,255,.55)', wid=Math.max(2,HS.s*1.1);
+        if(c>=0&&c<N&&grp[c]){ if(blocked[c]) col='rgba(255,93,115,.9)'; else { const dt=DTA[c]; if(dt<6){col='#fffbe0';wid*=1.8;} else if(dt<DA[c]) col='rgba(255,190,90,.95)'; } }
+        if(nm==='acc'&&!blocked[c]) col=col.startsWith('rgba(120')?'rgba(255,120,220,.75)':col;
+        strokePath([p0,p1],col,wid);} }
+  }
+  if(S.bb!=='none'){ const p=S.bb==='lbbb'?[6,-2.2]:[16,-10.4]; const [x,y]=l2c(...p); hx.strokeStyle='#ff5d73'; hx.lineWidth=3; hx.beginPath(); hx.moveTo(x-7,y-7);hx.lineTo(x+7,y+7);hx.moveTo(x+7,y-7);hx.lineTo(x-7,y+7);hx.stroke(); }
+}
+function drawNodes(tau){
+  // SA
+  const [sx,sy]=l2c(...LM.SA); const sdt=DTA[saCell];
+  hx.fillStyle=sdt<25?'#fff3b0':'rgba(255,209,102,.85)'; hx.beginPath(); hx.arc(sx,sy,Math.max(5,HS.s*2.4),0,7); hx.fill();
+  if(sdt<160){hx.strokeStyle=`rgba(255,220,120,${1-sdt/160})`;hx.lineWidth=2;hx.beginPath();hx.arc(sx,sy,Math.max(5,HS.s*2.4)+sdt/6,0,7);hx.stroke();}
+  // AV node
+  const [vx_,vy_]=l2c(...LM.AVN); const R=Math.max(6,HS.s*3);
+  let r=null; for(let k=AVH.length-1;k>=0;k--) if(AVH[k].tin<=tau){r=AVH[k];break;}
+  hx.fillStyle='rgba(255,107,214,.85)'; hx.beginPath(); hx.arc(vx_,vy_,R,0,7); hx.fill();
+  hx.fillStyle='#200818'; hx.font=`bold ${Math.max(8,R*0.9)}px system-ui`; hx.textAlign='center'; hx.textBaseline='middle'; hx.fillText('AV',vx_,vy_+0.5);
+  if(r){ const dt=tau-r.tin;
+    if(!r.blk||r.blk==='infra'){ const ah=r.tout-r.tin; if(dt<ah){ hx.strokeStyle='#fff6c8'; hx.lineWidth=3; hx.beginPath(); hx.arc(vx_,vy_,R+4,-Math.PI/2,-Math.PI/2+2*Math.PI*dt/ah); hx.stroke(); } }
+    if(r.blk&&dt<350){ const a=1-dt/350; const bx=r.blk==='infra'?l2c(1,-5.5):[vx_,vy_]; hx.strokeStyle=`rgba(255,93,115,${a})`; hx.lineWidth=3; hx.beginPath(); hx.moveTo(bx[0]-8,bx[1]-8);hx.lineTo(bx[0]+8,bx[1]+8);hx.moveTo(bx[0]+8,bx[1]-8);hx.lineTo(bx[0]-8,bx[1]+8);hx.stroke(); }
+  }
+  if(S.vvi){ const [px_,py_]=g2c(paceCell%W,(paceCell/W)|0); hx.strokeStyle='#cfd8e3'; hx.lineWidth=2; hx.beginPath(); hx.moveTo(px_,py_); const [qx,qy]=l2c(-14,-22); hx.quadraticCurveTo(qx,qy,HS.ox+10,HS.oy+20); hx.stroke(); hx.fillStyle='#e8eef5'; hx.beginPath(); hx.arc(px_,py_,4,0,7); hx.fill(); }
+}
+const LABELS=[
+  ['RA',-24,-21,0,0,1],['LA',-23,17,0,0,1],['RV',14,-22,0,0,1],['LV',24,13,0,0,1],
+  ['SA node',-41.5,-27,-46,-16],['AV node',-11,-4.5,-30,-34],['His bundle',-3,-5,26,-30],['Left bundle',7,-2,30,-20],['Right bundle',24,-11.4,-4,26],
+  ['Purkinje fibres',46,22.5,14,26],["Bachmann's bundle",-42,-3,-30,-12],['Fibrous annulus',-7,-30,-28,-10],
+];
+function drawLabels(){
+  hx.font='11.5px system-ui'; hx.textBaseline='middle';
+  for(const L of LABELS){ const [x,y]=l2c(L[1],L[2]);
+    if(L[5]){ hx.font='bold 15px system-ui'; hx.textAlign='center'; hx.fillStyle='rgba(255,220,225,.55)'; hx.fillText(L[0],x,y); hx.font='11.5px system-ui'; continue; }
+    const tx=x+L[3], ty=y+L[4], cw=hc.clientWidth;
+    hx.strokeStyle='rgba(220,235,250,.45)'; hx.lineWidth=1; hx.beginPath(); hx.moveTo(x,y); hx.lineTo(tx,ty); hx.stroke();
+    const tw=hx.measureText(L[0]).width; let bx=L[3]<0?tx-tw-7:tx; bx=Math.max(4,Math.min(cw-tw-14,bx));
+    hx.textAlign='left'; hx.fillStyle='rgba(7,13,20,.78)'; hx.fillRect(bx,ty-8,tw+10,16);
+    hx.fillStyle='#dce9f5'; hx.fillText(L[0],bx+5,ty); }
+  if(S.wpw){const [x,y]=l2c(-7,30); hx.textAlign='left'; hx.fillStyle='#ff9fe6'; hx.fillText('Accessory pathway (Kent)',x+14,y-14);}
+}
+let curD=[0,0];
+function getLeadAt(k,tau){ const s=Math.min(sIdx-1,Math.max(sIdx-BUF+1,Math.round(tau/DT))); return s<0?0:ring[k][s%BUF]; }
+function drawDipole(tau){
+  const I=getLeadAt(0,tau), F=getLeadAt(5,tau); const dx=I/1.732, dy=F/1.5; curD=[dx,dy];
+  const [cx,cy]=l2c(22,0); const sc=HS.s*30; const L=Math.hypot(dx,dy)*sc; if(L<3)return;
+  const ex_=cx+dx*sc, ey_=cy+dy*sc, a=Math.atan2(dy,dx);
+  hx.strokeStyle='rgba(255,209,102,.95)'; hx.fillStyle='rgba(255,209,102,.95)'; hx.lineWidth=3.5;
+  hx.beginPath(); hx.moveTo(cx,cy); hx.lineTo(ex_,ey_); hx.stroke();
+  hx.beginPath(); hx.moveTo(ex_+Math.cos(a)*6,ey_+Math.sin(a)*6); hx.lineTo(ex_+Math.cos(a+2.5)*11,ey_+Math.sin(a+2.5)*11); hx.lineTo(ex_+Math.cos(a-2.5)*11,ey_+Math.sin(a-2.5)*11); hx.fill();
+  hx.fillStyle='rgba(255,209,102,.9)'; hx.beginPath(); hx.arc(cx,cy,3,0,7); hx.fill();
+}
+function drawLeadAxis(tau){
+  const nm=LEADS[mainLead]; if(!(nm in LEAD_ANG)) return;
+  const a=LEAD_ANG[nm]*DEG, [cx,cy]=l2c(22,0), R=HS.s*62;
+  hx.save(); hx.setLineDash([5,5]); hx.strokeStyle='rgba(125,255,185,.45)'; hx.lineWidth=1.3; hx.beginPath(); hx.moveTo(cx-Math.cos(a)*R,cy-Math.sin(a)*R); hx.lineTo(cx+Math.cos(a)*R,cy+Math.sin(a)*R); hx.stroke(); hx.restore();
+  hx.fillStyle='#7dffb9'; hx.font='bold 13px system-ui'; hx.textAlign='center'; hx.textBaseline='middle';
+  hx.fillText('+ '+nm,cx+Math.cos(a)*(R+14),cy+Math.sin(a)*(R+14)); hx.fillStyle='rgba(125,255,185,.5)'; hx.fillText('−',cx-Math.cos(a)*(R+10),cy-Math.sin(a)*(R+10));
+  const I=getLeadAt(0,tau),F=getLeadAt(5,tau); const pr=(I/1.732)*Math.cos(a)+(F/1.5)*Math.sin(a); const sc=HS.s*30;
+  hx.strokeStyle=pr>=0?'rgba(125,255,185,.95)':'rgba(255,93,115,.95)'; hx.lineWidth=6; hx.lineCap='round'; hx.beginPath(); hx.moveTo(cx,cy); hx.lineTo(cx+Math.cos(a)*pr*sc,cy+Math.sin(a)*pr*sc); hx.stroke();
+}
+function drawElectrodes(){
+  for(let e=3;e<9;e++){ const gx=EL[e][0]+W/2-0.5, gy=EL[e][1]+H/2-0.5, [x,y]=g2c(gx,gy);
+    hx.fillStyle=mainLead===e+3?'#7dffb9':'rgba(230,240,250,.85)'; hx.beginPath(); hx.arc(x,y,7,0,7); hx.fill();
+    hx.fillStyle='#0a1320'; hx.font='bold 8.5px system-ui'; hx.textAlign='center'; hx.textBaseline='middle'; hx.fillText('V'+(e-2),x,y+0.5); }
+}
+
+/* ---------- phase narration ---------- */
+const PH={
+  P:['P wave · atrial depolarization','The wave leaves the SA node and spreads over both atria (~1 m/s); Bachmann’s bundle carries it to the left atrium.'],
+  PAV:['P wave · AV node entry','Atria still depolarizing while the impulse enters the AV node — the slowest tissue in the heart (~0.05 m/s).'],
+  PR:['PR segment · AV nodal delay','Atria are fully depolarized (no gradient → flat line) while the AV node holds the impulse back, letting the atria top up the ventricles.'],
+  HP:['His–Purkinje conduction','His bundle → bundle branches → Purkinje network at 2–4 m/s. Too little tissue to register on the surface ECG.'],
+  QRS:['QRS · ventricular depolarization','Septum first (left→right), then endocardium → epicardium and apex → base. Big muscle mass = big deflection.'],
+  ST:['ST segment · plateau','Every ventricular cell sits on its phase-2 plateau at about the same voltage — no gradient, so the ECG is isoelectric.'],
+  T:['T wave · repolarization','Cells activated last (epicardium, base) have shorter action potentials and recover first — repolarization runs backwards, so T points the same way as QRS.'],
+  TP:['TP · electrical diastole','Tissue rests at −85 mV. Pacemaker cells in the SA node slowly depolarize (phase 4) toward threshold.'],
+  VF:['Ventricular fibrillation','Chaotic wavelets with no organized activation — no coordinated contraction, no cardiac output.'],
+  AF:['Atrial fibrillation','Multiple wavelets meander through the atria at 350–600/min; the AV node lets only some through, irregularly.'],
+};
+function phaseAt(tau){
+  const st=STATS; let k;
+  let avC=false; for(let q=AVH.length-1;q>=0&&q>AVH.length-6;q--){const r=AVH[q]; if((!r.blk||r.blk==='infra')&&r.tin<=tau&&tau<r.tout)avC=true;}
+  if(S.vent==='vf') k='VF';
+  else if(st.vF>0.004*nVAlive) k='QRS';
+  else if(S.atr==='af'&&st.vR<0.02*nVAlive) k='AF';
+  else if(avC) k=st.aF>0.01*nAAlive?'PAV':'PR';
+  else if(st.cF>2) k='HP';
+  else if(st.aF>0.004*nAAlive) k='P';
+  else if(st.vR>0.025*nVAlive) k='T';
+  else if(st.vD>0.5*nVAlive) k='ST';
+  else k='TP';
+  return k;
+}
+
+/* ---------- ECG drawing ---------- */
+let WIN=5000, GX0=30;
+function xOf(t,w){ return GX0+((t%WIN+WIN)%WIN)/WIN*(w-GX0); }
+function rowsFor(){ return layout==='strip'?[mainLead]:layout==='limb'?[0,1,2,3,4,5]:[0,1,2,3,4,5,6,7,8,9,10,11]; }
+function drawGrid(ctx,w,h,pxmm){
+  ctx.fillStyle='#08110e'; ctx.fillRect(0,0,w,h);
+  ctx.lineWidth=1;
+  for(let pass=0;pass<2;pass++){ ctx.strokeStyle=pass?'rgba(255,90,110,.17)':'rgba(255,90,110,.06)'; ctx.beginPath(); const st=pass?5:1;
+    if(pxmm*st<3.5){continue;}
+    for(let x=GX0;x<=w;x+=pxmm*st){ctx.moveTo(Math.round(x)+.5,0);ctx.lineTo(Math.round(x)+.5,h);} for(let y=0;y<=h;y+=pxmm*st){ctx.moveTo(GX0,Math.round(y)+.5);ctx.lineTo(w,Math.round(y)+.5);} ctx.stroke(); }
+  ctx.fillStyle='#0a1512'; ctx.fillRect(0,0,GX0,h);
+}
+function cursorT(){ return scrubT!=null?scrubT:now; }
+function drawTraceRow(ctx,ringArr,y0,yScale,w,col,lw){
+  const last=sIdx-1; if(last<0)return; const winS=WIN/DT, gapS=Math.round(130/DT);
+  const first=Math.max(sIdx-BUF+1,last-winS+gapS,0);
+  ctx.strokeStyle=col; ctx.lineWidth=lw; ctx.lineJoin='round'; ctx.beginPath(); let px_=-1;
+  for(let s=first;s<=last;s++){const x=xOf(s*DT,w), y=y0-ringArr[s%BUF]*yScale; if(px_<0||x<px_)ctx.moveTo(x,y); else ctx.lineTo(x,y); px_=x;}
+  ctx.stroke();
+}
+function drawECG(){
+  const rows=rowsFor(); const rowH=layout==='strip'?230:layout==='limb'?66:54;
+  const {w,h,d}=sizeCanvas(ec,rows.length*rowH+(layout==='strip'?44:0)); ex.setTransform(d,0,0,d,0,0);
+  WIN=w<560?3000:w<900?4000:5000;
+  const pxmm=(w-GX0)/(WIN/40);
+  drawGrid(ex,w,h,pxmm);
+  let mmPerMv=rowH/pxmm>=34?10:rowH/pxmm>=17?5:2.5;
+  $('scaleTxt').textContent=`25 mm/s · ${mmPerMv} mm/mV · 0.05–40 Hz`;
+  const yS=mmPerMv*pxmm;
+  rows.forEach((k,r)=>{ const top=r*rowH, y0=top+rowH*(layout==='strip'?0.58:0.6);
+    ex.strokeStyle='rgba(125,255,185,.7)'; ex.lineWidth=1.3; ex.beginPath(); ex.moveTo(4,y0); ex.lineTo(9,y0); ex.lineTo(9,y0-yS); ex.lineTo(9+5*pxmm*0.5,y0-yS); ex.lineTo(9+5*pxmm*0.5,y0); ex.lineTo(GX0-2,y0); ex.stroke();
+    drawTraceRow(ex,ring[k],y0,yS,w,'#7dffb9',layout==='strip'?1.8:1.3);
+    ex.fillStyle='#e6fff2'; ex.font='bold 12px system-ui'; ex.textAlign='left'; ex.textBaseline='top'; ex.fillText(LEADS[k],GX0+5,top+4);
+    if(r>0){ex.strokeStyle='rgba(120,160,150,.18)'; ex.beginPath(); ex.moveTo(GX0,top+.5); ex.lineTo(w,top+.5); ex.stroke();}
+  });
+  // markers & calipers on the first row
+  if(layout==='strip'){
+    const y0=rowH*0.58; ex.font='bold 11px system-ui'; ex.textAlign='center'; ex.textBaseline='alphabetic';
+    for(const m of markers){ if(m.t>now||m.t<now-WIN+130)continue; const x=xOf(m.t,w);
+      const col=m.k==='blk'?'#ff5d73':m.k==='p'?'#ffd166':m.k==='q'?'#6cb8ff':m.k==='t'?'#b48cff':m.k==='pace'?'#e6eef5':'#ffe27a';
+      ex.fillStyle=col; const yy=m.k==='q'?16:m.k==='blk'?y0+26:28; ex.fillText(m.txt,x,yy);
+      if(m.k==='pace'||m.k==='stim'){ex.strokeStyle=col;ex.setLineDash([2,3]);ex.beginPath();ex.moveTo(x,34);ex.lineTo(x,y0-6);ex.stroke();ex.setLineDash([]);} }
+    const b=lastMeas&&lastMeas.beat; if(b&&b.start>now-WIN+150){
+      const yb=rowH+2; const seg=(t0,t1,lab,yy,col)=>{ if(t0<now-WIN+130)return; const x0=xOf(t0,w),x1=xOf(t1,w); if(x1<x0)return;
+        ex.strokeStyle=col; ex.lineWidth=1.4; ex.beginPath(); ex.moveTo(x0,yy-4);ex.lineTo(x0,yy+4);ex.moveTo(x0,yy);ex.lineTo(x1,yy);ex.moveTo(x1,yy-4);ex.lineTo(x1,yy+4);ex.stroke();
+        ex.fillStyle=col; ex.font='10.5px system-ui'; ex.textAlign='left'; ex.fillText(lab,x1+4,yy+4); };
+      if(b.pr) seg(b.aS,b.start,'PR '+Math.round(b.pr),yb+6,'#ffd166');
+      seg(b.start,b.start+b.qrs,'QRS '+Math.round(b.qrs),yb+19,'#6cb8ff');
+      if(b.tEnd<=now) seg(b.start,b.tEnd,'QT '+Math.round(b.qt),yb+32,'#b48cff');
+    }
+  }
+  drawCursor(ex,w,h);
+}
+function drawCursor(ctx,w,h){
+  const x=xOf(cursorT(),w);
+  if(scrubT!=null){ ctx.strokeStyle='rgba(255,209,102,.9)'; ctx.lineWidth=1.5; ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,h); ctx.stroke(); }
+  else { const g=ctx.createLinearGradient(x,0,x+40,0); g.addColorStop(0,'rgba(125,255,185,.22)'); g.addColorStop(1,'rgba(125,255,185,0)'); ctx.fillStyle=g; ctx.fillRect(x,0,40,h); }
+}
+function drawLadder(){
+  const {w,h,d}=sizeCanvas(lc,104); lx.setTransform(d,0,0,d,0,0);
+  lx.fillStyle='#08110e'; lx.fillRect(0,0,w,h);
+  const y=[6,34,70,98];
+  lx.strokeStyle='rgba(150,180,200,.18)'; lx.lineWidth=1; lx.beginPath(); for(const yy of y){lx.moveTo(GX0,yy+.5);lx.lineTo(w,yy+.5);} lx.stroke();
+  lx.fillStyle='#0a1512'; lx.fillRect(0,0,GX0,h); lx.fillStyle='#9fb7c9'; lx.font='bold 10.5px system-ui'; lx.textAlign='center'; lx.textBaseline='middle';
+  lx.fillText('A',GX0/2,20); lx.fillText('AV',GX0/2,52); lx.fillText('V',GX0/2,84);
+  const lo=now-WIN+130;
+  const line=(t0,y0,t1,y1,col,wd=2)=>{ if(t0<lo||t0>now)return; const x0=xOf(t0,w), x1=xOf(Math.min(t1,now),w); if(x1<x0-1)return; const yy1=t1>now?y0+(y1-y0)*(now-t0)/Math.max(1,t1-t0):y1;
+    lx.strokeStyle=col; lx.lineWidth=wd; lx.beginPath(); lx.moveTo(x0,y0); lx.lineTo(x1,yy1); lx.stroke(); };
+  for(const r of AVH){ if(r.tin<lo-400||r.tin>now)continue;
+    line(r.aS,y[0],r.tin,y[1],'#ffd166',1.6);
+    if(!r.blk) line(r.tin,y[1],r.tout,y[2],'#ff6bd6',2);
+    else if(r.blk==='infra'){ line(r.tin,y[1],r.tout,y[2],'#ff6bd6',2); if(r.tout<=now&&r.tout>lo){const x=xOf(r.tout,w); lx.strokeStyle='#ff5d73'; lx.lineWidth=2.5; lx.beginPath(); lx.moveTo(x-6,y[2]+2); lx.lineTo(x+6,y[2]+2); lx.stroke();} }
+    else { const tb=r.tin+30; line(r.tin,y[1],tb,y[1]+14,'#ff5d73',2); if(tb<=now&&r.tin>lo){const x=xOf(tb,w); lx.strokeStyle='#ff5d73'; lx.lineWidth=2.5; lx.beginPath(); lx.moveTo(x-6,y[1]+12); lx.lineTo(x+6,y[1]+16); lx.stroke();} }
+  }
+  for(const b of beats){ if(b.start<lo||b.start>now)continue; const t1=b.qrsEnd||b.start+80;
+    if(b.origin==='his'||b.origin==='jx'||b.origin==='ap'){ line(b.start-12,y[2],t1,y[3],b.origin==='ap'?'#ff9fe6':'#6cb8ff',2.2);
+      if(b.origin==='jx'){const x=xOf(b.start-12,w); lx.fillStyle='#6cb8ff'; lx.fillText('✱',x,y[2]-6);} }
+    else { const xm=(y[2]+y[3])/2; line(b.start,xm,t1,y[2],'#ffe27a',2); line(b.start,xm,t1,y[3],'#ffe27a',2); const x=xOf(b.start,w); lx.fillStyle='#ffe27a'; lx.fillText('✱',x-6,xm); } }
+  if(S.wpw) for(const b of beats){ if(b.origin==='ap'&&b.start>lo&&b.start<=now){ const x=xOf(b.start,w); lx.strokeStyle='rgba(255,159,230,.8)'; lx.setLineDash([3,3]); lx.lineWidth=1.5; lx.beginPath(); lx.moveTo(x-6,y[1]); lx.lineTo(x,y[2]); lx.stroke(); lx.setLineDash([]);} }
+  if(S.atr==='af'){ lx.fillStyle='rgba(255,209,102,.35)'; lx.fillText('fibrillating — bombardment of the AV node',GX0+150,12); }
+  drawCursor(lx,w,h);
+}
+function drawAP(){
+  const n=userProbe!=null?7:6, rowH=36; const {w,h,d}=sizeCanvas(ac,n*rowH+4); ax.setTransform(d,0,0,d,0,0);
+  ax.fillStyle='#08110e'; ax.fillRect(0,0,w,h); ax.fillStyle='#0a1512'; ax.fillRect(0,0,GX0,h);
+  for(let p=0;p<n;p++){ const pr=p<6?PROBES[p]:{name:'Your probe',col:'#ffffff'}; const top=p*rowH+2;
+    const y0=top+rowH-4, ys=(rowH-6)/120; // map -90..30
+    ax.strokeStyle='rgba(150,180,200,.12)'; ax.beginPath(); ax.moveTo(GX0,y0-(-85+90)*ys); ax.lineTo(w,y0-(-85+90)*ys); ax.stroke();
+    const last=sIdx-1; if(last>=0){ const winS=WIN/DT,gapS=Math.round(130/DT),first=Math.max(sIdx-BUF+1,last-winS+gapS,0);
+      ax.strokeStyle=pr.col; ax.lineWidth=1.5; ax.beginPath(); let px_=-1;
+      for(let s=first;s<=last;s++){const x=xOf(s*DT,w),y=y0-(pring[p][s%BUF]+90)*ys; if(px_<0||x<px_)ax.moveTo(x,y); else ax.lineTo(x,y); px_=x;} ax.stroke(); }
+    ax.fillStyle=pr.col; ax.font='10.5px system-ui'; ax.textAlign='left'; ax.textBaseline='top';
+    const tw=ax.measureText(pr.name).width; ax.fillStyle='rgba(8,17,14,.8)'; ax.fillRect(GX0+3,top+1,tw+8,14); ax.fillStyle=pr.col; ax.fillText(pr.name,GX0+7,top+2);
+    ax.beginPath(); ax.arc(GX0/2,top+rowH/2,4,0,7); ax.fill();
+  }
+  drawCursor(ax,w,h);
+}
+function drawVCG(){
+  const d=devicePixelRatio||1, S_=210; if(vc.width!==S_*d){vc.width=S_*d;vc.height=S_*d;} vx.setTransform(d,0,0,d,0,0);
+  vx.fillStyle='#081018'; vx.fillRect(0,0,S_,S_); const c=S_/2, R=S_*0.42;
+  vx.font='10px system-ui'; vx.textAlign='center'; vx.textBaseline='middle';
+  for(const [nm,a] of Object.entries(LEAD_ANG)){ const r=a*DEG; vx.strokeStyle='rgba(140,170,200,.18)'; vx.beginPath(); vx.moveTo(c-Math.cos(r)*R,c-Math.sin(r)*R); vx.lineTo(c+Math.cos(r)*R,c+Math.sin(r)*R); vx.stroke();
+    vx.fillStyle=nm===LEADS[mainLead]?'#7dffb9':'rgba(170,195,215,.75)'; vx.fillText(nm,c+Math.cos(r)*(R+10),c+Math.sin(r)*(R+10)); }
+  vx.strokeStyle='rgba(140,170,200,.15)'; vx.beginPath(); vx.arc(c,c,R,0,7); vx.stroke();
+  vx.fillStyle='rgba(170,195,215,.5)'; vx.fillText('0°',c+R-8,c-8); vx.fillText('+90°',c+14,c+R-6); vx.fillText('−90°',c+14,c-R+8); vx.fillText('±180°',c-R+16,c-8);
+  const tau=cursorT(), sc=R/1.2; const span=700, n=span/DT;
+  const s1=Math.min(sIdx-1,Math.round(tau/DT)), s0=Math.max(sIdx-BUF+1,s1-n,0);
+  for(let s=s0+1;s<=s1;s++){ const p0=(s-1)%BUF,p1=s%BUF; const a=(s-s0)/(s1-s0+1);
+    vx.strokeStyle=`rgba(125,255,185,${0.08+0.85*a*a})`; vx.lineWidth=1.6; vx.beginPath();
+    vx.moveTo(c+ring[0][p0]/1.732*sc,c+ring[5][p0]/1.5*sc); vx.lineTo(c+ring[0][p1]/1.732*sc,c+ring[5][p1]/1.5*sc); vx.stroke(); }
+  if(s1>=0){ const p=s1%BUF; vx.fillStyle='#fff'; vx.beginPath(); vx.arc(c+ring[0][p]/1.732*sc,c+ring[5][p]/1.5*sc,3,0,7); vx.fill(); }
+  if(lastMeas&&lastMeas.axis!=null&&S.vent!=='vf'){ const r=lastMeas.axis*DEG; vx.strokeStyle='#ffd166'; vx.lineWidth=2.5; vx.beginPath(); vx.moveTo(c,c); vx.lineTo(c+Math.cos(r)*R*0.9,c+Math.sin(r)*R*0.9); vx.stroke(); }
+}
+
+/* ---------- measurements & info ---------- */
+const PRESETS=[
+  {g:'Normal',id:'nsr',name:'Normal sinus rhythm',s:{},mech:'The SA node fires ~72/min; each impulse crosses the atria, is delayed in the AV node, then races down the His–Purkinje system so both ventricles depolarize almost together.',ecg:['Upright P before every QRS in II','PR 120–200 ms, QRS < 110 ms','T concordant with QRS; QTc < 450 ms']},
+  {g:'Normal',id:'brady',name:'Sinus bradycardia',s:{hr:45},mech:'Slower phase-4 depolarization in the SA node (high vagal tone, athletes, β-blockers). Drop the rate below ~37/min and the junctional pacemaker escapes.',ecg:['Normal P-QRS-T','Rate < 60/min','QT lengthens with the longer cycle (restitution)']},
+  {g:'Normal',id:'tachy',name:'Sinus tachycardia',s:{hr:135},mech:'Sympathetic drive steepens SA phase-4. Shorter diastolic intervals shorten every action potential (APD restitution), so QT shortens.',ecg:['Rate > 100/min, normal P axis','QT shortens; P may merge with preceding T']},
+  {g:'AV conduction',id:'avb1',name:'1° AV block',s:{av:'first'},mech:'Every impulse conducts, but slowly — the AV node takes ~260 ms instead of ~85 ms.',ecg:['PR > 200 ms, constant','Every P is followed by a QRS']},
+  {g:'AV conduction',id:'wenck',name:'Mobitz I (Wenckebach)',s:{av:'wenck',hr:78},mech:'Decremental AV-node conduction: each impulse arrives earlier in the node’s recovery curve, so it conducts more slowly, until one arrives during the refractory period and is dropped. Watch the AV ring and the ladder slope.',ecg:['PR progressively lengthens, then a P is not conducted','Group beating; RR shortens before the pause','Narrow QRS (block is in the node)']},
+  {g:'AV conduction',id:'mob2',name:'Mobitz II',s:{av:'mobitz2',hr:80},mech:'All-or-none block below the AV node (His bundle / bundle branches). PR never changes — suddenly a P wave just fails to conduct. Risk of progression to complete block.',ecg:['Constant PR, then a dropped QRS','Here 3:2 conduction','Often wide QRS clinically']},
+  {g:'AV conduction',id:'chb',name:'3° complete block',s:{av:'complete',hr:80},mech:'Nothing crosses the AV node. Atria follow the SA node; the ventricles are driven by a junctional escape pacemaker in the His bundle (~37/min). The two rhythms are dissociated.',ecg:['P waves march through at their own rate','Regular, slow escape QRS','No relationship between P and QRS']},
+  {g:'Bundles & pathways',id:'lbbb',name:'Left bundle branch block',s:{bb:'lbbb'},mech:'The left bundle is cut. The right ventricle activates normally, then the wave crawls through septal muscle (0.5 m/s) to reach the LV — slowly, right-to-left.',ecg:['QRS ≥ 120 ms, broad notched R in I/aVL','Septal q lost in lateral leads','Discordant (secondary) ST-T: repolarization follows the abnormal activation']},
+  {g:'Bundles & pathways',id:'rbbb',name:'Right bundle branch block',s:{bb:'rbbb'},mech:'The right bundle is cut. LV and septum activate normally; the RV is reached late, through muscle, producing a late rightward force.',ecg:['QRS ≥ 120 ms','Terminal slurred S in I, terminal R in aVR','rsR′ in V1 on a real 12-lead']},
+  {g:'Bundles & pathways',id:'wpw',name:'WPW pre-excitation',s:{wpw:true},mech:'A Kent bundle bridges the annulus at the left lateral wall. It has no decremental delay, so it pre-excites the LV base while the AV node is still holding the main impulse. QRS is a fusion of both fronts.',ecg:['Short PR (< 120 ms)','Delta wave: slurred QRS upstroke','Wide QRS with secondary ST-T changes']},
+  {g:'Ectopy & tachyarrhythmias',id:'pvc',name:'PVCs · bigeminy',s:{ect:'bigeminy'},mech:'An irritable focus on the LV lateral wall fires 440 ms after each sinus beat. It cannot use the Purkinje system, so it spreads muscle-to-muscle — wide and bizarre. The next sinus P finds the ventricles refractory: compensatory pause.',ecg:['Wide premature QRS, no preceding P','T opposite to QRS','Fully compensatory pause']},
+  {g:'Ectopy & tachyarrhythmias',id:'flutter',name:'Atrial flutter',s:{atr:'flutter'},mech:'A macro-re-entrant circuit in the right atrium (modelled by its exit site firing every 200 ms) drives the atria at 300/min. The AV node cannot follow, so it conducts every second wave.',ecg:['Saw-tooth F waves at ~300/min','2:1 block → ventricular rate ~150','Regular narrow QRS']},
+  {g:'Ectopy & tachyarrhythmias',id:'af',name:'Atrial fibrillation',s:{atr:'af'},mech:'Multiple wavelets from pulmonary-vein-like foci fragment the atria (APD shortened by remodelling). The AV node is bombarded and conducts at random — see the ladder.',ecg:['No P waves; fibrillatory baseline','Irregularly irregular RR','Narrow QRS']},
+  {g:'Ectopy & tachyarrhythmias',id:'wpwaf',name:'Pre-excited AF',s:{atr:'af',wpw:true},mech:'AF in a patient with an accessory pathway. The pathway has a short refractory period and no decremental delay, so it lets far more impulses through than the AV node — very fast, wide, irregular beats that can degenerate into VF.',ecg:['Irregular, very fast, wide QRS','Varying degrees of pre-excitation beat to beat','AV-nodal blockers are dangerous here']},
+  {g:'Ectopy & tachyarrhythmias',id:'vt',name:'Ventricular tachycardia',s:{vent:'vt'},mech:'A ventricular focus fires every 330 ms (~180/min) and overdrives the heart. Sinus P waves continue independently — AV dissociation.',ecg:['Regular wide-complex tachycardia','AV dissociation (P waves through the QRS)','Extreme / abnormal axis']},
+  {g:'Ectopy & tachyarrhythmias',id:'vf',name:'Ventricular fibrillation',s:{vent:'vf'},mech:'Wavelets arise everywhere and collide; no organized activation, so no pumping. Press ⚡ Shock: defibrillation depolarizes every excitable cell at once, the wavelets have nowhere left to go, and the SA node takes back control.',ecg:['Chaotic, irregular undulations','No identifiable QRS or T','Cardiac arrest']},
+  {g:'Ischemia & repolarization',id:'stemiL',name:'Lateral STEMI',s:{isch:'lateral'},mech:'Injured LV lateral cells have a less negative resting potential (−68 mV) and a depressed plateau. Injury currents flow between healthy and injured tissue: depressed TQ baseline and elevated ST over the injury.',ecg:['ST elevation in I and aVL','Reciprocal ST depression in III/aVF','Shorter APD in the injured zone']},
+  {g:'Ischemia & repolarization',id:'stemiI',name:'Inferior STEMI',s:{isch:'inferior'},mech:'Same injury physics, now on the inferior wall facing the leg electrode.',ecg:['ST elevation in II, III, aVF','Reciprocal depression in aVL / I']},
+  {g:'Ischemia & repolarization',id:'oldmi',name:'Old inferior MI (scar)',s:{},scar:'inferior',mech:'Dead tissue generates no electrical force, so the inferior leads lose the forces that used to point at them. The surviving border zone conducts slowly and late. Try painting a scar with a narrow channel and pacing beside it to look for re-entry.',ecg:['Loss of R amplitude and fragmented QRS in II, III, aVF (Q waves in a 3-D heart)','Inverted T waves inferiorly','QRS prolonged by slow border-zone conduction']},
+  {g:'Ischemia & repolarization',id:'lqt',name:'Long QT',s:{lqt:true},mech:'Blocking the repolarizing K⁺ current I_Kr prolongs every ventricular action potential by ~40 %. Try a well-timed stimulus on the T wave.',ecg:['QTc > 470 ms','Broad T waves','Substrate for torsades de pointes']},
+  {g:'Devices',id:'pacer',name:'CHB + VVI pacemaker',s:{av:'complete',vvi:true,hr:80},mech:'A lead in the RV apex senses ventricular activity and paces if none occurs for 1000 ms. Activation starts at the apex and spreads through muscle — a LBBB-like, superior-axis complex.',ecg:['Pacing spike before each wide QRS','Rate 60/min, dissociated P waves','Superior axis (RV apical pacing)']},
+];
+let curPreset='nsr';
+function buildPresets(){
+  const host=$('presets'); const gs=[...new Set(PRESETS.map(p=>p.g))];
+  host.innerHTML=gs.map(g=>`<div class="grp"><h3>${g}</h3><div class="chips">${PRESETS.filter(p=>p.g===g).map(p=>`<button class="chip" data-p="${p.id}">${p.name}</button>`).join('')}</div></div>`).join('');
+  host.querySelectorAll('.chip').forEach(b=>b.onclick=()=>applyPreset(b.dataset.p));
+}
+function applyPreset(id){
+  const p=PRESETS.find(q=>q.id===id); curPreset=id; S={...DEF,...p.s};
+  scar.fill(0); if(p.scar==='inferior'){ for(const i of TIS){ if(grp[i]!==G_V&&grp[i]!==G_P)continue; const sy=((i/W)|0)+0.5-H/2; if(sy>26)scar[i]=1; else if(sy>22)scar[i]=2; } }
+  applyState(); syncUI(); renderInfo();
+}
+function syncUI(){
+  $('mAv').value=S.av; $('mBb').value=S.bb; $('mAtr').value=S.atr; $('mVent').value=S.vent; $('mEct').value=S.ect; $('mIsch').value=S.isch;
+  $('mWpw').checked=S.wpw; $('mLqt').checked=S.lqt; $('mVvi').checked=S.vvi; $('hr').value=S.hr; $('hrV').textContent=S.hr;
+  document.querySelectorAll('.chip').forEach(b=>b.classList.toggle('on',b.dataset.p===curPreset));
+}
+function renderInfo(){
+  const p=PRESETS.find(q=>q.id===curPreset);
+  $('info').innerHTML=p?`<h2>${p.name}</h2><p>${p.mech}</p><ul>${p.ecg.map(x=>`<li>${x}</li>`).join('')}</ul>`:`<h2>Custom combination</h2><p>You have mixed conditions — the ECG is whatever the tissue produces.</p>`;
+}
+function renderMeas(){
+  const m=lastMeas, chaos=S.vent==='vf';
+  const f=(v,u='')=>v==null||chaos?'—':Math.round(v)+u;
+  const cls=(v,lo,hi)=>v==null||chaos?'':(v<lo||v>hi?'bad':'');
+  const hr=m&&m.hr, irregular=rrHist.length>3&&(Math.max(...rrHist)-Math.min(...rrHist))>120;
+  const items=[
+    ['Ventricular rate',f(hr),'60–100 /min'+(irregular?' · irregular':''),cls(hr,60,100)],
+    ['PR',m&&m.pr!=null?f(m.pr,' ms'):'—','120–200 ms',m&&m.pr!=null?cls(m.pr,120,200):''],
+    ['QRS',f(m&&m.qrs,' ms'),'< 110 ms',m?cls(m.qrs,0,110):''],
+    ['QT',f(m&&m.qt,' ms'),'rate-dependent',''],
+    ['QTc (Bazett)',f(m&&m.qtc,' ms'),'< 450 ms',m?cls(m.qtc,300,450):''],
+    ['QRS axis',m&&m.axis!=null&&!chaos?(m.axis>0?'+':'')+m.axis+'°':'—','−30° to +90°',m&&m.axis!=null?cls(m.axis,-30,90):''],
+  ];
+  $('meas').innerHTML=items.map(([k,v,r,c])=>`<div class="m ${c}"><div class="k">${k}</div><div class="v">${v}</div><div class="r">${r}</div></div>`).join('');
+}
+
+/* ---------- controls ---------- */
+function setSpeedFromSlider(){ const v=+$('speed').value/100; speed=Math.pow(10,-2+2*v); $('speedV').textContent=(speed<0.1?speed.toFixed(3):speed.toFixed(2))+'×'; }
+$('speed').oninput=setSpeedFromSlider; setSpeedFromSlider();
+$('hr').oninput=e=>{S.hr=+e.target.value; $('hrV').textContent=S.hr; saCL=60000/S.hr;};
+$('play').onclick=()=>togglePlay();
+function togglePlay(force){ running=force!=null?force:!running; if(running)scrubT=null; $('play').textContent=running?'❚❚ Pause':'▶ Play'; }
+$('step').onclick=()=>{togglePlay(false); scrubT=null; advance(5);};
+$('reset').onclick=()=>{ resetState(); };
+$('shock').onclick=()=>{ if(scrubT!=null){scrubT=null;} togglePlay(true);
+  const t=now; for(let j=0;j<nT;j++){const i=TIS[j]; if(grp[i]!==G_A) stim(i,t);}
+  if(S.vent!=='none'){ S.vent='none'; curPreset=curPreset==='vf'||curPreset==='vt'?null:curPreset; applyState(); syncUI(); renderInfo(); }
+  spike=1; markers.push({t,txt:'⚡ shock',k:'stim'}); sparks.push({x:hc.clientWidth/2,y:hc.clientHeight/2,t:performance.now()}); };
+const modMap={mAv:'av',mBb:'bb',mAtr:'atr',mVent:'vent',mEct:'ect',mIsch:'isch'};
+for(const [id,key] of Object.entries(modMap)) $(id).onchange=e=>{S[key]=e.target.value; curPreset=null; applyState(); syncUI(); renderInfo();};
+$('mWpw').onchange=e=>{S.wpw=e.target.checked;curPreset=null;applyState();syncUI();renderInfo();};
+$('mLqt').onchange=e=>{S.lqt=e.target.checked;curPreset=null;applyState();syncUI();renderInfo();};
+$('mVvi').onchange=e=>{S.vvi=e.target.checked;curPreset=null;applyState();syncUI();renderInfo();};
+$('mScar').onclick=()=>{scar.fill(0);applyState();};
+document.querySelectorAll('#viewSeg button').forEach(b=>b.onclick=()=>{view=b.dataset.v; document.querySelectorAll('#viewSeg button').forEach(x=>x.classList.toggle('on',x===b)); renderLegend();});
+document.querySelectorAll('#toolSeg button').forEach(b=>b.onclick=()=>{tool=b.dataset.t; document.querySelectorAll('#toolSeg button').forEach(x=>x.classList.toggle('on',x===b));});
+document.querySelectorAll('#layoutSeg button').forEach(b=>b.onclick=()=>{layout=b.dataset.l; document.querySelectorAll('#layoutSeg button').forEach(x=>x.classList.toggle('on',x===b));});
+$('leadSel').innerHTML=LEADS.map((l,k)=>`<option value="${k}">${l}</option>`).join(''); $('leadSel').value=1;
+$('leadSel').onchange=e=>{mainLead=+e.target.value;};
+function renderLegend(){
+  const L=$('legend');
+  if(view==='vm') L.innerHTML=`Membrane potential<div class="bar" style="background:linear-gradient(90deg,#0a0e28,#162868,#582c96,#be306e,#f56830,#ffe88c)"></div><div class="row"><span>−90 mV</span><span>0</span><span>+30</span></div>`;
+  else if(view==='act') L.innerHTML=`Activation time (latest beat)<div class="bar" style="background:linear-gradient(90deg,hsl(0,88%,56%),hsl(60,88%,56%),hsl(120,88%,56%),hsl(200,88%,56%),hsl(270,88%,56%))"></div><div class="row"><span>early</span><span>10 ms isochrones</span><span>late</span></div>`;
+  else L.innerHTML=`<div class="row" style="gap:10px"><span style="color:#e05a3c">■ absolutely refractory</span></div><div class="row"><span style="color:#f0aa3c">■ relative</span><span style="color:#2a9a88">■ excitable</span></div>`;
+}
+renderLegend();
+
+function heartCell(e){ const r=hc.getBoundingClientRect(); const x=e.clientX-r.left, y=e.clientY-r.top; const gx=Math.floor((x-HS.ox)/HS.s), gy=Math.floor((y-HS.oy)/HS.s); if(gx<1||gy<1||gx>=W-1||gy>=H-1)return null; return {i:gy*W+gx,x,y,gx,gy}; }
+function nearestTissue(c){ if(!c)return -1; let best=-1,bd=1e9; for(let dy=-3;dy<=3;dy++)for(let dx=-3;dx<=3;dx++){const i=(c.gy+dy)*W+c.gx+dx; if(typ[i]>=ATR&&alive[i]){const d=dx*dx+dy*dy; if(d<bd){bd=d;best=i;}}} return best; }
+function paintScar(c,heal){ for(let dy=-7;dy<=7;dy++)for(let dx=-7;dx<=7;dx++){const r=Math.hypot(dx,dy),i=(c.gy+dy)*W+c.gx+dx; if(i<0||i>=N||typ[i]<ATR||typ[i]===ACC)continue;
+  if(heal){ if(r<=6)scar[i]=0; } else { if(r<=3.6)scar[i]=1; else if(r<=6.2&&scar[i]!==1)scar[i]=2; } } applyState(); }
+let painting=false;
+hc.addEventListener('pointerdown',e=>{ const c=heartCell(e); if(!c)return; hc.setPointerCapture(e.pointerId);
+  if(tool==='stim'){ const i=nearestTissue(c); if(i<0)return; if(scrubT!=null){scrubT=null;} if(!running)togglePlay(true); stimQ.push(i); holdStim={cell:i,next:now+260}; sparks.push({x:c.x,y:c.y,t:performance.now()}); }
+  else if(tool==='probe'){ const i=nearestTissue(c); if(i>=0){userProbe=i;} }
+  else { painting=true; paintScar(c,tool==='heal'); curPreset=null; renderInfo(); syncUI(); }
+});
+hc.addEventListener('pointermove',e=>{ if(painting){const c=heartCell(e); if(c)paintScar(c,tool==='heal');} });
+const endPtr=()=>{painting=false;holdStim=null;}; hc.addEventListener('pointerup',endPtr); hc.addEventListener('pointercancel',endPtr);
+
+function scrubFrom(e,cv){ const r=cv.getBoundingClientRect(), x=e.clientX-r.left; const f=Math.max(0,Math.min(1,(x-GX0)/(r.width-GX0)));
+  const base=now-(now%WIN); let t=base+f*WIN; if(t>now)t-=WIN; t=Math.max(t,now-WIN+130,0); scrubT=t; togglePlay(false); scrubT=t; }
+for(const cv of [ec,lc,ac]){ let down=false;
+  cv.addEventListener('pointerdown',e=>{down=true;cv.setPointerCapture(e.pointerId);scrubFrom(e,cv);});
+  cv.addEventListener('pointermove',e=>{if(down)scrubFrom(e,cv);});
+  cv.addEventListener('pointerup',()=>down=false); cv.addEventListener('pointercancel',()=>down=false); }
+addEventListener('keydown',e=>{ if(e.target.tagName==='SELECT'||e.target.tagName==='INPUT')return;
+  if(e.code==='Space'){e.preventDefault();togglePlay();} else if(e.code==='ArrowRight'){togglePlay(false);scrubT=null;advance(5);} });
+
+/* ---------- main loop ---------- */
+let lastTs=performance.now(), measTick=0;
+function frame(ts){
+  const rdt=Math.min(50,ts-lastTs); lastTs=ts;
+  if(running) advance(rdt*speed);
+  const tau=cursorT();
+  computeVm(tau,true);
+  drawHeart(tau);
+  const k=phaseAt(tau); const ph=$('phase'); ph.querySelector('b').textContent=(scrubT!=null?'⏸ t = '+Math.round(tau)+' ms · ':'')+PH[k][0]; ph.querySelector('span').textContent=PH[k][1];
+  drawECG(); drawLadder(); drawAP(); drawVCG();
+  if(ts-measTick>300){measTick=ts; renderMeas();}
+  requestAnimationFrame(frame);
+}
+buildPresets(); syncUI(); renderInfo(); renderMeas();
+requestAnimationFrame(frame);
+window.__lab={TUNE,dump:(k,t0,t1,st=6)=>{const a=[];for(let t=t0;t<t1;t+=st){const s=Math.round(t/DT);a.push(ring[k][s%BUF].toFixed(2));}return a.join(' ');},
+  run:(id,ms)=>{applyPreset(id);resetState();advance(ms);const m=lastMeas;return m?{hr:Math.round(m.hr),pr:m.pr&&Math.round(m.pr),qrs:Math.round(m.qrs),qt:Math.round(m.qt),qtc:Math.round(m.qtc),axis:m.axis,start:Math.round(m.beat.start),aS:m.beat.aS&&Math.round(m.beat.aS)}:null;},
+  summ:()=>{const b=beats[beats.length-2]; const o={}; for(let k=0;k<12;k++){let R=-9,Sx=9,Tp=0,Pp=0; const sv=t=>ring[k][Math.round(t/DT)%BUF];
+    for(let t=b.start-10;t<b.qrsEnd+20;t+=2){const v=sv(t);R=Math.max(R,v);Sx=Math.min(Sx,v);}
+    for(let t=b.start+150;t<b.start+460;t+=2){const v=sv(t);if(Math.abs(v)>Math.abs(Tp))Tp=v;}
+    if(b.aS)for(let t=b.aS;t<b.aS+110;t+=2){const v=sv(t);if(Math.abs(v)>Math.abs(Pp))Pp=v;}
+    o[LEADS[k]]=`P${Pp.toFixed(2)} R${R.toFixed(2)} S${Sx.toFixed(2)} ST${(sv(b.qrsEnd+60)-sv(b.start-30)).toFixed(2)} T${Tp.toFixed(2)}`;} return o;},
+  unreach:()=>unreach.map(i=>[+locU[i].toFixed(1),+locV[i].toFixed(1),typ[i]]),get S(){return S}, get meas(){return lastMeas}, beats:()=>beats, ring, advance, applyPreset, LEADS, get sIdx(){return sIdx}, gains:()=>[gL,gC], counts:()=>({nT,nVAlive,nAAlive})};
+</script>
+</body>
+</html>

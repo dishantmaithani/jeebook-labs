@@ -535,7 +535,9 @@ function renderInsp(){
 function endLevel(win,msg){
  S.over=true;S.tool=null;cardQ.length=0;const L=S.lvl;let stars=0;
  if(win){if(L.goal==='eradicate')stars=S.mets===0&&S.health>=.7?3:S.mets<=1?2:1;else stars=S.mets===0&&S.tumorN===0?3:S.mets===0&&S.tumorN<=6?2:1;
-  SAVE.stars[L.id]=Math.max(SAVE.stars[L.id]||0,stars);SAVE.unlocked=Math.max(SAVE.unlocked,Math.min(LEVELS.length,S.li+2));save()}
+  SAVE.stars[L.id]=Math.max(SAVE.stars[L.id]||0,stars);SAVE.unlocked=Math.max(SAVE.unlocked,Math.min(LEVELS.length,S.li+2));save();
+  // When embedded (e.g. in Game Box), report total stars to the host page
+  try{if(parent!==window)parent.postMessage({oncogenesisStars:Object.values(SAVE.stars).reduce((a,b)=>a+b,0)},'*')}catch(e){}}
  const st=S.stats;
  const qs=[...QUIZ].sort(()=>Math.random()-.5).slice(0,3);
  window._quiz={qs,i:0,score:0,win,stars};
@@ -626,7 +628,7 @@ function draw(now){
  for(const t of tiles){const c=t.cell;if(!c)continue;
   let x=t.x,y=t.y,a=ease(c.anim);if(c.from&&c.anim<1){x=c.from.x+(t.x-c.from.x)*a;y=c.from.y+(t.y-c.from.y)*a}
   drawCellBody(x,y,HEX*.9*(.55+.45*a),c,now);
-  if((showG||(c.known&&S.sel===t))&&hits(c)>0){const h=hits(c);const col=h>=4?'#ff3355':h>=2?'#ff9f40':'#ffe066';
+  if((showG||(c.known&&S.sel===t))&&acq(c)>0){const h=acq(c);const col=h>=4?'#ff3355':h>=2?'#ff9f40':'#ffe066';
    hexPath(t.x,t.y,HEX*.86);ctx.strokeStyle=col;ctx.lineWidth=2.2;ctx.stroke();
    if(showG){ctx.fillStyle='#000c';ctx.beginPath();ctx.arc(t.x+HEX*.45,t.y-HEX*.45,HEX*.28,0,7);ctx.fill();ctx.fillStyle=col;ctx.font=`bold ${Math.round(HEX*.36)}px system-ui`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(h,t.x+HEX*.45,t.y-HEX*.43)}}
  }

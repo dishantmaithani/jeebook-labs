@@ -80,7 +80,7 @@ button:hover:not(:disabled){filter:brightness(1.12)}
 #info,#placebar{animation:slideUp .2s ease-out}
 @keyframes slideUp{from{transform:translate(-50%,16px);opacity:0}to{transform:translate(-50%,0);opacity:1}}
 #banner{position:fixed;left:50%;top:38%;transform:translate(-50%,-50%);z-index:15;pointer-events:none;font-weight:900;font-size:clamp(28px,6vw,56px);color:#fff;text-shadow:0 4px 0 #000,0 0 30px rgba(127,247,224,.6);opacity:0;white-space:nowrap;text-align:center}
-#banner small{display:block;font-size:.4em;color:var(--muted);text-shadow:0 2px 0 #000}
+#banner small{white-space:normal;display:block;font-size:.4em;color:var(--muted);text-shadow:0 2px 0 #000}
 #banner.go{animation:bannerAnim 1.8s ease-out}
 @keyframes bannerAnim{0%{opacity:0;transform:translate(-50%,-50%) scale(1.8)}15%{opacity:1;transform:translate(-50%,-50%) scale(1)}75%{opacity:1;transform:translate(-50%,-50%) scale(1)}100%{opacity:0;transform:translate(-50%,-80%) scale(.95)}}
 #bTime.low{color:var(--bad);animation:pulse 1s infinite}
@@ -97,6 +97,7 @@ button:hover:not(:disabled){filter:brightness(1.12)}
   <div class="chip"><span class="ico aa"></span><span id="aa">0</span><small>/ <span id="aaMax"></span> Amino</small></div>
   <div class="chip"><span class="ico evo"></span><span id="evo">0</span><small>Evo</small></div>
   <div class="chip"><span class="ico pol"></span><span id="pol">2/2</span><small>Polymerases</small></div>
+  <div class="chip" id="raidChip" style="cursor:pointer" title="Defense log"><span class="ico" id="raidIco" style="background:#ff5f6d"></span><span id="raidT">—</span><small id="raidL">next infection</small></div>
   <div style="flex:1"></div>
   <button class="sec snd" data-snd="music" title="Music">♪</button>
   <button class="sec snd" data-snd="sfx" title="Sound effects">🔊</button>
@@ -138,30 +139,43 @@ const fmt=n=>{n=Math.floor(n);return n>=100000?(n/1000).toFixed(0)+'k':n>=10000?
 const fmtT=s=>{s=Math.max(0,Math.ceil(s));return s>=60?Math.floor(s/60)+'m '+(s%60)+'s':s+'s'};
 const costHTML=(c,check=true)=>!c?'':Object.entries(c).map(([k,v])=>`<span class="cost ${check&&state.res[k]<v?'no':''}"><span class="ico ${k}"></span>${fmt(v)}</span>`).join(' ');
 
+const MAXLV=6; // highest Nucleus level
 const B={
- nucleus:{name:'Nucleus',size:3,desc:'Holds your DNA. Upgrade it to unlock more and stronger organelles.',hp:[1500,2300,3300],cost:[null,{atp:1500},{atp:4500}],time:[0,40,90]},
- mito:{name:'Mitochondrion',size:2,desc:'Burns sugar into ATP. Tap to collect.',hp:[250,330,430],cost:[{aa:100},{aa:350},{aa:1000}],time:[5,15,35],prod:{res:'atp',rate:[1.5,2.5,4],cap:[250,500,1000]}},
- ribo:{name:'Ribosome',size:2,desc:'Translates mRNA into Amino Acids. Tap to collect.',hp:[250,330,430],cost:[{atp:100},{atp:350},{atp:1000}],time:[5,15,35],prod:{res:'aa',rate:[1.5,2.5,4],cap:[250,500,1000]}},
- atpstore:{name:'ATP Vacuole',size:2,desc:'Stores ATP.',hp:[400,600,850],cost:[{aa:200},{aa:600},{aa:1600}],time:[8,20,40],store:{res:'atp',cap:[1500,3500,8000]}},
- aastore:{name:'Amino Vesicle',size:2,desc:'Stores Amino Acids.',hp:[400,600,850],cost:[{atp:200},{atp:600},{atp:1600}],time:[8,20,40],store:{res:'aa',cap:[1500,3500,8000]}},
- lyso:{name:'Lysosome',size:2,desc:'Spits digestive enzymes at single invaders.',hp:[380,520,700],cost:[{atp:250},{atp:800},{atp:2200}],time:[8,20,45],def:{range:5.5,dmg:[15,22,31],rate:.8,splash:0,speed:10}},
- burst:{name:'Cytokine Pod',size:2,desc:'Lobs signal bursts that hit whole groups.',hp:[450,620,820],cost:[{atp:900},{atp:2200},{atp:5000}],time:[15,30,60],def:{range:4.5,dmg:[20,30,42],rate:2.2,splash:1.3,speed:6}},
- membrane:{name:'Membrane',size:1,desc:'Lipid bilayer wall. Invaders must chew through.',hp:[220,450,800],cost:[{atp:25},{atp:200},{atp:700}],time:[0,0,0]},
- chamber:{name:'Replication Chamber',size:3,desc:'Houses the microbes you replicate for raids.',hp:[500,700,900],cost:[{aa:250},{aa:900},{aa:2500}],time:[10,25,50],housing:[20,30,45]},
+ nucleus:{name:'Nucleus',size:3,desc:'Holds your DNA. Upgrade it to unlock more and stronger organelles.',hp:[1800,2700,3800,4800,5800,6800],cost:[null,{atp:1500},{atp:4500},{atp:10000},{atp:20000},{atp:40000}],time:[0,40,90,150,240,360]},
+ mito:{name:'Mitochondrion',size:2,desc:'Burns sugar into ATP. Tap to collect.',hp:[260,340,480,600,720,840],cost:[{aa:100},{aa:350},{aa:1000},{aa:2200},{aa:4500},{aa:8000}],time:[5,15,35,60,90,140],prod:{res:'atp',rate:[1.5,2.5,4,6,8.5,12],cap:[250,500,1000,1800,2800,4000]}},
+ ribo:{name:'Ribosome',size:2,desc:'Translates mRNA into Amino Acids. Tap to collect.',hp:[260,340,480,600,720,840],cost:[{atp:100},{atp:350},{atp:1000},{atp:2200},{atp:4500},{atp:8000}],time:[5,15,35,60,90,140],prod:{res:'aa',rate:[1.5,2.5,4,6,8.5,12],cap:[250,500,1000,1800,2800,4000]}},
+ atpstore:{name:'ATP Vacuole',size:2,desc:'Stores ATP.',hp:[450,650,1000,1250,1500,1750],cost:[{aa:200},{aa:600},{aa:1600},{aa:3500},{aa:7000},{aa:12000}],time:[8,20,40,70,110,160],store:{res:'atp',cap:[1500,3500,8000,15000,25000,40000]}},
+ aastore:{name:'Amino Vesicle',size:2,desc:'Stores Amino Acids.',hp:[450,650,1000,1250,1500,1750],cost:[{atp:200},{atp:600},{atp:1600},{atp:3500},{atp:7000},{atp:12000}],time:[8,20,40,70,110,160],store:{res:'aa',cap:[1500,3500,8000,15000,25000,40000]}},
+ lyso:{name:'Lysosome',size:2,desc:'Spits digestive enzymes at single invaders.',hp:[450,600,1000,1150,1300,1450],cost:[{atp:250},{atp:800},{atp:2200},{atp:4500},{atp:8500},{atp:14000}],time:[8,20,45,75,120,180],def:{range:5.5,dmg:[20,28,50,54,58,64],rate:.7,splash:0,speed:10}},
+ burst:{name:'Cytokine Pod',size:2,desc:'Lobs signal bursts that hit whole groups.',hp:[500,680,1050,1200,1350,1500],cost:[{atp:900},{atp:2200},{atp:5000},{atp:9000},{atp:15000},{atp:24000}],time:[15,30,60,90,140,200],def:{range:4.5,dmg:[24,34,62,66,70,76],rate:2,splash:1.3,speed:6}},
+ perox:{name:'Peroxisome',size:2,off:3,desc:'Locks a peroxide beam onto one invader — it burns hotter the longer it holds. Hits flyers.',hp:[950,1150,1350],cost:[{atp:6000},{atp:11000},{atp:18000}],time:[90,150,220],def:{range:5,dmg:[26,32,38],beam:true,ramp:3,rampMul:4}},
+ membrane:{name:'Membrane',size:1,desc:'Lipid bilayer wall. Invaders must chew through.',hp:[300,550,900,1100,1300,1500],cost:[{atp:25},{atp:200},{atp:700},{atp:1500},{atp:3000},{atp:6000}],time:[0,0,0,0,0,0]},
+ chamber:{name:'Replication Chamber',size:3,desc:'Houses the microbes you replicate for raids.',hp:[550,750,1050,1300,1550,1800],cost:[{aa:250},{aa:900},{aa:2500},{aa:5000},{aa:9000},{aa:15000}],time:[10,25,50,80,120,180],housing:[20,30,35,45,55,65]},
+ lab:{name:'Gene Lab',size:3,off:1,desc:'Edits microbe DNA — research makes each microbe stronger.',hp:[500,650,850,1000,1200],cost:[{atp:500},{atp:1500},{atp:4000},{atp:8000},{atp:15000}],time:[15,40,80,130,200]},
 };
-const SHOP=['mito','ribo','atpstore','aastore','lyso','burst','membrane','chamber'];
-const LIMITS={nucleus:[1,1,1],mito:[2,3,4],ribo:[2,3,4],atpstore:[1,2,3],aastore:[1,2,3],lyso:[2,3,4],burst:[0,1,2],membrane:[30,60,90],chamber:[1,1,2]};
+const SHOP=['mito','ribo','atpstore','aastore','lyso','burst','perox','membrane','chamber','lab'];
+const LIMITS={nucleus:[1,1,1,1,1,1],mito:[2,3,4,5,6,6],ribo:[2,3,4,5,6,6],atpstore:[1,2,3,3,4,4],aastore:[1,2,3,3,4,4],lyso:[2,3,4,5,5,6],burst:[0,1,2,2,3,3],perox:[0,0,0,1,1,2],membrane:[30,60,90,120,150,180],chamber:[1,1,2,2,2,2],lab:[0,1,1,1,1,1]};
 const U={
- phage:{name:'Phage',desc:'Cheap, fast swarmer. Attacks the nearest organelle.',hp:55,dmg:9,rate:.9,range:.55,speed:1.7,space:1,cost:25,nuc:1},
- flag:{name:'Flagellate',desc:'Fires toxin darts from range. Fragile.',hp:34,dmg:10,rate:1,range:3,speed:1.4,space:1,cost:40,nuc:1},
+ phage:{name:'Phage',desc:'Cheap, fast swarmer. Attacks the nearest organelle.',hp:48,dmg:8,rate:.9,range:.55,speed:1.7,space:1,cost:25,nuc:1},
+ flag:{name:'Flagellate',desc:'Fires toxin darts from range. Fragile.',hp:28,dmg:6.5,rate:1,range:2.2,speed:1.4,space:1,cost:45,nuc:1},
  spiro:{name:'Spirochete',desc:'Corkscrews into membranes and bursts them open.',hp:45,dmg:200,rate:1,range:.5,speed:2.1,space:2,cost:70,nuc:1,pref:'wall'},
- virion:{name:'Virion',desc:'Hijacks resource organelles — double damage to storages, collectors & nucleus.',hp:40,dmg:10,rate:.8,range:.5,speed:2,space:1,cost:30,nuc:1,pref:'res',bonus:2},
- amoeba:{name:'Amoeba',desc:'Huge and tough. Engulfs defenses first.',hp:450,dmg:24,rate:1.4,range:.6,speed:.75,space:5,cost:160,nuc:2,pref:'def'},
- myxo:{name:'Myxobacteria',desc:'Wolf-pack predator swarm. Its bites splash onto nearby organelles.',hp:140,dmg:20,rate:1.2,range:.6,speed:1.1,space:3,cost:90,nuc:2,splash:1.1},
- spore:{name:'Fungal Spore',desc:'Drifts OVER membranes and rains spores on defenses. Cytokine Pods can\'t hit it.',hp:300,dmg:70,rate:2.4,range:.4,speed:.7,space:5,cost:180,nuc:2,pref:'def',fly:true,splash:1.3},
+ virion:{name:'Virion',desc:'Hijacks resource organelles — double damage to storages, collectors & nucleus.',hp:36,dmg:9,rate:.8,range:.5,speed:2,space:1,cost:30,nuc:1,pref:'res',bonus:2},
+ amoeba:{name:'Amoeba',desc:'Huge and tough. Engulfs defenses first.',hp:700,dmg:34,rate:1.4,range:.6,speed:.75,space:5,cost:160,nuc:2,pref:'def'},
+ myxo:{name:'Myxobacteria',desc:'Wolf-pack predator swarm. Its bites splash onto nearby organelles.',hp:200,dmg:26,rate:1.2,range:.6,speed:1.2,space:3,cost:90,nuc:2,splash:1.1},
+ spore:{name:'Fungal Spore',desc:'Drifts OVER membranes and rains spores on defenses. Cytokine Pods can\'t hit it.',hp:280,dmg:55,rate:2.5,range:.4,speed:.7,space:5,cost:180,nuc:2,pref:'def',fly:true,splash:1.3},
  stem:{name:'Stem Cell',desc:'Floats above the fight and regenerates nearby microbes. Doesn\'t attack.',hp:260,dmg:0,heal:28,rate:1,range:2,speed:1.1,space:6,cost:220,nuc:3,fly:true},
+ plasmo:{name:'Plasmodium',desc:'Malaria parasite riding a hijacked red cell. When destroyed it bursts into 4 merozoites.',hp:520,dmg:30,rate:1.2,range:.6,speed:.9,space:8,cost:320,nuc:4,split:'mero',splitN:4},
+ prion:{name:'Prion',desc:'A misfolded protein. Its touch jams a defense so it can\'t fire for 3 seconds.',hp:240,dmg:16,rate:1,range:.6,speed:1.5,space:4,cost:240,nuc:5,pref:'def',stun:3},
+ mero:{name:'Merozoite',hidden:true,hp:70,dmg:12,rate:.8,range:.5,speed:1.9,space:0,cost:0,nuc:99},
 };
-const UTYPES=Object.keys(U);
+const UTYPES=Object.keys(U).filter(k=>!U[k].hidden);
+const umul=l=>1+.1*((l||1)-1); // each research level: +10% health & damage
+const sv=v=>v<20?Math.round(v*10)/10:Math.round(v); // stat display: keep a decimal on small numbers
+// level rules: a building can't out-level the Nucleus (minus its unlock offset)
+const levelsOf=t=>B[t].hp.length;
+const maxLvlAt=(t,n)=>t==='nucleus'?MAXLV:Math.max(0,Math.min(levelsOf(t),n-(B[t].off||0)));
+const needNuc=(t,l)=>l+(B[t].off||0);
+const TIER=['126,200,255','255,122,176','255,211,77']; // glow colours for Lv 4 / 5 / 6
 
 // ---------- sound (all synthesized with Web Audio, no files) ----------
 const SFX=(()=>{
@@ -181,13 +195,13 @@ const SFX=(()=>{
  }
  function apply(){if(!ac)return;sfxBus.gain.value=pref.sfx?1:0;musBus.gain.value=pref.music?.32:0}
  function toggle(k){pref[k]=!pref[k];try{localStorage.setItem('cytoclash_audio',JSON.stringify(pref))}catch(e){}apply();return pref[k]}
- function tone(o){if(!ac)return;const {f=440,f2,type='sine',d=.15,v=.3,at=0,a=.005,bus=sfxBus,q}=o;const t=ac.currentTime+at;
+ function tone(o){if(!ac||QUIET)return;const {f=440,f2,type='sine',d=.15,v=.3,at=0,a=.005,bus=sfxBus,q}=o;const t=ac.currentTime+at;
   const os=ac.createOscillator(),g=ac.createGain();os.type=type;os.frequency.setValueAtTime(f,t);if(f2)os.frequency.exponentialRampToValueAtTime(f2,t+d);
   g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(v,t+a);g.gain.exponentialRampToValueAtTime(.0001,t+d);
   let out=os;if(q){const fl=ac.createBiquadFilter();fl.type='lowpass';fl.frequency.value=q;os.connect(fl);out=fl}
   out.connect(g);g.connect(bus);os.start(t);os.stop(t+d+.05)}
  let nb=null;
- function noise(o){if(!ac)return;const {d=.2,v=.3,f=1200,f2,type='lowpass',at=0,Q=1}=o;const t=ac.currentTime+at;
+ function noise(o){if(!ac||QUIET)return;const {d=.2,v=.3,f=1200,f2,type='lowpass',at=0,Q=1}=o;const t=ac.currentTime+at;
   if(!nb){nb=ac.createBuffer(1,ac.sampleRate,ac.sampleRate);const ch=nb.getChannelData(0);for(let i=0;i<ch.length;i++)ch[i]=Math.random()*2-1}
   const s=ac.createBufferSource();s.buffer=nb;const fl=ac.createBiquadFilter();fl.type=type;fl.Q.value=Q;fl.frequency.setValueAtTime(f,t);if(f2)fl.frequency.exponentialRampToValueAtTime(f2,t+d);
   const g=ac.createGain();g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.0001,t+d);s.connect(fl);fl.connect(g);g.connect(sfxBus);s.start(t,Math.random()*.5);s.stop(t+d+.05)}
@@ -208,6 +222,9 @@ const SFX=(()=>{
   hit(){if(!thr('hit',70))return;noise({d:.05,v:.09,f:r(1500,2500),type:'bandpass',Q:3});tone({f:r(140,180),f2:80,d:.06,v:.08})},
   dart(){if(!thr('dart',70))return;tone({f:1600,f2:2400,d:.05,v:.05,type:'triangle'})},
   zap(){if(!thr('zap',90))return;tone({f:r(220,260),f2:110,d:.12,v:.08,type:'square',q:1200})},
+  beam(k){if(!thr('beam',120))return;tone({f:260+520*k,f2:280+560*k,d:.13,v:.045,type:'sawtooth',q:1400})},
+  jam(){if(!thr('jam',150))return;tone({f:900,f2:200,d:.25,v:.08,type:'square',q:1800})},
+  split(){if(!thr('split',80))return;tone({f:300,f2:900,d:.15,v:.12});noise({d:.15,v:.1,f:2500,type:'bandpass',Q:3})},
   crumble(){noise({d:.5,v:.3,f:1200,f2:120,Q:1.5});tone({f:110,f2:40,d:.45,v:.3});for(let i=0;i<4;i++)tone({f:r(300,700),f2:r(100,200),d:.12,v:.06,at:.05+i*.06})},
   wall(){if(!thr('wall',60))return;noise({d:.18,v:.18,f:900,f2:200,Q:2});tone({f:220,f2:110,d:.1,v:.1})},
   big(){tone({f:80,f2:30,d:1.2,v:.45});noise({d:1,v:.35,f:2000,f2:80});[0,3,7].forEach((s,i)=>tone({f:330*2**(s/12),d:.6,v:.1,at:.3+i*.1,type:'triangle'}))},
@@ -242,8 +259,8 @@ const Snd=SFX.S;
 let state;
 function newState(){
  const b=(type,x,y)=>({id:state?0:0,type,x,y,lvl:1,stored:0,upg:null});
- const s={v:1,res:{atp:700,aa:700},evo:0,army:{phage:8,flag:4},last:Date.now(),nid:1,seenHelp:false,buildings:[
-  b('nucleus',11,11),b('mito',7,8),b('ribo',17,8),b('atpstore',7,16),b('aastore',17,16),b('lyso',12,7),b('chamber',11,19)]};
+ const s={v:1,res:{atp:700,aa:700},evo:0,army:{phage:8,flag:4},unitLvl:{},research:null,last:Date.now(),nid:1,seenHelp:false,buildings:[
+  b('nucleus',11,11),b('mito',7,8),b('ribo',17,8),b('atpstore',7,16),b('aastore',17,16),b('lyso',12,7),b('lyso',12,15),b('chamber',11,19)]};
  s.buildings.forEach(x=>x.id=s.nid++);
  return s;
 }
@@ -252,6 +269,19 @@ function load(){
  if(!state) state=newState();
  const off=clamp((Date.now()-(state.last||Date.now()))/1000,0,8*3600);
  produce(off);
+ if(!state.log)state.log=[];
+ if(!state.nextRaid||!isFinite(state.nextRaid))state.nextRaid=Date.now()+(state.nextRaid===Infinity||state.nextRaid===null?60e3:4*60e3);
+}
+// raids that happened while you were away are simulated instantly on return
+function offlineRaid(){
+ if(Date.now()<state.nextRaid||Date.now()-state.last<90e3)return;
+ const atpBefore=state.res.atp,aaBefore=state.res.aa,e=startDefense(true);bt=null;
+ if(!e)return;
+ $('#modal').dataset.lock='1';
+ openModal(`<h2 style="justify-content:center">While you were away…</h2><p class="sub" style="text-align:center"><b>${e.name}</b> (Lv ${e.L}) invaded your cell.<br>${e.st?`They destroyed ${e.pct}% and earned`:'Your defenses repelled them!'}</p>
+ <div class="res" style="font-size:34px">${'<b style="color:#ff5f6d">★</b>'.repeat(e.st)}${'<span>★</span>'.repeat(3-e.st)}</div>${lossRow(e)}${shieldNote(e)}
+ <div class="row"><button class="big" id="okAway">OK</button></div>`);
+ $('#okAway').onclick=()=>{delete $('#modal').dataset.lock;closeModal()};
 }
 function save(){state.last=Date.now(); try{localStorage.setItem(SAVE,JSON.stringify(state))}catch(e){}}
 
@@ -263,6 +293,7 @@ const pay=c=>{for(const k in c)state.res[k]-=c[k]};
 const busy=()=>state.buildings.filter(b=>b.upg).length;
 const count=t=>state.buildings.filter(b=>b.type===t).length;
 const limit=t=>LIMITS[t][nucLvl()-1];
+const maxLvl=t=>maxLvlAt(t,nucLvl());
 const housing=()=>state.buildings.reduce((a,b)=>a+(b.type==='chamber'&&b.lvl>0?B.chamber.housing[b.lvl-1]:0),0);
 const armyUsed=()=>UTYPES.reduce((a,k)=>a+U[k].space*(state.army[k]||0),0);
 function produce(dt){for(const b of state.buildings){const p=B[b.type].prod;if(p&&b.lvl>0)b.stored=Math.min(p.cap[b.lvl-1],(b.stored||0)+p.rate[b.lvl-1]*dt)}}
@@ -284,14 +315,15 @@ function rg(c,x,y,r,a,b){const g=c.createRadialGradient(x-r*.35,y-r*.4,r*.05,x,y
 function circ(c,x,y,r){c.beginPath();c.arc(x,y,r,0,TAU)}
 
 function drawB(c,b,t,o={}){
- const d=B[b.type],s=d.size,cx=b.x+s/2,cy=b.y+s/2,sd=(b.x*7.3+b.y*3.1)%TAU,lv=clamp(b.lvl,1,3);
+ const d=B[b.type],s=d.size,cx=b.x+s/2,cy=b.y+s/2,sd=(b.x*7.3+b.y*3.1)%TAU,lv=clamp(b.lvl,1,6);
  c.save(); if(o.alpha!=null)c.globalAlpha=o.alpha;
  if(o.dead){c.fillStyle='rgba(40,25,35,.75)';for(let i=0;i<(s>1?5:2);i++){circ(c,b.x+s*(.25+((i*.37+sd)%1)*.5),b.y+s*(.25+((i*.61+sd*.3)%1)*.5),.14*s);c.fill()}c.restore();return}
+ if(lv>=4&&b.type!=='membrane'){const g=c.createRadialGradient(cx,cy,s*.2,cx,cy,s*.64);g.addColorStop(0,`rgba(${TIER[lv-4]},${.32+.12*Math.sin(t*2+sd)})`);g.addColorStop(1,`rgba(${TIER[lv-4]},0)`);c.fillStyle=g;circ(c,cx,cy,s*.64);c.fill()}
  if(b.type!=='membrane'){c.fillStyle='rgba(0,0,0,.3)';c.beginPath();c.ellipse(cx+.1,cy+.16,s*.43,s*.4,0,0,TAU);c.fill()}
  c.lineCap='round';c.lineJoin='round';
  switch(b.type){
  case 'nucleus':{
-  const P=[['#b39bff','#4b2db8'],['#d09bff','#6322b0'],['#ff9be6','#8a1f9c']][lv-1],r=1.33;
+  const P=[['#b39bff','#4b2db8'],['#d09bff','#6322b0'],['#ff9be6','#8a1f9c'],['#9bd8ff','#2d5bb8'],['#9bffd0','#1f8a6a'],['#ffe39b','#b8742d']][lv-1],r=1.33;
   blob(c,cx,cy,r,t,sd,.035);c.fillStyle=rg(c,cx,cy,r,P[0],P[1]);c.fill();c.lineWidth=.09;c.strokeStyle='rgba(255,255,255,.45)';c.stroke();
   c.fillStyle='rgba(255,255,255,.55)';for(let i=0;i<14;i++){const a=i/14*TAU+t*.06;circ(c,cx+Math.cos(a)*r*.9,cy+Math.sin(a)*r*.9,.045);c.fill()}
   blob(c,cx+.45,cy+.42,.34,t*1.3,sd+2,.09);c.fillStyle='rgba(30,10,80,.55)';c.fill();
@@ -300,14 +332,14 @@ function drawB(c,b,t,o={}){
   for(const k of [0,Math.PI]){c.beginPath();for(let i=0;i<=24;i++){const u=i/24,x=-.85+u*1.7,y=Math.sin(u*TAU*1.4+t*1.6+k)*.24;i?c.lineTo(x,y):c.moveTo(x,y)}c.strokeStyle=k?'#7ff7e0':'#ff8fb8';c.lineWidth=.075;c.stroke()}
   c.restore();break}
  case 'mito':{
-  const P=[['#ffb070','#d0561f'],['#ff9a6a','#c23a2a'],['#ffd06a','#d0721f']][lv-1];
+  const P=[['#ffb070','#d0561f'],['#ff9a6a','#c23a2a'],['#ffd06a','#d0721f'],['#ff7a9a','#b0284a'],['#c08aff','#6a2ab0'],['#ffe9a0','#c89020']][lv-1];
   c.save();c.translate(cx,cy);c.rotate(-.55+.05*Math.sin(t+sd));
   c.beginPath();c.ellipse(0,0,.88,.5,0,0,TAU);c.fillStyle=rg(c,0,0,.88,P[0],P[1]);c.fill();c.lineWidth=.07;c.strokeStyle='#ffe0b8';c.stroke();
   c.beginPath();c.ellipse(0,0,.72,.36,0,0,TAU);c.fillStyle='rgba(120,30,10,.45)';c.fill();
   c.beginPath();for(let i=0;i<=10;i++){const x=-.62+i*.124,y=(i%2?.27:-.27)*(1-Math.abs(x)*.6)+Math.sin(t*2+i)*.02;i?c.lineTo(x,y):c.moveTo(x,y)}c.strokeStyle='#ffd9a8';c.lineWidth=.07;c.stroke();
   c.restore();break}
  case 'ribo':{
-  const P=[['#7cc0ff','#2b5fc4'],['#7cf0ff','#2b8fc4'],['#b4a0ff','#4b3fc4']][lv-1];
+  const P=[['#7cc0ff','#2b5fc4'],['#7cf0ff','#2b8fc4'],['#b4a0ff','#4b3fc4'],['#7cffb4','#2bc46a'],['#ffa0d8','#c42b8a'],['#fff0a0','#c4a02b']][lv-1];
   blob(c,cx,cy+.2,.62,t,sd,.04);c.fillStyle=rg(c,cx,cy+.2,.62,P[0],P[1]);c.fill();c.lineWidth=.06;c.strokeStyle='rgba(255,255,255,.4)';c.stroke();
   blob(c,cx+.05,cy-.42,.42,t*1.2,sd+1,.05);c.fillStyle=rg(c,cx,cy-.42,.42,'#d4ecff',P[0]);c.fill();c.stroke();
   c.beginPath();for(let i=0;i<=20;i++){const x=cx-.95+i*.095,y=cy-.08+Math.sin(i*.9+t*3)*.05;i?c.lineTo(x,y):c.moveTo(x,y)}c.strokeStyle='#ff6b9a';c.lineWidth=.07;c.stroke();
@@ -323,40 +355,70 @@ function drawB(c,b,t,o={}){
   c.restore();
   c.lineWidth=.06+.03*lv;c.strokeStyle=atp?'#fff2b0':'#c8ffd8';circ(c,cx,cy,r);c.stroke();
   if(lv>1){c.lineWidth=.04;c.strokeStyle='rgba(255,255,255,.35)';circ(c,cx,cy,r+.09);c.stroke()}
+  if(lv>3){c.lineWidth=.045;c.strokeStyle=`rgba(${TIER[lv-4]},.75)`;circ(c,cx,cy,r+.17);c.stroke()}
   c.beginPath();c.arc(cx,cy,r*.75,3.6,4.5);c.strokeStyle='rgba(255,255,255,.7)';c.lineWidth=.08;c.stroke();
   break}
  case 'lyso':{
-  const P=[['#ff8aa2','#b8264a'],['#ff8ad0','#a8206a'],['#ffa06a','#b8302a']][lv-1];
+  const P=[['#ff8aa2','#b8264a'],['#ff8ad0','#a8206a'],['#ffa06a','#b8302a'],['#c78aff','#6a20a8'],['#ff6a6a','#8a1010'],['#ffd08a','#b86a10']][lv-1];
   blob(c,cx,cy,.72,t,sd,.05);c.fillStyle=rg(c,cx,cy,.72,P[0],P[1]);c.fill();c.lineWidth=.06;c.strokeStyle='rgba(255,220,230,.6)';c.stroke();
   c.save();c.translate(cx,cy);c.rotate(o.aim??(t*.3+sd));c.beginPath();c.moveTo(.1,-.14);c.lineTo(.82,-.1);c.lineTo(.82,.1);c.lineTo(.1,.14);c.closePath();c.fillStyle='#ffd0dc';c.fill();c.strokeStyle='#8a1a3a';c.lineWidth=.05;c.stroke();c.restore();
   blob(c,cx,cy,.38,t*1.6,sd+3,.08);c.fillStyle='#6a0f2e';c.fill();
   c.fillStyle='#ffe066';for(let i=0;i<6;i++){circ(c,cx+Math.cos(i+t*1.5)*.2,cy+Math.sin(i*1.7+t)*.2,.05);c.fill()}
   break}
  case 'burst':{
-  const pulse=1+.08*Math.sin(t*3+sd);c.fillStyle=['#e05cff','#ff5cc8','#ff9a4d'][lv-1];
+  const pulse=1+.08*Math.sin(t*3+sd);c.fillStyle=['#e05cff','#ff5cc8','#ff9a4d','#5cc8ff','#5cff9a','#ffd34d'][lv-1];
   for(let i=0;i<10;i++){const a=i/10*TAU+t*.4;c.beginPath();c.moveTo(cx+Math.cos(a-.2)*.45,cy+Math.sin(a-.2)*.45);c.lineTo(cx+Math.cos(a)*.92*pulse,cy+Math.sin(a)*.92*pulse);c.lineTo(cx+Math.cos(a+.2)*.45,cy+Math.sin(a+.2)*.45);c.fill()}
   blob(c,cx,cy,.58,t,sd,.05);c.fillStyle=rg(c,cx,cy,.58,'#ffc4fb','#8b2cc4');c.fill();c.lineWidth=.05;c.strokeStyle='#ffe0ff';c.stroke();
   circ(c,cx,cy,.2*pulse);c.fillStyle='rgba(255,255,255,.8)';c.fill();
   break}
  case 'chamber':{
-  blob(c,cx,cy,1.3,t,sd,.04);c.fillStyle=rg(c,cx,cy,1.3,['#b4f0ff','#b4ffd8','#ffe8b4'][lv-1],'#2e7fa5');c.fill();c.lineWidth=.08;c.strokeStyle='rgba(255,255,255,.5)';c.stroke();
+  blob(c,cx,cy,1.3,t,sd,.04);c.fillStyle=rg(c,cx,cy,1.3,['#b4f0ff','#b4ffd8','#ffe8b4','#d8b4ff','#ffb4d8','#fff4b4'][lv-1],'#2e7fa5');c.fill();c.lineWidth=.08;c.strokeStyle='rgba(255,255,255,.5)';c.stroke();
   const p=(Math.sin(t*.8+sd)+1)/2*.32;
   for(const sg of [-1,1]){blob(c,cx+sg*(.22+p),cy,.5,t*1.5,sd+sg,.06);c.fillStyle='rgba(255,255,255,.22)';c.fill();c.lineWidth=.05;c.strokeStyle='rgba(255,255,255,.7)';c.stroke();circ(c,cx+sg*(.22+p),cy,.15);c.fillStyle='#7c5cff';c.fill()}
   break}
+ case 'perox':{
+  const P=[['#e8ff9a','#6a9a1a'],['#9affd8','#1a8a6a'],['#fff09a','#a8781a']][Math.min(lv,3)-1],hot=!!o.beam;
+  blob(c,cx,cy,.74,t,sd,.04);c.fillStyle=rg(c,cx,cy,.74,P[0],P[1]);c.fill();c.lineWidth=.06;c.strokeStyle='rgba(255,255,255,.55)';c.stroke();
+  // crystalline urate-oxidase core; glows white while the beam is firing
+  c.save();c.translate(cx,cy);c.rotate(t*(hot?2.5:.6)+sd);
+  c.beginPath();for(let i=0;i<6;i++){const a=i/6*TAU,r=i%2?.3:.42;i?c.lineTo(Math.cos(a)*r,Math.sin(a)*r):c.moveTo(Math.cos(a)*r,Math.sin(a)*r)}c.closePath();
+  c.fillStyle=hot?'#ffffff':'#2a3a10';c.fill();c.strokeStyle=hot?P[0]:'#c8e890';c.lineWidth=.04;c.stroke();
+  c.beginPath();c.moveTo(-.42,0);c.lineTo(.42,0);c.moveTo(-.15,-.27);c.lineTo(.15,.27);c.moveTo(.15,-.27);c.lineTo(-.15,.27);c.strokeStyle=hot?'rgba(160,200,60,.6)':'rgba(200,232,144,.5)';c.lineWidth=.025;c.stroke();
+  c.restore();
+  c.fillStyle='rgba(255,255,255,.5)';for(let i=0;i<4;i++){const a=i*1.7+t*.8;circ(c,cx+Math.cos(a)*.55,cy+Math.sin(a)*.55,.05);c.fill()}
+  break}
+ case 'lab':{
+  const P=[['#c8fff0','#2a8a7a'],['#c8f0ff','#2a6a9a'],['#e8d8ff','#5a3aa8'],['#ffe0f0','#a83a7a'],['#fff4c8','#a87a2a']][Math.min(lv,5)-1],busy=!!o.research,sp=busy?4:1.4;
+  c.beginPath();c.roundRect(b.x+.25,b.y+.3,s-.5,s-.55,.6);c.fillStyle=rg(c,cx,cy,1.3,P[0],P[1]);c.fill();c.lineWidth=.08;c.strokeStyle='rgba(255,255,255,.55)';c.stroke();
+  c.save();c.translate(cx,cy-.05);
+  for(let i=0;i<=12;i+=2){const u=i/12,y=-.85+u*1.7,ph=u*TAU*1.2+t*sp;c.strokeStyle=['#ffd34d','#5fe08a','#ff8fb8','#7ec8ff'][(i/2)%4];c.lineWidth=.06;c.beginPath();c.moveTo(Math.sin(ph)*.32,y);c.lineTo(-Math.sin(ph)*.32,y);c.stroke()}
+  for(const k of [0,Math.PI]){c.beginPath();for(let i=0;i<=24;i++){const u=i/24,y=-.85+u*1.7,x=Math.sin(u*TAU*1.2+t*sp+k)*.32;i?c.lineTo(x,y):c.moveTo(x,y)}c.strokeStyle=k?'#ffffff':'#7ff7e0';c.lineWidth=.08;c.stroke()}
+  c.restore();
+  if(busy){const a=t*2,qx=cx+Math.cos(a)*.78,qy=cy+Math.sin(a)*.62;c.save();c.translate(qx,qy);c.rotate(a+Math.sin(t*12)*.3);c.strokeStyle='#ff5f6d';c.lineWidth=.05;
+   c.beginPath();c.moveTo(-.15,-.1);c.lineTo(.17,.1);c.moveTo(-.15,.1);c.lineTo(.17,-.1);c.stroke();circ(c,-.19,-.12,.06);c.stroke();circ(c,-.19,.12,.06);c.stroke();c.restore()}
+  c.fillStyle='rgba(0,0,0,.25)';c.fillRect(b.x+.45,b.y+s-.42,s-.9,.14);
+  break}
  case 'membrane':{
-  const col=['#f2b28a','#6fd6c8','#ffd34d'][lv-1],x=b.x,y=b.y;
+  const col=['#f2b28a','#6fd6c8','#ffd34d','#b49bff','#ff7ab0','#e8f4ff'][lv-1],x=b.x,y=b.y;
   c.fillStyle=col;
   if(o.hasWall){if(o.hasWall(x+1,y))c.fillRect(x+.5,y+.28,1,.44);if(o.hasWall(x,y+1))c.fillRect(x+.28,y+.5,.44,1)}
   circ(c,cx,cy,.38);c.fill();c.lineWidth=.05;c.strokeStyle='rgba(0,0,0,.35)';c.stroke();
   c.fillStyle='rgba(255,255,255,.75)';for(let i=0;i<6;i++){const a=i/6*TAU;circ(c,cx+Math.cos(a)*.26,cy+Math.sin(a)*.26,.06);c.fill()}
   break}
  }
- if(b.lvl>0&&b.type!=='membrane'&&!o.noPips){for(let i=0;i<b.lvl;i++){circ(c,cx-(b.lvl-1)*.14+i*.28,b.y+s-.1,.08);c.fillStyle='#fff';c.fill();c.lineWidth=.03;c.strokeStyle='#000';c.stroke()}}
+ if(b.lvl>0&&b.type!=='membrane'&&!o.noPips){const n=b.lvl,sp=n>3?.21:.28,pr=n>3?.068:.08;for(let i=0;i<n;i++){circ(c,cx-(n-1)*sp/2+i*sp,b.y+s-.1,pr);c.fillStyle=n>=4?`rgb(${TIER[Math.min(n,6)-4]})`:'#fff';c.fill();c.lineWidth=.03;c.strokeStyle='#000';c.stroke()}}
  c.restore();
 }
 
+function drawAntibody(c,x,y,s,rot){ // Y-shaped immunoglobulin
+ c.save();c.translate(x,y);c.rotate(rot);c.lineCap='round';c.lineWidth=s*.22;c.strokeStyle='#7ec8ff';
+ c.beginPath();c.moveTo(0,s*.7);c.lineTo(0,0);c.lineTo(-s*.55,-s*.6);c.moveTo(0,0);c.lineTo(s*.55,-s*.6);c.stroke();
+ c.lineWidth=s*.09;c.strokeStyle='#e8f6ff';c.beginPath();c.moveTo(0,s*.6);c.lineTo(0,0);c.lineTo(-s*.45,-s*.5);c.moveTo(0,0);c.lineTo(s*.45,-s*.5);c.stroke();c.restore();
+}
 function drawU(c,u,t){
- const x=u.x,y=u.y,a=u.dir||0;c.save();c.lineCap='round';c.lineJoin='round';
+ const x=u.x,y=u.y,a=u.dir||0;
+ if(u.enemy){c.save();circ(c,x,y,.32);c.fillStyle='rgba(255,50,80,.22)';c.fill();c.lineWidth=.03;c.strokeStyle='rgba(255,90,110,.6)';c.stroke();c.restore()}
+ c.save();c.lineCap='round';c.lineJoin='round';
  switch(u.type){
  case 'phage':{c.translate(x,y);c.rotate(a);
   c.strokeStyle='#9fb4e0';c.lineWidth=.035;for(const sg of [-1,1])for(const k of [0,1]){c.beginPath();c.moveTo(-.12,0);c.lineTo(-.2+k*.06,sg*(.13+Math.sin(t*12+u.anim)*.03));c.stroke()}
@@ -372,6 +434,12 @@ function drawU(c,u,t){
   c.beginPath();for(let i=0;i<6;i++){const q=i/6*TAU;i?c.lineTo(Math.cos(q)*.11,Math.sin(q)*.11):c.moveTo(Math.cos(q)*.11,Math.sin(q)*.11)}c.closePath();c.fillStyle='#ff5f6d';c.fill();c.strokeStyle='#7a1020';c.stroke();break}
  case 'myxo':{c.translate(x,y);c.rotate(a);
   for(const [px,py,ph] of [[.08,0,0],[-.1,-.11,1.7],[-.1,.11,3.1],[-.24,0,4.2]]){c.save();c.translate(px+Math.sin(t*5+ph+u.anim)*.02,py);c.rotate(Math.sin(t*3+ph)*.25);c.beginPath();c.roundRect(-.11,-.04,.22,.08,.04);c.fillStyle='#ffcf4d';c.fill();c.strokeStyle='#8a5a10';c.lineWidth=.025;c.stroke();c.restore()}break}
+ case 'plasmo':{circ(c,x,y,.34);c.fillStyle=rg(c,x,y,.34,'#ff9a9a','#b8303a');c.fill();c.strokeStyle='#ffd0d0';c.lineWidth=.04;c.stroke();
+  circ(c,x,y,.15);c.fillStyle='rgba(120,20,40,.3)';c.fill();
+  c.save();c.translate(x,y);c.rotate(t*.8+u.anim);c.strokeStyle='#5a1a8a';c.lineWidth=.06;c.beginPath();c.arc(0,0,.2,0,TAU*.8);c.stroke();circ(c,.2,0,.07);c.fillStyle='#3a0a6a';c.fill();c.restore();break}
+ case 'mero':{c.translate(x,y);c.rotate(a);c.beginPath();c.moveTo(.13,0);c.quadraticCurveTo(-.02,.1,-.1,0);c.quadraticCurveTo(-.02,-.1,.13,0);c.fillStyle='#b06aff';c.fill();c.strokeStyle='#4a1a8a';c.lineWidth=.025;c.stroke();circ(c,-.02,0,.03);c.fillStyle='#4a1a8a';c.fill();break}
+ case 'prion':{c.translate(x,y);c.rotate(t*.7+u.anim);circ(c,0,0,.2);c.fillStyle='rgba(255,140,60,.18)';c.fill();
+  for(let k=0;k<3;k++){c.save();c.rotate(k*TAU/3);c.beginPath();for(let i=0;i<=8;i++){const px=-.24+i*.06,py=i%2?.05:-.05;i?c.lineTo(px,py):c.moveTo(px,py)}c.strokeStyle=['#ff9a3c','#ffc46a','#e0662a'][k];c.lineWidth=.045;c.stroke();c.restore()}break}
  case 'spore':case 'stem':{
   c.fillStyle='rgba(0,0,0,.3)';c.beginPath();c.ellipse(x,y+.05,.26,.1,0,0,TAU);c.fill();
   const fy=y-.4+Math.sin(t*2+u.anim)*.05;
@@ -467,8 +535,9 @@ function collect(b){
 }
 function upgrade(b){
  const d=B[b.type],to=b.lvl+1;
- if(b.upg||to>3)return;
- if(b.type!=='nucleus'&&to>nucLvl()){toast(`Requires Nucleus Lv ${to}`);return}
+ if(b.upg||to>levelsOf(b.type))return;
+ if(to>maxLvl(b.type)){toast(`Requires Nucleus Lv ${needNuc(b.type,to)}`);return}
+ if(b.type==='lab'&&state.research){toast('Wait for the current research to finish');return}
  if(!canPay(d.cost[to-1])){toast('Not enough resources');return}
  if(d.time[to-1]>0&&busy()>=BUILDERS){toast('All Polymerases are busy');return}
  pay(d.cost[to-1]);if(d.time[to-1]>0){b.upg={to,end:Date.now()+d.time[to-1]*1000,dur:d.time[to-1]};Snd.build()}else{b.lvl=to;Snd.levelUp();sparkle(b.x+.5,b.y+.5,'#7ff7e0',6,1.2)}
@@ -478,7 +547,8 @@ function statLines(type,lvl){
  const d=B[type],i=lvl-1,L=[`Health ${d.hp[i]}`];
  if(d.prod)L.push(`Makes ${Math.round(d.prod.rate[i]*60)} ${d.prod.res==='atp'?'ATP':'Amino'}/min, holds ${d.prod.cap[i]}`);
  if(d.store)L.push(`Stores ${fmt(d.store.cap[i])} ${d.store.res==='atp'?'ATP':'Amino'}`);
- if(d.def)L.push(`Damage ${d.def.dmg[i]} every ${d.def.rate}s, range ${d.def.range}${d.def.splash?', splash':''}`);
+ if(d.def)L.push(d.def.beam?`Beam ${d.def.dmg[i]}/s heating up to ${d.def.dmg[i]*d.def.rampMul}/s, range ${d.def.range}, hits flyers`:`Damage ${d.def.dmg[i]} every ${d.def.rate}s, range ${d.def.range}${d.def.splash?', splash, ground only':''}`);
+ if(type==='lab')L.push(`Researches microbes up to Lv ${Math.min(MAXLV,lvl+1)}`);
  if(d.housing)L.push(`Houses ${d.housing[i]} microbe space`);
  if(type==='nucleus')L.push(`Stores 1000 of each resource`);
  return L.join(' · ');
@@ -489,16 +559,19 @@ function renderInfo(){
  let h=`<h3>${d.name} <span style="color:var(--muted);font-weight:500">Lv ${b.lvl}</span></h3><div class="stats">${b.lvl>0?statLines(b.type,b.lvl):d.desc}</div>`;
  let btns='';
  if(b.upg){const left=(b.upg.end-Date.now())/1000;h+=`<div class="stats">${b.lvl===0?'Building':'Upgrading to Lv '+b.upg.to}… ${fmtT(left)}</div><div class="prog"><i style="width:${clamp(100*(1-left/b.upg.dur),0,100)}%"></i></div>`}
- else if(to<=3){
-  const lock=b.type!=='nucleus'&&to>nucLvl();
-  btns+=`<button id="iUp" ${lock?'disabled':''}>${lock?`Needs Nucleus Lv ${to}`:`Upgrade to Lv ${to} &nbsp;${costHTML(d.cost[to-1])}`}</button>`;
+ else if(to<=levelsOf(b.type)){
+  const lock=to>maxLvl(b.type),labBusy=b.type==='lab'&&state.research;
+  btns+=`<button id="iUp" ${lock||labBusy?'disabled':''}>${lock?`Needs Nucleus Lv ${needNuc(b.type,to)}`:labBusy?'Lab is researching':`Upgrade to Lv ${to} &nbsp;${costHTML(d.cost[to-1])}`}</button>`;
   if(!lock)h+=`<div class="stats" style="margin-top:-4px">Next: ${statLines(b.type,to)}${d.time[to-1]?' · '+fmtT(d.time[to-1]):''}</div>`;
+  if(b.type==='nucleus')h+=`<div class="stats" style="margin-top:-4px;color:#7ff7e0">Lv ${to} unlocks: ${unlockText(to)}</div>`;
  } else btns+=`<button disabled>Max level</button>`;
+ if(b.type==='lab'&&b.lvl>0){const r=state.research;if(r)h+=`<div class="stats">Researching ${U[r.unit].name} → Lv ${r.to} · ${fmtT((r.end-Date.now())/1000)}</div>`;btns=`<button id="iLab">🧬 Research</button>`+btns}
  if(d.prod&&b.lvl>0)btns+=`<button class="sec" id="iCol">Collect ${Math.floor(b.stored)}</button>`;
  if(b.type==='membrane')btns+=`<button class="sec" id="iDel">Remove</button>`;
  btns+=`<button class="sec" id="iX">Close</button>`;
  el.innerHTML=h+`<div class="btns">${btns}</div>`;el.style.display='block';
  const up=$('#iUp');if(up)up.onclick=()=>upgrade(b);
+ const lb=$('#iLab');if(lb)lb.onclick=openLab;
  const co=$('#iCol');if(co)co.onclick=()=>{collect(b);renderInfo()};
  const de=$('#iDel');if(de)de.onclick=()=>{state.buildings=state.buildings.filter(x=>x!==b);select(null);save()};
  $('#iX').onclick=()=>select(null);
@@ -511,7 +584,7 @@ document.querySelectorAll('.snd').forEach(el=>{const k=el.dataset.snd;el.classLi
 document.addEventListener('click',e=>{const b=e.target.closest('button');if(b&&!b.classList.contains('snd')&&!b.disabled)Snd.tap()},true);
 cv.addEventListener('pointerdown',e=>{
  cv.setPointerCapture(e.pointerId);const p=toWorld(e);ptr={x:p.x,y:p.y,down:true};
- if(mode==='battle'){deployHold=0;tryDeploy(p.x,p.y,true);return}
+ if(mode==='battle'){if(bt&&bt.defend)fireStrike(p.x,p.y);else{deployHold=0;tryDeploy(p.x,p.y,true)}return}
  const tx=Math.floor(p.x),ty=Math.floor(p.y);
  if(ghost){const s=B[ghost.type].size;drag={k:'ghost',ox:p.x-ghost.x,oy:p.y-ghost.y};if(!(p.x>=ghost.x&&p.y>=ghost.y&&p.x<ghost.x+s&&p.y<ghost.y+s)){drag.ox=s/2;drag.oy=s/2;moveGhost(p)}return}
  const b=buildingAt(tx,ty,state.buildings);
@@ -542,19 +615,19 @@ $('#modal').addEventListener('pointerdown',e=>{if(e.target.id==='modal'&&!$('#mo
 function openShop(){
  let h=`<h2>Build <button class="sec x" onclick="closeModal()">✕</button></h2><p class="sub">Polymerases free: ${BUILDERS-busy()}/${BUILDERS}. Drag buildings to rearrange them.</p><div class="grid">`;
  for(const t of SHOP){const d=B[t],ok=canBuildNew(t,true),lim=limit(t);
-  h+=`<div class="card ${ok?'':'locked'}" data-t="${t}"><span class="n">${count(t)}/${lim}</span><span data-th="${t}"></span><b>${d.name}</b><div class="d">${d.desc}</div><div>${costHTML(d.cost[0])}${d.time[0]?` <span class="stats">· ${fmtT(d.time[0])}</span>`:''}</div></div>`}
+  h+=`<div class="card ${ok?'':'locked'}" data-t="${t}"><span class="n">${count(t)}/${lim}</span><span data-th="${t}"></span><b>${d.name}</b><div class="d">${d.desc}</div><div>${lim===0?`<span class="stats">Unlocks at Nucleus Lv ${LIMITS[t].findIndex(v=>v>0)+1}</span>`:costHTML(d.cost[0])+(d.time[0]?` <span class="stats">· ${fmtT(d.time[0])}</span>`:'')}</div></div>`}
  openModal(h+'</div>');
  document.querySelectorAll('[data-th]').forEach(el=>el.replaceWith(thumb('b',el.dataset.th)));
  document.querySelectorAll('.card[data-t]').forEach(el=>el.onclick=()=>{if(startPlace(el.dataset.t))closeModal()});
 }
 function openArmy(){
  const cap=housing(),used=armyUsed();
- let h=`<h2>Replicate microbes <button class="sec x" onclick="closeModal()">✕</button></h2><p class="sub">Housing ${used}/${cap}. Costs Amino Acids. Units you deploy in a raid are used up.</p><div class="grid">`;
- for(const k of UTYPES){const u=U[k],lock=nucLvl()<u.nuc;
-  h+=`<div class="card ${lock?'locked':''}" style="cursor:default"><span data-tu="${k}"></span><b>${u.name}</b><div class="d">${lock?`Unlocks at Nucleus Lv ${u.nuc}`:u.desc}</div>
-  <div class="stats">HP ${u.hp} · ${u.heal?`Heals ${u.heal}/s`:`Dmg ${u.dmg}`} · Space ${u.space}${u.range>1&&!u.heal?' · Ranged':''}${u.fly?' · Flying':''}${u.splash?' · Splash':''}</div><div>${costHTML({aa:u.cost})}</div>
+ let h=`<h2>Replicate microbes ${labB()&&labB().lvl>0?'<button class="sec" id="toLab" style="padding:6px 10px;font-size:13px">🧬 Gene Lab</button>':''}<button class="sec x" onclick="closeModal()">✕</button></h2><p class="sub">Housing ${used}/${cap}. Costs Amino Acids. Units you deploy in a raid are used up.</p><div class="grid">`;
+ for(const k of UTYPES){const u=U[k],lock=nucLvl()<u.nuc,m=umul(ulvl(k));
+  h+=`<div class="card ${lock?'locked':''}" style="cursor:default">${lock?'':`<span class="n">Lv ${ulvl(k)}</span>`}<span data-tu="${k}"></span><b>${u.name}</b><div class="d">${lock?`Unlocks at Nucleus Lv ${u.nuc}`:u.desc}</div>
+  <div class="stats">HP ${sv(u.hp*m)} · ${u.heal?`Heals ${sv(u.heal*m)}/s`:`Dmg ${sv(u.dmg*m)}`} · Space ${u.space}${u.range>1&&!u.heal?' · Ranged':''}${u.fly?' · Flying':''}${u.splash?' · Splash':''}${u.stun?' · Jams defenses':''}${u.split?' · Splits':''}</div><div>${costHTML({aa:u.cost})}</div>
   ${lock?'':`<div class="cnt"><button class="sec" data-m="${k}">−</button><b style="min-width:24px">${state.army[k]||0}</b><button data-p="${k}">+</button></div>`}</div>`}
- openModal(h+'</div>');
+ openModal(h+'</div>');const tl=$('#toLab');if(tl)tl.onclick=openLab;
  document.querySelectorAll('[data-tu]').forEach(el=>el.replaceWith(thumb('u',el.dataset.tu)));
  document.querySelectorAll('[data-p]').forEach(el=>el.onclick=()=>{const k=el.dataset.p,u=U[k];
   if(armyUsed()+u.space>housing())return toast('Not enough housing — upgrade or build a Replication Chamber');
@@ -568,12 +641,62 @@ function openHelp(){
  <li><b>Defend</b> with Lysosomes, Cytokine Pods and Membrane walls. Drag buildings to rearrange.</li>
  <li><b>Replicate microbes</b> in the Army menu, then <b>Attack</b> a rival colony.</li>
  <li>In a raid, pick a microbe at the bottom and tap/drag outside the red zone to release it. Spirochetes break membranes, Amoebas go for defenses, Virions raid resources, Fungal Spores fly over walls, and Stem Cells heal your swarm.</li>
+ <li><b>Rivals invade you</b> every few minutes (even while you're away). Your defenses fight on their own — tap the map to fire <b>Antibody Strikes</b>. Tap the red timer for the defense log.</li>
+ <li><b>Shields</b> 🛡 After a breach your cell is shielded for a while (longer the worse it was). Attacking others cuts your shield short; you can also buy extra shield time in the defense log.</li>
+ <li><b>Levels</b> The Nucleus goes up to <b>Lv 6</b>. Each level unlocks more and stronger organelles: the <b>Gene Lab</b> (Lv 2) researches stronger microbes, the <b>Peroxisome</b> beam (Lv 4) melts big invaders, and new microbes join at Lv 4 (Plasmodium) and Lv 5 (Prion).</li>
  <li>⭐ 50% destroyed · ⭐ Nucleus destroyed · ⭐ 100%. Steal resources by damaging their storages.</li></ul>
  <div class="row"><button class="big" onclick="closeModal()">Let's go</button></div>`);
  state.seenHelp=true;save();
 }
+$('#raidChip').onclick=openLog;
 $('#btnBuild').onclick=openShop;$('#btnArmy').onclick=openArmy;$('#helpBtn').onclick=openHelp;
 $('#btnAttack').onclick=()=>{if(armyUsed()===0)return toast('Replicate some microbes first (Army)');findMatch()};
+
+// ---------- gene lab: research makes each microbe type stronger ----------
+const labB=()=>state.buildings.find(b=>b.type==='lab');
+const ulvl=k=>(state.unitLvl&&state.unitLvl[k])||1;
+const maxUnitLvl=()=>{const l=labB();return l&&l.lvl>0?Math.min(MAXLV,l.lvl+1):1};
+const resCost=(k,n)=>({aa:Math.round((200+U[k].cost*6)*Math.pow(n-1,1.4)/50)*50});
+const resTime=n=>Math.round(20*Math.pow(n-1,1.5));
+const labOpen=()=>$('#modal').classList.contains('on')&&$('#labSheet');
+function startResearch(k){
+ const l=labB(),to=ulvl(k)+1;
+ if(!l||l.lvl<1)return toast('Build a Gene Lab first');
+ if(l.upg)return toast('The Gene Lab is being upgraded');
+ if(state.research)return toast('The lab is already researching');
+ if(U[k].nuc>nucLvl())return toast(`${U[k].name} unlocks at Nucleus Lv ${U[k].nuc}`);
+ if(to>maxUnitLvl())return toast('Upgrade the Gene Lab to research further');
+ const c=resCost(k,to);if(!canPay(c))return toast('Not enough Amino Acids');
+ pay(c);state.research={unit:k,to,end:Date.now()+resTime(to)*1000,dur:resTime(to)};save();Snd.build();openLab();
+}
+function checkResearch(){
+ const r=state.research;if(!r||Date.now()<r.end)return;
+ state.unitLvl=state.unitLvl||{};state.unitLvl[r.unit]=r.to;state.research=null;save();
+ toast(`${U[r.unit].name} evolved to Lv ${r.to}!`,true);Snd.levelUp();
+ const l=labB();if(l){bounce(l);const s=B.lab.size;sparkle(l.x+s/2,l.y+s/2,'#7ff7e0',16);fxText(l.x+s/2,l.y,`${U[r.unit].name} Lv ${r.to}`,'#7ff7e0',.5)}
+ if(labOpen())openLab();
+}
+function openLab(){
+ const l=labB(),r=state.research,mx=maxUnitLvl();
+ let h=`<div id="labSheet"></div><h2>🧬 Gene Lab <button class="sec x" onclick="closeModal()">✕</button></h2><p class="sub">Edit microbe DNA: each level gives <b>+10% health and damage</b>. Gene Lab Lv ${l?l.lvl:0} can research up to Lv ${mx}.</p>`;
+ if(r)h+=`<div class="card" style="flex-direction:row;gap:12px;cursor:default;margin-bottom:12px;text-align:left"><span data-tu="${r.unit}"></span><div style="flex:1"><b>Researching ${U[r.unit].name} → Lv ${r.to}</b><div class="prog"><i id="labProg" style="width:0%"></i></div><div class="stats" id="labLeft"></div></div></div>`;
+ h+='<div class="grid">';
+ for(const k of UTYPES){const u=U[k],cur=ulvl(k),to=cur+1,lockN=u.nuc>nucLvl(),maxed=to>MAXLV,capped=to>mx,m1=umul(cur),m2=umul(to),base=u.heal||u.dmg;
+  const btn=lockN?`<button disabled>Nucleus Lv ${u.nuc}</button>`:maxed?`<button disabled>Max level</button>`:capped?`<button disabled>Needs Gene Lab Lv ${to-1}</button>`:r?`<button disabled>Lab busy</button>`:`<button data-r="${k}">${costHTML(resCost(k,to))} · ${fmtT(resTime(to))}</button>`;
+  h+=`<div class="card ${lockN?'locked':''}" style="cursor:default"><span class="n">Lv ${cur}</span><span data-tu="${k}"></span><b>${u.name}</b>
+   <div class="stats">${maxed?'Fully evolved':`HP ${sv(u.hp*m1)} → <b style="color:#7ff7e0">${sv(u.hp*m2)}</b><br>${u.heal?'Heal':'Dmg'} ${sv(base*m1)} → <b style="color:#7ff7e0">${sv(base*m2)}</b>`}</div>${btn}</div>`}
+ openModal(h+'</div>');
+ document.querySelectorAll('[data-tu]').forEach(el=>el.replaceWith(thumb('u',el.dataset.tu)));
+ document.querySelectorAll('[data-r]').forEach(el=>el.onclick=()=>startResearch(el.dataset.r));
+ updLabProg();
+}
+function updLabProg(){const r=state.research,p=$('#labProg');if(!r||!p||!labOpen())return;const left=(r.end-Date.now())/1000;p.style.width=clamp(100*(1-left/r.dur),0,100)+'%';$('#labLeft').textContent=fmtT(left)+' left'}
+function unlockText(n){ // what reaching Nucleus Lv n adds
+ const out=[];
+ for(const t of SHOP){const a=n>1?LIMITS[t][n-2]:0,b2=LIMITS[t][n-1];if(b2>a&&t!=='membrane')out.push(a===0?`<b>${B[t].name}</b>`:`+${b2-a} ${B[t].name}`)}
+ for(const k of UTYPES)if(U[k].nuc===n)out.push(`<b>${U[k].name}</b>`);
+ out.push(`Lv ${n} upgrades`);return out.join(', ');
+}
 
 let toastT=0;function toast(m,ok){if(!ok)Snd.error();const t=$('#toast');t.textContent=m;t.style.opacity=1;clearTimeout(toastT);toastT=setTimeout(()=>t.style.opacity=0,2200)}
 
@@ -583,21 +706,28 @@ const matchCost=()=>30*nucLvl();
 const NAMES1=['Strepto','Myco','Lacto','Bacillo','Vibrio','Clostri','Entero','Halo','Thermo','Rhizo','Cyano','Proteo'];
 const NAMES2=['coccus','bacter','phila','monas','spora','plasma','vorax','genia'];
 function genEnemy(L){
- const bs=[],occ=new Uint8Array(GRID*GRID),c=12;
+ const bs=[],occ=new Uint8Array(GRID*GRID),c=12,cc=c+1;
  const put=(type,x,y,lvl,pad=0)=>{const s=B[type].size;if(x<1||y<1||x+s>GRID-1||y+s>GRID-1)return false;
   for(let yy=y-pad;yy<y+s+pad;yy++)for(let xx=x-pad;xx<x+s+pad;xx++){if(xx<0||yy<0||xx>=GRID||yy>=GRID)continue;if(occ[yy*GRID+xx])return false}
   for(let yy=y;yy<y+s;yy++)for(let xx=x;xx<x+s;xx++)occ[yy*GRID+xx]=1;bs.push({type,x,y,lvl});return true};
- const lv=()=>clamp(L-(Math.random()<.4?1:0),1,3);
- put('nucleus',c,c,L);const cc=c+1; // center tile
- const slots=[[cc-3,cc-3],[cc+2,cc-3],[cc-3,cc+2],[cc+2,cc+2]].sort(()=>Math.random()-.5);
- const inner=['atpstore','aastore','lyso',L>=2?'burst':'lyso'];inner.forEach((t,i)=>put(t,slots[i][0],slots[i][1],lv()));
- for(let i=-4;i<=4;i++){put('membrane',cc+i,cc-4,lv());put('membrane',cc+i,cc+4,lv());put('membrane',cc-4,cc+i,lv());put('membrane',cc+4,cc+i,lv())}
- // gate gaps so it's not a perfect box
- const plan={lyso:LIMITS.lyso[L-1]-(L>=2?1:2),burst:Math.max(0,LIMITS.burst[L-1]-1),mito:LIMITS.mito[L-1],ribo:LIMITS.ribo[L-1],atpstore:LIMITS.atpstore[L-1]-1,aastore:LIMITS.aastore[L-1]-1,chamber:1};
- for(const [t,n] of Object.entries(plan))for(let k=0;k<n;k++){const s=B[t].size;for(let tries=0;tries<300;tries++){const a=Math.random()*TAU,r=rnd(6.5,10.5);if(put(t,Math.round(cc+Math.cos(a)*r-s/2),Math.round(cc+Math.sin(a)*r-s/2),lv(),1))break}}
- if(L>=2){for(const b of bs.filter(b=>b.type==='lyso'&&Math.max(Math.abs(b.x-cc),Math.abs(b.y-cc))>5)){for(let i=-1;i<=2;i++){put('membrane',b.x+i,b.y-1,lv());put('membrane',b.x+i,b.y+2,lv())}put('membrane',b.x-1,b.y,lv());put('membrane',b.x-1,b.y+1,lv());put('membrane',b.x+2,b.y,lv());put('membrane',b.x+2,b.y+1,lv())}}
- // loot
- const pool={atp:Math.round(rnd(700,1400)*L),aa:Math.round(rnd(700,1400)*L)};
+ const lv=t=>Math.max(1,maxLvlAt(t,L)-(Math.random()<.4?1:0));
+ put('nucleus',c,c,L);
+ // inner compound: storages + some defenses packed around the nucleus, ringed by membrane
+ const R=L>=4?5:4,inner=['atpstore','aastore','lyso',L>=2?'burst':'lyso'];if(L>=4)inner.push('perox');if(L>=5)inner.push('lyso');
+ const corner=(x,y,s)=>Math.min(...[[cc-R+1,cc-R+1],[cc+R-s,cc-R+1],[cc-R+1,cc+R-s],[cc+R-s,cc+R-s]].map(([a,b2])=>Math.max(Math.abs(x-a),Math.abs(y-b2))));
+ for(const t of inner){const s=B[t].size,slots=[];
+  for(let y=cc-R+1;y<=cc+R-s;y++)for(let x=cc-R+1;x<=cc+R-s;x++)slots.push({x,y,k:corner(x,y,s)+Math.random()*.9});
+  slots.sort((a,b2)=>a.k-b2.k);slots.some(p=>put(t,p.x,p.y,lv(t)))}
+ for(let i=-R;i<=R;i++){const w=lv('membrane');put('membrane',cc+i,cc-R,w);put('membrane',cc+i,cc+R,w);put('membrane',cc-R,cc+i,w);put('membrane',cc+R,cc+i,w)}
+ // everything else the Nucleus level allows goes in the outer ring
+ const have={};for(const b of bs)have[b.type]=(have[b.type]||0)+1;
+ const outer=[];for(const t of ['chamber','lab','lyso','burst','perox','atpstore','aastore','mito','ribo'])for(let k=have[t]||0;k<LIMITS[t][L-1];k++)outer.push(t);
+ for(const t of outer){const s=B[t].size;let done=false;
+  for(let pass=0;pass<2&&!done;pass++)for(let tries=0;tries<220&&!done;tries++){const a=Math.random()*TAU,r=rnd(R+2.2,11.8);done=put(t,Math.round(cc+Math.cos(a)*r-s/2),Math.round(cc+Math.sin(a)*r-s/2),lv(t),pass?0:1)}}
+ const walled=L>=4?['lyso','burst','perox']:['lyso'];
+ if(L>=2)for(const b of bs.filter(b=>walled.includes(b.type)&&Math.max(Math.abs(b.x-cc),Math.abs(b.y-cc))>R)){const w=lv('membrane');for(let i=-1;i<=2;i++){put('membrane',b.x+i,b.y-1,w);put('membrane',b.x+i,b.y+2,w)}put('membrane',b.x-1,b.y,w);put('membrane',b.x-1,b.y+1,w);put('membrane',b.x+2,b.y,w);put('membrane',b.x+2,b.y+1,w)}
+ // loot grows faster than linearly so higher-level raids stay worth it
+ const sc=L*(1+(L-1)*.35),pool={atp:Math.round(rnd(500,1000)*sc),aa:Math.round(rnd(500,1000)*sc)};
  const W={atpstore:{atp:3},aastore:{aa:3},nucleus:{atp:1.5,aa:1.5},mito:{atp:.4},ribo:{aa:.4}};
  const tot={atp:0,aa:0};for(const b of bs){const w=W[b.type];if(w)for(const r in w)tot[r]+=w[r]}
  for(const b of bs){const w=W[b.type];b.loot={atp:0,aa:0};if(w)for(const r in w)b.loot[r]=pool[r]*w[r]/tot[r]}
@@ -606,16 +736,134 @@ function genEnemy(L){
 function findMatch(){
  const cost=matchCost();if(state.res.atp<cost)return toast(`Need ${cost} ATP to search for a colony`);
  state.res.atp-=cost;save();
- const L=clamp(nucLvl()+(Math.random()<.25?1:0)-(Math.random()<.25?1:0),1,3);
+ const L=clamp(nucLvl()+(Math.random()<.25?1:0)-(Math.random()<.25?1:0),1,MAXLV);
  const bs=genEnemy(L).map((b,i)=>{const hp=B[b.type].hp[b.lvl-1];return {...b,id:i,hp,max:hp,dead:false,cool:rnd(0,1),aim:rnd(0,TAU),tgt:null,lootStart:{...b.loot}}});
- const occ=new Array(GRID*GRID).fill(null),nod=new Uint8Array(GRID*GRID);
- for(const b of bs){const s=B[b.type].size;for(let y=b.y;y<b.y+s;y++)for(let x=b.x;x<b.x+s;x++)occ[y*GRID+x]=b;
-  for(let y=b.y-1;y<=b.y+s;y++)for(let x=b.x-1;x<=b.x+s;x++)if(x>=0&&y>=0&&x<GRID&&y<GRID)nod[y*GRID+x]=1}
+ const {occ,nod}=buildOcc(bs);
  const avail={},used={};for(const k of UTYPES){avail[k]=state.army[k]||0;used[k]=0}
  bt={L,name:NAMES1[Math.random()*NAMES1.length|0]+NAMES2[Math.random()*NAMES2.length|0],bs,occ,nod,units:[],proj:[],avail,used,time:BATTLE_TIME,started:false,ended:false,
   total:bs.filter(b=>b.type!=='membrane').length,destroyed:0,nucDead:false,gain:{atp:0,aa:0},flash:0};
  bt.lastStars=0;fx.length=0;selUnit=UTYPES.find(k=>avail[k]>0);setMode('battle');
  Snd.whoosh();banner(`${bt.name}<small>Level ${L} colony · scout, then deploy</small>`);
+}
+function buildOcc(bs){
+ const occ=new Array(GRID*GRID).fill(null),nod=new Uint8Array(GRID*GRID);
+ for(const b of bs){const s=B[b.type].size;for(let y=b.y;y<b.y+s;y++)for(let x=b.x;x<b.x+s;x++)occ[y*GRID+x]=b;
+  for(let y=b.y-1;y<=b.y+s;y++)for(let x=b.x-1;x<=b.x+s;x++)if(x>=0&&y>=0&&x<GRID&&y<GRID)nod[y*GRID+x]=1}
+ return {occ,nod};
+}
+function spawnUnit(type,x,y,lvl=1){
+ const u=U[type],m=umul(lvl);bt.units.push({type,lvl,mul:m,x:x+rnd(-.1,.1),y:y+rnd(-.1,.1),hp:u.hp*m,max:u.hp*m,cool:0,target:null,path:null,pi:0,block:null,ox:rnd(-.22,.22),oy:rnd(-.22,.22),dir:0,anim:rnd(0,9),enemy:!!bt.defend});
+}
+
+// ---------- defending: pathogens raid YOUR cell ----------
+let QUIET=false; // true while simulating an offline raid (no sound / banners)
+const RAID_GAP=()=>rnd(5,9)*60e3;
+const strikeDmg=()=>50+25*nucLvl();
+function enemyArmy(L){
+ const budget=Math.round(Math.min(160,[14,26,42,72,100,128][L-1]+Math.floor(state.evo/25))*((state.log||[]).length?1:.5)),hasWalls=state.buildings.some(b=>b.type==='membrane');
+ const W={phage:3,flag:2,virion:2,spiro:hasWalls?1.2:0,amoeba:1.5,myxo:1.5,spore:1,stem:.5,plasmo:1,prion:1};
+ const pool=UTYPES.filter(k=>U[k].nuc<=L&&W[k]>0),army=[];let used=0,stems=0;
+ for(let guard=0;guard<300&&used<budget;guard++){
+  const tot=pool.reduce((a,k)=>a+W[k],0);let r=Math.random()*tot,k=pool[0];for(const p of pool){r-=W[p];if(r<=0){k=p;break}}
+  if(k==='stem'&&stems)continue;if(used+U[k].space>budget){if(budget-used<1)break;continue}
+  army.push(k);used+=U[k].space;if(k==='stem')stems++}
+ return army;
+}
+function startDefense(quiet){
+ const L=clamp(nucLvl()-(Math.random()<.3?1:0),1,MAXLV);
+ // only finished organelles take part; storages put a share of your resources at risk
+ const live=state.buildings.filter(b=>b.lvl>0);
+ const W={atpstore:{atp:3},aastore:{aa:3},nucleus:{atp:1.5,aa:1.5}},tot={atp:0,aa:0};
+ for(const b of live){const w=W[b.type];if(w)for(const r in w)tot[r]+=w[r]}
+ const bs=live.map((b,i)=>{const hp=B[b.type].hp[b.lvl-1],w=W[b.type],loot={atp:0,aa:0},p=B[b.type].prod;
+  if(w)for(const r in w)loot[r]=state.res[r]*.25*w[r]/tot[r];
+  if(p)loot[p.res]=(b.stored||0)*.5;
+  return {type:b.type,x:b.x,y:b.y,lvl:b.lvl,ref:b,id:i,hp,max:hp,dead:false,cool:rnd(0,1),aim:rnd(0,TAU),tgt:null,loot,lootStart:{...loot}}});
+ const {occ,nod}=buildOcc(bs);
+ // entry points on the rim, away from organelles
+ const rim=[];for(let y=0;y<GRID;y++)for(let x=0;x<GRID;x++)if((x<2||y<2||x>GRID-3||y>GRID-3)&&!nod[y*GRID+x])rim.push({x,y});
+ const anchors=Array.from({length:1+(Math.random()*3|0)},()=>rim[Math.random()*rim.length|0]);
+ const order={amoeba:0,plasmo:.5,spiro:1,prion:1.5,spore:2,myxo:2.5,phage:3,flag:3.5,virion:4,stem:5};
+ const queue=enemyArmy(L).map(type=>{const a=anchors[Math.random()*anchors.length|0];const near=rim.filter(p=>Math.abs(p.x-a.x)+Math.abs(p.y-a.y)<=3);const p=near[Math.random()*near.length|0]||a;
+  return {type,x:p.x+.5,y:p.y+.5,t:order[type]*1.2+rnd(0,2.5),lvl:clamp(L-(Math.random()<.5?1:0),1,MAXLV)}}).sort((a,b)=>a.t-b.t);
+ bt={defend:true,L,name:NAMES1[Math.random()*NAMES1.length|0]+NAMES2[Math.random()*NAMES2.length|0],bs,occ,nod,units:[],proj:[],avail:{},used:{},queue,strikes:[],charges:1+nucLvl(),
+  time:BATTLE_TIME,elapsed:0,started:true,ended:false,total:bs.filter(b=>b.type!=='membrane').length,destroyed:0,nucDead:false,gain:{atp:0,aa:0},flash:0,lastStars:0,army:queue.length};
+ for(const k of UTYPES){bt.avail[k]=0;bt.used[k]=0}
+ state.nextRaid=Date.now()+RAID_GAP();save();
+ if(quiet){QUIET=true;let n=0;while(!bt.ended&&n++<BATTLE_TIME*20+100)updBattle(.05);QUIET=false;fx.length=0;shake=0;return bt.result}
+ fx.length=0;setMode('battle');Snd.whoosh();banner(`<span style="color:#ff5f6d">Infection!</span><small>${bt.name} is invading with ${bt.army} microbes</small>`);
+}
+function fireStrike(x,y){
+ if(!bt||!bt.defend||bt.ended)return;
+ if(bt.charges<=0){toast('No Antibody Strikes left');return}
+ bt.charges--;bt.strikes.push({x,y,t:.45,max:.45});Snd.whoosh();renderTray();
+}
+function updStrikes(dt){
+ for(const s of bt.strikes){s.t-=dt;if(s.t<=0&&!s.done){s.done=true;const R=1.9,dmg=strikeDmg();let n=0;
+  for(const u of bt.units)if(Math.hypot(u.x-s.x,u.y-s.y)<=R){u.hp-=dmg;n++}
+  if(!QUIET){Snd.splat();Snd.mortar();addShake(.35);sparkle(s.x,s.y,'#7ec8ff',18,3);fx.push({k:'ring',x:s.x,y:s.y,r:R,life:.5,max:.5,col:'#7ec8ff'});if(n)fxText(s.x,s.y-.6,`${n} hit`,'#7ec8ff',.5)}}}
+ bt.strikes=bt.strikes.filter(s=>!s.done||s.t>-.3);
+}
+function endDefense(){
+ const st=stars(),lost={atp:0,aa:0};
+ for(const b of bt.bs)for(const r of ['atp','aa']){const g=b.lootStart[r]-b.loot[r];if(g<=0)continue;lost[r]+=g;
+  if(B[b.type].prod)b.ref.stored=Math.max(0,(b.ref.stored||0)-g);else state.res[r]=Math.max(0,state.res[r]-g)}
+ const de=st?-Math.min(state.evo,st*5):5+bt.L;state.evo+=de;
+ // a breach grants a protective shield; the worse the damage, the longer it lasts
+ const shieldMin=st?SHIELD_MIN[st]:pct()>=40?SHIELD_MIN[0]:0;
+ if(shieldMin)grantShield(shieldMin*60e3);
+ const entry={when:Date.now(),name:bt.name,L:bt.L,st,pct:pct(),lost:{atp:Math.floor(lost.atp),aa:Math.floor(lost.aa)},de,offline:QUIET,shield:shieldMin};
+ state.log=[entry,...(state.log||[])].slice(0,8);save();bt.result=entry;
+ if(QUIET)return;
+ setTimeout(()=>st?Snd.lose():Snd.win(),250);
+ $('#modal').dataset.lock='1';
+ openModal(`<h2 style="justify-content:center">${st?'Your cell was infected':'Infection repelled!'}</h2><div class="res">${'<b style="color:#ff5f6d">★</b>'.repeat(st)}${'<span>★</span>'.repeat(3-st)}</div>
+ <p class="sub" style="text-align:center">${bt.name} destroyed ${pct()}% of your cell</p>${lossRow(entry)}${shieldNote(entry)}
+ <div class="row"><button class="big" id="goHome">Back to base</button></div>`);
+ $('#goHome').onclick=()=>{delete $('#modal').dataset.lock;closeModal();setMode('home')};
+}
+// ---------- shield ----------
+const SHIELD_MIN=[6,10,14,18]; // minutes granted for: ≥40% with 0★, 1★, 2★, 3★
+const SHIELD_CUT=4*60e3, SHIELD_MAX=2*3600e3;
+const shieldLeft=()=>Math.max(0,(state.shield||0)-Date.now());
+const shielded=()=>shieldLeft()>0;
+const shieldBuyCost=()=>({atp:250*nucLvl()});
+function grantShield(ms){
+ state.shield=Math.min(Date.now()+SHIELD_MAX,Math.max(state.shield||0,Date.now())+ms);
+ state.nextRaid=state.shield+rnd(1,3)*60e3;
+}
+function cutShield(){ // attacking someone else weakens your own shield
+ if(!shielded())return;
+ state.shield-=SHIELD_CUT;
+ if(shielded()){state.nextRaid=Math.min(state.nextRaid,state.shield+rnd(1,3)*60e3);toast(`Attacking cut your shield by ${SHIELD_CUT/60e3}m`,true)}
+ else{state.shield=0;state.nextRaid=Math.min(state.nextRaid,Date.now()+rnd(2,4)*60e3);toast('Attacking broke your shield!')}
+ save();
+}
+function buyShield(){
+ const c=shieldBuyCost();if(!canPay(c))return toast('Not enough ATP');
+ if(shieldLeft()>SHIELD_MAX-15*60e3)return toast('Shield is already at maximum');
+ pay(c);grantShield(15*60e3);save();Snd.levelUp();openLog();
+}
+const shieldNote=e=>e.shield?`<p class="sub" style="text-align:center;color:#7ec8ff;margin-top:-6px">🛡 Your cell is shielded for ${e.shield} minutes</p>`:'';
+const lossRow=e=>`<div class="row" style="gap:16px;margin:10px 0 16px"><span class="cost"><span class="ico atp"></span>−${fmt(e.lost.atp)}</span><span class="cost"><span class="ico aa"></span>−${fmt(e.lost.aa)}</span><span class="cost"><span class="ico evo"></span>${e.de>=0?'+':''}${e.de}</span></div>`;
+function raidAlert(){
+ state.nextRaid=Infinity;$('#modal').dataset.lock='1';Snd.error();
+ openModal(`<h2 style="justify-content:center;color:#ff5f6d">⚠ Pathogens detected!</h2><p class="sub" style="text-align:center">A hostile colony is about to invade your cell.<br>Your Lysosomes, Cytokine Pods and Membranes will fight automatically —<br>tap the map to fire <b style="color:#7ec8ff">Antibody Strikes</b> (${1+nucLvl()} charges).</p>
+ <div class="row"><button class="big red" id="goDef">Defend!</button></div>`);
+ $('#goDef').onclick=()=>{delete $('#modal').dataset.lock;closeModal();sel=null;startDefense(false)};
+}
+function openLog(){
+ const log=state.log||[],ago=t=>{const m=Math.floor((Date.now()-t)/60e3);return m<1?'just now':m<60?m+'m ago':Math.floor(m/60)+'h ago'};
+ const sh=shielded(),c=shieldBuyCost();
+ openModal(`<h2>Defense log <button class="sec x" onclick="closeModal()">✕</button></h2><p class="sub">Rival colonies invade every few minutes — even while you're away. Next infection in <b>${fmtT((state.nextRaid-Date.now())/1000)}</b>.</p>
+ <div class="card" style="flex-direction:row;justify-content:space-between;cursor:default;margin-bottom:12px;text-align:left;border-color:${sh?'#7ec8ff':'var(--line)'}">
+  <div><b style="color:#7ec8ff">🛡 ${sh?`Shield active · ${fmtT(shieldLeft()/1000)}`:'No shield'}</b><div class="stats">Being breached grants a shield (${SHIELD_MIN[1]}–${SHIELD_MIN[3]} min). No invasions while it's up.<br>Attacking another colony cuts ${SHIELD_CUT/60e3} min off it.</div></div>
+  <button id="buySh" ${canPay(c)?'':'disabled'}>+15 min ${costHTML(c)}</button></div>
+ ${log.length?log.map(e=>`<div class="card" style="flex-direction:row;justify-content:space-between;cursor:default;margin-bottom:8px;text-align:left"><div><b>${e.name}</b> <span class="stats">Lv ${e.L} · ${ago(e.when)}${e.offline?' · while away':''}</span><div class="stats">${e.st?`Destroyed ${e.pct}%`:'Repelled'} · <span style="color:#ffd34d">${'★'.repeat(e.st)}</span><span style="color:#3a4a4d">${'★'.repeat(3-e.st)}</span></div></div>
+ <div class="stats" style="text-align:right">−${fmt(e.lost.atp)} ATP<br>−${fmt(e.lost.aa)} Amino<br>${e.de>=0?'+':''}${e.de} Evo</div></div>`).join(''):'<p class="sub">No invasions yet.</p>'}
+ <div class="row" style="margin-top:12px"><button class="red" id="defNow">Lure pathogens now${sh?' (drops shield)':''}</button></div>`);
+ $('#buySh').onclick=buyShield;
+ $('#defNow').onclick=()=>{state.shield=0;closeModal();startDefense(false)};
 }
 function setMode(m){
  mode=m;sel=null;ghost=null;updatePlacebar();renderInfo();
@@ -625,8 +873,11 @@ function setMode(m){
 }
 function renderTray(){
  const tr=$('#tray');tr.innerHTML='';
+ if(bt.defend){const el=document.createElement('div');el.className='ucard sel'+(bt.charges?'':' empty');el.style.minWidth='170px';
+  const c2=document.createElement('canvas');c2.width=c2.height=96;drawAntibody(c2.getContext('2d'),48,50,30,0);el.appendChild(c2);
+  const n=document.createElement('span');n.innerHTML=`Antibody Strike ×${bt.charges}<br><small style="color:var(--muted);font-weight:600">Tap the map to fire</small>`;el.appendChild(n);tr.appendChild(el);return}
  for(const k of UTYPES){if(!(state.army[k]>0))continue;const el=document.createElement('div');el.className='ucard'+(k===selUnit?' sel':'')+(bt.avail[k]?'':' empty');
-  el.appendChild(thumb('u',k,96));const n=document.createElement('span');n.textContent='×'+bt.avail[k];el.appendChild(n);el.onclick=()=>{selUnit=k;renderTray()};tr.appendChild(el)}
+  el.appendChild(thumb('u',k,96));const n=document.createElement('span');n.innerHTML=`×${bt.avail[k]} <small style="color:var(--muted)">Lv ${ulvl(k)}</small>`;el.appendChild(n);el.onclick=()=>{selUnit=k;renderTray()};tr.appendChild(el)}
 }
 function tryDeploy(x,y,tap){
  if(!bt||bt.ended)return;const tx=Math.floor(x),ty=Math.floor(y);
@@ -634,8 +885,8 @@ function tryDeploy(x,y,tap){
  if(bt.nod[ty*GRID+tx]){if(tap){bt.flash=1;toast("Can't release microbes that close to their organelles")}return}
  if(!selUnit||!bt.avail[selUnit]){const nx=UTYPES.find(k=>bt.avail[k]>0);if(!nx)return;selUnit=nx}
  Snd.deploy(selUnit);fx.push({k:'ring',x,y,r:.45,life:.35,max:.35,col:'#bfeee8'});
- const u=U[selUnit];bt.avail[selUnit]--;bt.used[selUnit]++;bt.started=true;
- bt.units.push({type:selUnit,x:x+rnd(-.1,.1),y:y+rnd(-.1,.1),hp:u.hp,max:u.hp,cool:0,target:null,path:null,pi:0,block:null,ox:rnd(-.22,.22),oy:rnd(-.22,.22),dir:0,anim:rnd(0,9)});
+ if(!bt.started)cutShield();
+ bt.avail[selUnit]--;bt.used[selUnit]++;bt.started=true;spawnUnit(selUnit,x,y,ulvl(selUnit));
  if(!bt.avail[selUnit]){const nx=UTYPES.find(k=>bt.avail[k]>0);if(nx)selUnit=nx}
  renderTray();$('#btnNext').style.display='none';$('#btnEnd').textContent='End battle';
 }
@@ -679,21 +930,22 @@ function dmgB(b,amt){
    else{Snd.crumble();addShake(.45)}
    for(const r of ['atp','aa'])if(b.lootStart&&b.lootStart[r]>20)orbs(c.x,c.y,r,6)}
   else Snd.wall();
-  for(const u of bt.units){u.path=null;if(u.block===b)u.block=null}}
+  for(const u of bt.units){if(b.type==='membrane'||u.target===b)u.path=null;if(u.block===b)u.block=null}}
 }
 function unitAttack(u,b){
- const d=U[u.type],c=ctr(b);
- if(u.type==='flag'){bt.proj.push({x:u.x,y:u.y,tb:b,dmg:d.dmg,sp:7,k:'dart'});Snd.dart();return}
- if(u.type==='spiro'){Snd.burstWall();addShake(.3);for(const w of bt.bs)if(!w.dead&&w.type==='membrane'&&distRect(u.x,u.y,w)<=1.2)dmgB(w,d.dmg);if(b.type!=='membrane')dmgB(b,d.dmg*.15);
+ const d=U[u.type],c=ctr(b),dm=d.dmg*(u.mul||1);
+ if(u.type==='flag'){bt.proj.push({x:u.x,y:u.y,tb:b,dmg:dm,sp:7,k:'dart'});Snd.dart();return}
+ if(u.type==='spiro'){Snd.burstWall();addShake(.3);for(const w of bt.bs)if(!w.dead&&w.type==='membrane'&&distRect(u.x,u.y,w)<=1.2)dmgB(w,dm);if(b.type!=='membrane')dmgB(b,dm*.15);
   u.hp=0;fx.push({k:'ring',x:u.x,y:u.y,r:1.2,life:.4,max:.4,col:'#ffb347'});return}
+ if(d.stun&&B[b.type].def){if(!(b.stun>0)&&!QUIET){Snd.jam();fxText(c.x,c.y-.9,'jammed!','#ff9a3c',.42)}b.stun=d.stun}
  const mult=x=>d.bonus&&(B[x.type].prod||B[x.type].store||x.type==='nucleus')?d.bonus:1;
  if(d.splash){const s=B[b.type].size,ix=clamp(u.x,b.x,b.x+s),iy=clamp(u.y,b.y,b.y+s),cx=u.type==='spore'?c.x:ix,cy=u.type==='spore'?c.y:iy;
   if(u.type==='spore'){Snd.splat();addShake(.15)}else Snd.hit();
-  for(const o of bt.bs)if(!o.dead&&(o===b||distRect(cx,cy,o)<=d.splash))dmgB(o,o===b?d.dmg:d.dmg*.6);
+  for(const o of bt.bs)if(!o.dead&&(o===b||distRect(cx,cy,o)<=d.splash))dmgB(o,o===b?dm:dm*.6);
   fx.push({k:'ring',x:cx,y:cy,r:d.splash,life:.4,max:.4,col:u.type==='spore'?'#d9c88a':'#ffcf4d'});
   if(u.type==='spore')for(let i=0;i<8;i++){const a=rnd(0,TAU);fx.push({k:'frag',x:cx,y:cy,vx:Math.cos(a)*1.5,vy:Math.sin(a)*1.5,r:.06,col:'#d9c88a',life:.6,max:.6})}
   return}
- Snd.hit();dmgB(b,d.dmg*mult(b));const s=B[b.type].size;fx.push({k:'ring',x:clamp(u.x,b.x,b.x+s),y:clamp(u.y,b.y,b.y+s),r:.25,life:.25,max:.25,col:u.type==='amoeba'?'#ffc0dc':'#d8e4ff'});
+ Snd.hit();dmgB(b,dm*mult(b));const s=B[b.type].size;fx.push({k:'ring',x:clamp(u.x,b.x,b.x+s),y:clamp(u.y,b.y,b.y+s),r:.25,life:.25,max:.25,col:u.type==='amoeba'?'#ffc0dc':'#d8e4ff'});
 }
 function updUnit(u,dt){
  const d=U[u.type];u.cool-=dt;u.anim+=dt;
@@ -701,7 +953,7 @@ function updUnit(u,dt){
   const allies=bt.units.filter(o=>o!==u&&o.hp>0&&!U[o.type].heal);
   let best=null,bs=-1e9;for(const o of allies){const sc=(1-o.hp/o.max)*10-Math.hypot(o.x-u.x,o.y-u.y)*.3;if(sc>bs){bs=sc;best=o}}
   if(best&&Math.hypot(best.x-u.x,best.y-u.y)>.8)moveToward(u,best.x,best.y,d.speed*dt);
-  if(u.cool<=0){u.cool=d.rate;let any=false;for(const o of allies)if(o.hp<o.max&&Math.hypot(o.x-u.x,o.y-u.y)<=d.range){o.hp=Math.min(o.max,o.hp+d.heal);any=true}
+  if(u.cool<=0){u.cool=d.rate;let any=false;for(const o of allies)if(o.hp<o.max&&Math.hypot(o.x-u.x,o.y-u.y)<=d.range){o.hp=Math.min(o.max,o.hp+d.heal*(u.mul||1));any=true}
    if(any){Snd.heal();fx.push({k:'ring',x:u.x,y:u.y,r:d.range,life:.6,max:.6,col:'#7ff7e0'});for(const o of allies)if(Math.hypot(o.x-u.x,o.y-u.y)<=d.range&&Math.random()<.5)fx.push({k:'text',x:o.x,y:o.y-.3,txt:'+',col:'#7ff7e0',size:.4,life:.6,max:.6})}}
   return}
  if(!u.target||u.target.dead){u.target=pickTarget(u);u.path=null;u.block=null}
@@ -719,8 +971,15 @@ function updUnit(u,dt){
 function updBattle(dt){
  if(bt.ended)return;
  if(bt.started)bt.time-=dt;bt.flash=Math.max(0,bt.flash-dt);
- if(ptr&&ptr.down&&mode==='battle'){deployHold+=dt;if(deployHold>.13){deployHold=0;tryDeploy(ptr.x,ptr.y,false)}}
+ if(bt.defend){bt.elapsed+=dt;while(bt.queue.length&&bt.queue[0].t<=bt.elapsed){const q=bt.queue.shift();spawnUnit(q.type,q.x,q.y,q.lvl);if(!QUIET){Snd.deploy(q.type);fx.push({k:'ring',x:q.x,y:q.y,r:.45,life:.35,max:.35,col:'#ff5f6d'})}}updStrikes(dt)}
+ else if(ptr&&ptr.down&&mode==='battle'){deployHold+=dt;if(deployHold>.09){deployHold=0;tryDeploy(ptr.x,ptr.y,false)}}
  for(const b of bt.bs){const D=B[b.type].def;if(!D||b.dead)continue;b.cool-=dt;const c=ctr(b);
+  if(b.stun>0){b.stun-=dt;b.tgt=null;b.ramp=0;continue} // jammed by a prion
+  if(D.beam){ // peroxisome: continuous beam that heats up while it holds the same target
+   if(b.tgt&&(b.tgt.hp<=0||Math.hypot(b.tgt.x-c.x,b.tgt.y-c.y)>D.range))b.tgt=null;
+   if(!b.tgt){b.ramp=0;let bd=D.range;for(const u of bt.units){const dd=Math.hypot(u.x-c.x,u.y-c.y);if(dd<=bd){bd=dd;b.tgt=u}}}
+   if(b.tgt){b.aim=Math.atan2(b.tgt.y-c.y,b.tgt.x-c.x);b.ramp=(b.ramp||0)+dt;const k=Math.min(1,b.ramp/D.ramp);b.tgt.hp-=D.dmg[b.lvl-1]*(1+(D.rampMul-1)*k)*dt;Snd.beam(k)}
+   continue}
   if(b.tgt&&(b.tgt.hp<=0||Math.hypot(b.tgt.x-c.x,b.tgt.y-c.y)>D.range))b.tgt=null;
   if(!b.tgt){let bd=D.range;for(const u of bt.units){if(D.splash&&U[u.type].fly)continue;const dd=Math.hypot(u.x-c.x,u.y-c.y);if(dd<=bd){bd=dd;b.tgt=u}}}
   if(b.tgt){const want=Math.atan2(b.tgt.y-c.y,b.tgt.x-c.x);let da=((want-b.aim+Math.PI*3)%TAU)-Math.PI;b.aim+=clamp(da,-8*dt,8*dt);
@@ -735,16 +994,20 @@ function updBattle(dt){
    else{if(p.tu.hp>0)p.tu.hp-=p.dmg;Snd.zap();fx.push({k:'ring',x:tx,y:ty,r:.2,life:.2,max:.2,col:'#ff8aa2'})}}
   else{p.x+=dx/dd*st;p.y+=dy/dd*st}}
  bt.proj=bt.proj.filter(p=>!p.done);
- for(const u of bt.units)if(u.hp<=0&&!u.gone){u.gone=true;if(u.type!=='spiro')Snd.die();for(let i=0;i<5;i++){const a=rnd(0,TAU);fx.push({k:'frag',x:u.x,y:u.y,vx:Math.cos(a),vy:Math.sin(a),r:.05,col:'#b0c8ff',life:.5,max:.5})}}
+ for(const u of bt.units)if(u.hp<=0&&!u.gone){u.gone=true;const sd=U[u.type];
+  if(sd.split){for(let i=0;i<sd.splitN;i++){const a=i/sd.splitN*TAU+rnd(0,.5);spawnUnit(sd.split,u.x+Math.cos(a)*.35,u.y+Math.sin(a)*.35,u.lvl)}Snd.split();if(!QUIET)fxText(u.x,u.y-.4,'burst!','#b06aff',.42)}
+  if(u.type!=='spiro')Snd.die();for(let i=0;i<5;i++){const a=rnd(0,TAU);fx.push({k:'frag',x:u.x,y:u.y,vx:Math.cos(a),vy:Math.sin(a),r:.05,col:'#b0c8ff',life:.5,max:.5})}}
  bt.units=bt.units.filter(u=>u.hp>0);
- const stNow=stars();if(stNow>bt.lastStars){bt.lastStars=stNow;Snd.star();banner(`<span style="color:#ffd34d">${'★'.repeat(stNow)}</span><small>${stNow===1&&!bt.nucDead?'50% destroyed':bt.nucDead&&stNow<3?'Nucleus destroyed':'Total wipeout!'}</small>`)}
- const left=UTYPES.reduce((a,k)=>a+(U[k].heal?0:bt.avail[k]),0),fighters=bt.units.filter(u=>!U[u.type].heal).length;
+ const stNow=stars();if(stNow>bt.lastStars){bt.lastStars=stNow;if(!QUIET){const why=stNow===1&&!bt.nucDead?'50% destroyed':bt.nucDead&&stNow<3?'Nucleus destroyed':'Total wipeout!';
+  if(bt.defend){Snd.error();banner(`<span style="color:#ff5f6d">Breach! ${'★'.repeat(stNow)}</span><small>${why}</small>`)}else{Snd.star();banner(`<span style="color:#ffd34d">${'★'.repeat(stNow)}</span><small>${why}</small>`)}}}
+ const left=bt.defend?bt.queue.filter(q=>!U[q.type].heal).length:UTYPES.reduce((a,k)=>a+(U[k].heal?0:bt.avail[k]),0),fighters=bt.units.filter(u=>!U[u.type].heal).length;
  if(bt.destroyed>=bt.total||(bt.started&&bt.time<=0)||(bt.started&&!fighters&&!left))endBattle();
 }
 const pct=()=>bt.destroyed>=bt.total?100:Math.floor(100*bt.destroyed/bt.total);
 const stars=()=>(pct()>=50)+(bt.nucDead?1:0)+(pct()===100);
 function endBattle(){
  if(bt.ended)return;bt.ended=true;
+ if(bt.defend)return endDefense();
  if(!bt.started){setMode('home');return}
  const st=stars(),got={atp:addRes('atp',Math.floor(bt.gain.atp)),aa:addRes('aa',Math.floor(bt.gain.aa))};
  for(const k of UTYPES)state.army[k]=Math.max(0,(state.army[k]||0)-bt.used[k]);
@@ -766,8 +1029,10 @@ let lastTs=performance.now(),saveT=0,uiT=0,gt=0;
 function frame(ts){
  const dt=Math.min(.05,(ts-lastTs)/1000);lastTs=ts;gt+=dt;
  if(mode==='home'){produce(dt);const now=Date.now();
-  for(const b of state.buildings)if(b.upg&&now>=b.upg.end){b.lvl=b.upg.to;b.upg=null;toast(`${B[b.type].name} reached Lv ${b.lvl}`,true);Snd.levelUp();bounce(b);const s=B[b.type].size;fxText(b.x+s/2,b.y,'Lv '+b.lvl,'#7ff7e0');sparkle(b.x+s/2,b.y+s/2,'#7ff7e0',14);save()}
-  saveT+=dt;if(saveT>5){saveT=0;save()}}
+  for(const b of state.buildings)if(b.upg&&now>=b.upg.end){b.lvl=b.upg.to;b.upg=null;toast(`${B[b.type].name} reached Lv ${b.lvl}`,true);Snd.levelUp();bounce(b);const s=B[b.type].size;fxText(b.x+s/2,b.y,'Lv '+b.lvl,'#7ff7e0');sparkle(b.x+s/2,b.y+s/2,'#7ff7e0',14);save();if(b.type==='nucleus')banner(`Nucleus Lv ${b.lvl}!<small>Unlocked: ${unlockText(b.lvl)}</small>`)}
+  checkResearch();
+  saveT+=dt;if(saveT>5){saveT=0;save()}
+  if(now>=state.nextRaid&&!shielded()&&!ghost&&!moving&&!drag&&!$('#modal').classList.contains('on')&&document.visibilityState==='visible')raidAlert();}
  else updBattle(dt);
  SFX.music(mode==='battle'&&bt&&!bt.ended);shake=Math.max(0,shake-dt*2.5);
  for(const f of fx){f.life-=dt;if(f.k==='orb'&&f.life<=0&&f.chip&&!f.bumped){f.bumped=1;f.chip.classList.remove('bump');void f.chip.offsetWidth;f.chip.classList.add('bump')}if(f.k==='frag'){f.x+=f.vx*dt;f.y+=f.vy*dt;f.vx*=.92;f.vy*=.92}if(f.k==='text')f.y-=dt*.8}
@@ -779,36 +1044,61 @@ function updUI(){
  if(mode==='home'){
   $('#atp').textContent=fmt(state.res.atp);$('#atpMax').textContent=fmt(maxRes('atp'));
   $('#aa').textContent=fmt(state.res.aa);$('#aaMax').textContent=fmt(maxRes('aa'));
-  $('#evo').textContent=state.evo;$('#pol').textContent=`${BUILDERS-busy()}/${BUILDERS}`;
-  $('#armyCount').textContent=`${armyUsed()}/${housing()}`;$('#btnAttack').innerHTML=`Attack! <small style="opacity:.8">${matchCost()} ATP</small>`;
-  if(sel&&(sel.upg||B[sel.type].prod))renderInfo();
+  $('#evo').textContent=state.evo;{const sh=shielded();$('#raidT').textContent=sh?fmtT(shieldLeft()/1000):isFinite(state.nextRaid)?fmtT((state.nextRaid-Date.now())/1000):'now!';
+   $('#raidL').textContent=sh?'shield':'next infection';$('#raidIco').style.background=sh?'#7ec8ff':'#ff5f6d';$('#raidChip').style.borderColor=sh?'#7ec8ff':''}$('#pol').textContent=`${BUILDERS-busy()}/${BUILDERS}`;
+  $('#armyCount').textContent=`${armyUsed()}/${housing()}`;$('#btnAttack').innerHTML=`Attack! <small style="opacity:.8">${matchCost()} ATP${shielded()?` · 🛡−${SHIELD_CUT/60e3}m`:''}</small>`;
+  if(sel&&(sel.upg||B[sel.type].prod||(sel.type==='lab'&&state.research)))renderInfo();
+  updLabProg();
  }else if(bt){
   const lootLeft=r=>bt.bs.reduce((a,b)=>a+(b.loot?b.loot[r]:0),0);
-  $('#eName').textContent=`${bt.name} · Lv ${bt.L}`;
+  $('#eName').textContent=bt.defend?`Defending vs ${bt.name} · Lv ${bt.L}`:`${bt.name} · Lv ${bt.L}`;
+  for(const id of ['#gAtp','#gAa'])$(id).parentElement.firstChild.textContent=bt.defend?'−':'+';
   $('#lAtp').textContent=fmt(lootLeft('atp'));$('#lAa').textContent=fmt(lootLeft('aa'));
   $('#gAtp').textContent=fmt(bt.gain.atp);$('#gAa').textContent=fmt(bt.gain.aa);
   const t=Math.max(0,Math.ceil(bt.time));$('#bTime').classList.toggle('low',bt.started&&t<=30&&!bt.ended);$('#bTime').textContent=`${Math.floor(t/60)}:${String(t%60).padStart(2,'0')}`;
-  $('#bSub').textContent=bt.started?'Battle in progress':'Scouting — tap outside the red zone to deploy';
+  $('#bSub').textContent=bt.defend?(bt.queue.length?`${bt.queue.length} more pathogens incoming`:'Hold the line!')+' · tap to fire antibodies':bt.started?'Battle in progress':'Scouting — tap outside the red zone to deploy';
+  $('#btnEnd').style.display=bt.defend?'none':'';if(bt.defend)$('#btnNext').style.display='none';
   $('#bPct').textContent=pct()+'%';const s=stars();$('#bStars').innerHTML='<b>★</b>'.repeat(s)+'★'.repeat(3-s);
-  if(!bt.started){$('#btnNext').style.display='';$('#btnNext').textContent=`Next (${matchCost()} ATP)`;$('#btnEnd').textContent='Go home'}
+  if(!bt.started&&!bt.defend){$('#btnNext').style.display='';$('#btnNext').textContent=`Next (${matchCost()} ATP)`;$('#btnEnd').textContent='Go home'}
  }
 }
 function withScale(b,k,fn){if(k===1)return fn();const s=B[b.type].size,cx=b.x+s/2,cy=b.y+s/2;ctx.save();ctx.translate(cx,cy);ctx.scale(k,2-k);ctx.translate(-cx,-cy);fn();ctx.restore()}
 function render(){
  ctx.setTransform(DPR,0,0,DPR,0,0);ctx.fillStyle='#06191c';ctx.fillRect(0,0,W,H);
  ctx.save();ctx.translate(OX+(Math.random()-.5)*shake*14,OY+(Math.random()-.5)*shake*14);ctx.scale(S,S);
- const battle=mode==='battle'&&bt;drawDish(ctx,battle,gt);
+ const battle=mode==='battle'&&bt;drawDish(ctx,battle&&!bt.defend,gt);
+ if(!battle&&shielded()){ // shimmering protective bubble around the whole dish
+  const p=.5+.5*Math.sin(gt*2),left=shieldLeft();ctx.save();
+  ctx.beginPath();ctx.roundRect(.15,.15,GRID-.3,GRID-.3,1.1);ctx.fillStyle=`rgba(126,200,255,${.03+.02*p})`;ctx.fill();
+  ctx.lineWidth=.18+.06*p;ctx.strokeStyle=`rgba(126,200,255,${left<60e3?.25+.5*Math.abs(Math.sin(gt*6)):.45+.25*p})`;ctx.shadowColor='#7ec8ff';ctx.shadowBlur=18;ctx.stroke();ctx.shadowBlur=0;
+  ctx.strokeStyle='rgba(126,200,255,.07)';ctx.lineWidth=.04;ctx.beginPath();
+  for(let y=0;y<GRID;y+=1.5)for(let x=(y/1.5)%2?.75:0;x<GRID;x+=1.5){for(let i=0;i<6;i++){const a=i/6*TAU+Math.PI/6,px=x+Math.cos(a)*.5,py=y+Math.sin(a)*.5;i?ctx.lineTo(px,py):ctx.moveTo(px,py)}ctx.closePath()}
+  ctx.stroke();
+  const sy=(gt*3)%(GRID+4)-2,g=ctx.createLinearGradient(0,sy-1.5,0,sy+1.5);g.addColorStop(0,'rgba(126,200,255,0)');g.addColorStop(.5,'rgba(126,200,255,.10)');g.addColorStop(1,'rgba(126,200,255,0)');
+  ctx.beginPath();ctx.roundRect(.15,.15,GRID-.3,GRID-.3,1.1);ctx.clip();ctx.fillStyle=g;ctx.fillRect(0,sy-1.5,GRID,3);ctx.restore();
+ }
  if(battle){
-  const a=.07+bt.flash*.25;ctx.fillStyle=`rgba(255,60,90,${a})`;
-  for(let i=0;i<GRID*GRID;i++)if(bt.nod[i])ctx.fillRect(i%GRID,(i/GRID)|0,1,1);
+  if(!bt.defend){const a=.07+bt.flash*.25;ctx.fillStyle=`rgba(255,60,90,${a})`;
+   for(let i=0;i<GRID*GRID;i++)if(bt.nod[i])ctx.fillRect(i%GRID,(i/GRID)|0,1,1)}
+  else{const pulse=.06+.04*Math.sin(gt*4);ctx.strokeStyle=`rgba(255,60,90,${pulse*4})`;ctx.lineWidth=.25;ctx.beginPath();ctx.roundRect(.1,.1,GRID-.2,GRID-.2,1.1);ctx.stroke()}
   const wall=(x,y)=>{const o=x>=0&&y>=0&&x<GRID&&y<GRID&&bt.occ[y*GRID+x];return o&&o.type==='membrane'};
   for(const b of bt.bs)if(b.dead)drawB(ctx,b,gt,{dead:true});
   for(const b of bt.bs)if(!b.dead&&b.type==='membrane')drawB(ctx,b,gt,{hasWall:wall});
   const others=bt.bs.filter(b=>!b.dead&&b.type!=='membrane').sort((a,b)=>a.y-b.y);
-  for(const b of others)withScale(b,b._hit!=null&&gt-b._hit<.15?1-.06*Math.sin((gt-b._hit)/.15*Math.PI):1,()=>drawB(ctx,b,gt,{aim:b.aim,fill:b.lootStart&&(b.lootStart.atp+b.lootStart.aa)>0?(b.loot.atp+b.loot.aa)/(b.lootStart.atp+b.lootStart.aa):.3}));
+  for(const b of others)withScale(b,b._hit!=null&&gt-b._hit<.15?1-.06*Math.sin((gt-b._hit)/.15*Math.PI):1,()=>drawB(ctx,b,gt,{aim:b.aim,beam:!!(b.tgt&&b.ramp>0&&!(b.stun>0)),fill:b.lootStart&&(b.lootStart.atp+b.lootStart.aa)>0?(b.loot.atp+b.loot.aa)/(b.lootStart.atp+b.lootStart.aa):.3}));
   for(const b of others)if(b._fire!=null&&gt-b._fire<.12){const c=ctr(b);circ(ctx,c.x+Math.cos(b.aim)*.85,c.y+Math.sin(b.aim)*.85,.18*(1-(gt-b._fire)/.12));ctx.fillStyle=b.type==='burst'?'#ffc4fb':'#fff3c4';ctx.fill()}
   for(const b of bt.bs){if(b.dead||b.hp>=b.max)continue;const s=B[b.type].size,w=Math.max(.7,s*.7),x=b.x+s/2-w/2,y=b.y-.15;ctx.fillStyle='#000b';ctx.fillRect(x,y,w,.12);ctx.fillStyle=b.hp/b.max>.5?'#6dff94':b.hp/b.max>.25?'#ffd34d':'#ff5f6d';ctx.fillRect(x,y,w*b.hp/b.max,.12)}
   for(const u of bt.units)drawU(ctx,u,gt);
+  for(const b of others){
+   if(b.stun>0){const c=ctr(b);ctx.save();ctx.translate(c.x,c.y-.75);ctx.rotate(gt*5);ctx.strokeStyle='#ff9a3c';ctx.lineWidth=.05;ctx.beginPath();for(let i=0;i<=24;i++){const a=i/24*TAU*1.6,r=.04+i*.011;i?ctx.lineTo(Math.cos(a)*r,Math.sin(a)*r):ctx.moveTo(Math.cos(a)*r,Math.sin(a)*r)}ctx.stroke();ctx.restore()}
+   const D=B[b.type].def;if(!D||!D.beam||!b.tgt||b.tgt.hp<=0||b.stun>0)continue;
+   const c=ctr(b),k=Math.min(1,(b.ramp||0)/D.ramp),tx=b.tgt.x,ty=b.tgt.y-(U[b.tgt.type].fly?.4:0);
+   ctx.save();ctx.lineCap='round';ctx.strokeStyle=`rgba(220,255,140,${.25+.35*k})`;ctx.lineWidth=.1+.22*k;ctx.beginPath();ctx.moveTo(c.x,c.y);ctx.lineTo(tx,ty);ctx.stroke();
+   ctx.strokeStyle='rgba(255,255,255,.9)';ctx.lineWidth=.035+.04*k;ctx.stroke();ctx.restore();
+   if(Math.random()<.4)fx.push({k:'frag',x:tx,y:ty,vx:rnd(-1.2,1.2),vy:rnd(-1.2,1.2),r:.04,col:'#e8ff9a',life:.3,max:.3})}
+  if(bt.defend)for(const s of bt.strikes){if(s.done)continue;const k=1-s.t/s.max;
+   circ(ctx,s.x,s.y,1.9);ctx.strokeStyle=`rgba(126,200,255,${.3+.5*k})`;ctx.lineWidth=.06;ctx.setLineDash([.3,.2]);ctx.stroke();ctx.setLineDash([]);
+   for(let i=0;i<6;i++){const a=i/6*TAU+gt,r=1.6*(1-k);drawAntibody(ctx,s.x+Math.cos(a)*r,s.y+Math.sin(a)*r-(1-k)*2,.22,a+Math.PI/2)}}
   for(const p of bt.proj){ctx.fillStyle=p.k==='burst'?'#ff7cf0':p.k==='dart'?'#9dffb4':'#ffb0c4';circ(ctx,p.x,p.y,p.k==='burst'?.16:p.k==='dart'?.06:.1);ctx.fill()}
  }else{
   const wset=new Set(state.buildings.filter(b=>b.type==='membrane'&&(!moving||moving.b!==b)).map(b=>b.x+','+b.y));
@@ -819,7 +1109,7 @@ function render(){
   for(const b of list.filter(b=>b.type!=='membrane').sort((a,b)=>a.y-b.y)){
    const s=B[b.type].size;
    if(b===sel){ctx.strokeStyle='rgba(255,255,255,.8)';ctx.lineWidth=.07;ctx.setLineDash([.25,.15]);ctx.strokeRect(b.x+.05,b.y+.05,s-.1,s-.1);ctx.setLineDash([])}
-   withScale(b,bounceScale(b),()=>drawB(ctx,b,gt,{alpha:b.lvl===0?.5:1,fill:fillOf(b)}));
+   withScale(b,bounceScale(b),()=>drawB(ctx,b,gt,{alpha:b.lvl===0?.5:1,fill:fillOf(b),research:b.type==='lab'&&!!state.research}));
    if(b.upg){const pr=clamp(1-(b.upg.end-Date.now())/1000/b.upg.dur,0,1);ctx.fillStyle='#000b';ctx.fillRect(b.x+.2,b.y-.1,s-.4,.16);ctx.fillStyle='#4fd1c5';ctx.fillRect(b.x+.2,b.y-.1,(s-.4)*pr,.16);
     ctx.save();ctx.translate(b.x+s-.3,b.y+.3);ctx.rotate(gt*2);ctx.strokeStyle='#7ff7e0';ctx.lineWidth=.06;for(let i=0;i<6;i++){ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(Math.cos(i/6*TAU)*.2,Math.sin(i/6*TAU)*.2);ctx.stroke()}ctx.restore()}
    const p=B[b.type].prod;
@@ -842,7 +1132,7 @@ function render(){
 }
 
 load();setMode('home');updUI();requestAnimationFrame(frame);
-if(!state.seenHelp)openHelp();
+if(!state.seenHelp)openHelp();else offlineRaid();
 addEventListener('beforeunload',save);
 </script>
 </body>

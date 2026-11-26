@@ -1,0 +1,1484 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Aspirant</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;600&family=Press+Start+2P&display=swap">
+<style>
+/* Layout: one handheld console shell, screen on top, controls below. Single dark look by choice. */
+:root{
+  --bg:#1a1826; --shell:#4a3f7a; --shell-2:#352c5c; --bezel:#12101c;
+  --paper:#f7f1e1; --paper-2:#e8dcc0; --ink:#221f2e; --accent:#f08a3c; --gold:#f2c14b; --muted:#b3a9d6;
+  --f-display:"Press Start 2P", ui-monospace, monospace;
+  --f-body:"Pixelify Sans", ui-monospace, "Courier New", monospace;
+  color-scheme:dark;
+}
+[hidden]{display:none!important}
+html,body{background:var(--bg);color:var(--paper);margin:0}
+body{font-family:var(--f-body);font-variant-ligatures:none;font-feature-settings:"liga" 0,"clig" 0;padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));padding-block:20px 28px;-webkit-tap-highlight-color:transparent}
+.shell{max-width:760px;margin:0 auto;background:linear-gradient(170deg,var(--shell),var(--shell-2));border-radius:22px 22px 56px 22px;padding:16px 16px 22px;box-shadow:0 10px 0 #231d40, 0 18px 40px rgba(0,0,0,.45)}
+.brand{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin:0 4px 12px;flex-wrap:wrap}
+.brand h1{font:400 clamp(13px,2.6vw,18px)/1 var(--f-display);margin:0;color:var(--paper);letter-spacing:.06em;text-shadow:2px 2px 0 #231d40}
+.brand span{font-size:13px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase}
+.screen{position:relative;width:100%;aspect-ratio:240/176;max-width:100%;background:#000;border:6px solid var(--bezel);border-radius:10px;overflow:hidden;outline:none}
+.screen:focus-visible{box-shadow:0 0 0 3px var(--gold)}
+canvas{display:block;width:100%;height:100%;image-rendering:pixelated}
+#box{position:absolute;left:2%;right:2%;bottom:2.5%;height:27%;background:var(--paper);color:var(--ink);border:3px solid var(--ink);border-radius:6px;box-shadow:inset 0 0 0 2px var(--paper-2);padding:.45em .8em;font:500 clamp(12px,2.75vw,21px)/1.32 var(--f-body);white-space:pre-line;overflow:hidden;cursor:pointer;user-select:none}
+#box.withmenu #txt{display:block;padding-right:48%}
+#box.tall{height:auto;min-height:27%;max-height:62%}
+#arrow{position:absolute;right:.7em;bottom:.3em;color:var(--accent);animation:bob .7s steps(2) infinite}
+@keyframes bob{50%{transform:translateY(3px)}}
+#menu{position:absolute;right:2%;bottom:2.5%;min-width:44%;max-width:96%;max-height:95%;overflow:auto;background:var(--paper);color:var(--ink);border:3px solid var(--ink);border-radius:6px;padding:.3em;font:500 clamp(12px,2.6vw,20px)/1.25 var(--f-body);display:flex;flex-direction:column;gap:2px;z-index:2}
+#menu.grid{display:grid;grid-template-columns:1fr 1fr}
+#menu.wide{left:2%;right:2%}
+#menu.top{bottom:auto;top:2.5%;max-height:66%}
+#menu button{all:unset;box-sizing:border-box;position:relative;padding:.22em .5em .22em 1.3em;border-radius:4px;cursor:pointer;min-width:0}
+#menu button.on{background:var(--paper-2)}
+#menu button.on::before{content:"\25B6";position:absolute;left:.3em;top:50%;transform:translateY(-50%);color:var(--accent);font-size:.75em}
+#menu button:focus-visible{outline:2px solid var(--accent)}
+.chip{display:inline-block;font-size:.68em;padding:0 .45em;border-radius:3px;background:var(--c);color:#fff;text-shadow:0 1px 0 rgba(0,0,0,.35);vertical-align:.12em;margin-left:.35em}
+.row{display:flex;align-items:center;gap:.55em;flex-wrap:wrap}
+.row b{font-weight:600}
+.row i{font-style:normal;opacity:.7}
+.bar{display:inline-block;width:5.5em;height:.45em;background:#3a3a3a;border-radius:2px;overflow:hidden}
+.bar>span{display:block;height:100%}
+.dim{opacity:.5}
+.price{float:right;margin-left:1em;opacity:.75;font-variant-numeric:tabular-nums}
+
+.pad{display:flex;justify-content:space-between;align-items:center;gap:14px;margin:22px 6px 0;user-select:none;touch-action:none}
+.dpad{display:grid;grid-template-columns:repeat(3,46px);grid-template-rows:repeat(3,46px)}
+.dpad button,.ab button,.mid button{all:unset;cursor:pointer;touch-action:none}
+.dpad button{background:#221c3d;box-shadow:inset 0 -3px 0 #141026;color:var(--muted);display:grid;place-items:center;font-size:14px}
+.dpad .u{grid-area:1/2;border-radius:6px 6px 0 0}.dpad .l{grid-area:2/1;border-radius:6px 0 0 6px}
+.dpad .c{grid-area:2/2;background:#221c3d;box-shadow:none}.dpad .r{grid-area:2/3;border-radius:0 6px 6px 0}
+.dpad .d{grid-area:3/2;border-radius:0 0 6px 6px}
+.dpad button:active,.dpad button.held{background:#332a57}
+.mid{display:flex;flex-direction:column;align-items:center;gap:8px}
+.mid button{background:#2a2348;color:var(--muted);font:400 9px var(--f-display);padding:8px 14px;border-radius:999px;letter-spacing:.08em;box-shadow:inset 0 -2px 0 #171228}
+.ab{display:flex;gap:14px;transform:rotate(-18deg)}
+.ab button{width:58px;height:58px;border-radius:50%;background:var(--accent);color:#fff;font:400 14px var(--f-display);display:grid;place-items:center;box-shadow:inset 0 -4px 0 #b25f20, 0 3px 0 #231d40}
+.ab button.b{background:#d9772f;margin-top:26px}
+.ab button:active{transform:translateY(2px);box-shadow:inset 0 -2px 0 #b25f20}
+.dpad button:focus-visible,.ab button:focus-visible,.mid button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.hint{max-width:760px;margin:16px auto 0;color:var(--muted);font-size:14px;line-height:1.5;text-align:center;text-wrap:balance}
+kbd{font-family:var(--f-body);background:#2a2348;border-radius:4px;padding:0 .35em;color:var(--paper)}
+@media (max-width:420px){.dpad{grid-template-columns:repeat(3,40px);grid-template-rows:repeat(3,40px)}.ab button{width:50px;height:50px}.ab{gap:10px}}
+@media (prefers-reduced-motion:reduce){#arrow{animation:none}}
+</style>
+
+<div class="shell">
+  <div class="brand"><h1>ASPIRANT</h1><span id="place">A JEE life story</span></div>
+  <div class="screen" id="screen" tabindex="0" aria-label="Game screen">
+    <canvas id="cv" width="480" height="352"></canvas>
+    <div id="box" hidden><span id="txt"></span><span id="arrow" hidden>&#9660;</span></div>
+    <div id="menu" hidden></div>
+  </div>
+  <div class="pad">
+    <div class="dpad" aria-label="Direction pad">
+      <button class="u" data-b="up" aria-label="Up">&#9650;</button>
+      <button class="l" data-b="left" aria-label="Left">&#9664;</button>
+      <span class="c"></span>
+      <button class="r" data-b="right" aria-label="Right">&#9654;</button>
+      <button class="d" data-b="down" aria-label="Down">&#9660;</button>
+    </div>
+    <div class="mid"><button data-b="S">MENU</button><button id="snd" type="button" aria-pressed="true">SOUND ON</button></div>
+    <div class="ab"><button class="b" data-b="B" aria-label="B button">B</button><button data-b="A" aria-label="A button">A</button></div>
+  </div>
+</div>
+<p class="hint">Move with <kbd>Arrows</kbd> or <kbd>WASD</kbd> · <kbd>Z</kbd>/<kbd>Space</kbd> is A (talk, confirm) · <kbd>X</kbd> is B (back) · <kbd>M</kbd> opens the menu · <kbd>N</kbd> turns sound on or off. Walk through the tall grass to meet wild concepts, catch them in a Notebook, and train for JEE.</p>
+
+<script>
+(()=>{
+'use strict';
+const $=id=>document.getElementById(id);
+const cv=$('cv'), X=cv.getContext('2d');
+const SW=240, SH=176, TS=16;
+const rnd=Math.random, rint=(a,b)=>a+Math.floor(rnd()*(b-a+1));
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const pick=a=>a[Math.floor(rnd()*a.length)];
+/* ?debug in the URL adds a test console (window.ASP): fast mode skips typing and lets a script answer the menus */
+const DBG=/[?&]debug/.test(location.search)?{fast:false,log:[],pick:null}:null;
+const wait=ms=>new Promise(r=>setTimeout(r,DBG&&DBG.fast?ms/30:ms));
+const now=()=>performance.now();
+const inr=n=>'₹'+Math.round(n).toLocaleString('en-IN');
+
+/* ---------------- sound: tiny chiptune synth ---------------- */
+const rep=(s,n)=>Array(n).fill(s).join(' ');
+const octs=(notes,n=8)=>notes.map(x=>rep(`${x}2/1 ${x}3/1`,n/2)).join(' ');
+const SONGS={
+ home:{bpm:132,loop:true,tracks:[
+  {w:'square',v:.055,hold:1,n:'E5/2 G5/2 C6/3 B5/1 A5/2 G5/2 E5/4 F5/2 A5/2 G5/2 E5/2 D5/6 -/2 E5/2 G5/2 C6/3 D6/1 E6/2 D6/2 C6/4 A5/2 B5/2 C6/2 G5/2 C6/6 -/2'},
+  {w:'triangle',v:.16,hold:1,n:'C3/4 G3/4 C3/4 G3/4 F3/4 C4/4 G3/4 D3/4 C3/4 G3/4 A3/4 E3/4 F3/4 G3/4 C3/8'},
+  {w:'drums',n:rep('k/2 h/2 s/2 h/2',8)}]},
+ kota:{bpm:112,loop:true,tracks:[
+  {w:'square',v:.045,hold:1,n:'A4/2 C5/2 E5/2 A5/2 G5/3 E5/1 D5/4 F5/2 A5/2 G5/2 E5/2 D5/6 -/2 A4/2 C5/2 E5/2 A5/2 B5/3 A5/1 G5/4 E5/2 G5/2 A5/2 E5/2 A5/6 -/2'},
+  {w:'triangle',v:.15,hold:1,n:'A2/4 E3/4 A2/4 E3/4 F2/4 C3/4 G2/4 D3/4 A2/4 E3/4 G2/4 D3/4 F2/4 G2/4 A2/8'},
+  {w:'drums',n:rep('k/2 h/2 s/2 h/1 k/1',8)}]},
+ campus:{bpm:104,loop:true,tracks:[
+  {w:'sine',v:.11,n:'C5/3 F5/1 A5/2 G5/2 F5/4 C5/4 D5/3 F5/1 A5/2 C6/2 A5/4 G5/4 Bb4/3 D5/1 F5/2 E5/2 D5/4 C5/4 E5/2 G5/2 Bb5/2 A5/2 F5/8'},
+  {w:'square',v:.02,n:rep('F4/1 A4/1 C5/1 A4/1',4)+' '+rep('D4/1 F4/1 A4/1 F4/1',4)+' '+rep('Bb3/1 D4/1 F4/1 D4/1',4)+' '+rep('C4/1 E4/1 G4/1 E4/1',4)},
+  {w:'triangle',v:.15,hold:1,n:'F2/6 C3/2 F3/4 C3/4 D3/6 A2/2 D3/4 A2/4 Bb2/6 F3/2 Bb2/4 F3/4 C3/6 G3/2 F2/8'},
+  {w:'drums',n:rep('k/4 h/2 h/2 s/4 h/4',4)}]},
+ life:{bpm:92,loop:true,tracks:[
+  {w:'sine',v:.12,n:'D5/2 F5/2 A5/2 C6/2 B5/4 A5/4 G5/2 B5/2 D6/2 B5/2 A5/8 D5/2 F5/2 A5/2 D6/2 C6/4 A5/4 G5/2 E5/2 F5/2 E5/2 D5/8'},
+  {w:'square',v:.018,n:rep('D4/1 A4/1 F5/1 A4/1',16)},
+  {w:'triangle',v:.14,hold:1,n:'D3/8 A2/8 G2/8 D3/8 D3/8 F3/8 C3/8 D3/8'}]},
+ battle:{bpm:168,loop:true,tracks:[
+  {w:'square',v:.05,hold:1,n:'E5/1 E5/1 G5/1 E5/1 B5/2 A5/2 G5/2 F#5/2 E5/2 D5/2 E5/1 E5/1 G5/1 E5/1 C6/2 B5/2 A5/4 B5/4 G5/2 A5/2 B5/2 D6/2 C6/2 B5/2 A5/2 G5/2 F#5/2 G5/2 A5/2 F#5/2 E5/8'},
+  {w:'triangle',v:.16,n:octs(['E','C','G','B'],16)},
+  {w:'drums',n:rep('k/2 h/1 h/1 s/2 h/1 k/1',8)}]},
+ boss:{bpm:176,loop:true,tracks:[
+  {w:'square',v:.05,hold:1,n:'D5/2 F5/2 A5/2 D6/2 C#6/4 A5/4 Bb5/2 A5/2 G5/2 F5/2 E5/4 A4/4 D5/2 F5/2 A5/2 D6/2 F6/4 E6/4 D6/2 C#6/2 A5/2 E5/2 D5/8'},
+  {w:'square',v:.022,n:rep('D4/1 F4/1 A4/1 F4/1',4)+' '+rep('Bb3/1 D4/1 F4/1 D4/1',4)+' '+rep('D4/1 F4/1 A4/1 F4/1',4)+' '+rep('A3/1 C#4/1 E4/1 C#4/1',4)},
+  {w:'triangle',v:.16,n:octs(['D','Bb','F','A'],16).replace(/Bb3/g,'Bb2').replace(/Bb2\/1 Bb2/g,'Bb1/1 Bb2')},
+  {w:'drums',n:rep('k/1 k/1 s/2 k/1 h/1 s/2',8)}]},
+ victory:{bpm:140,loop:false,tracks:[
+  {w:'square',v:.06,hold:1,n:'C5/1 E5/1 G5/1 C6/3 G5/1 C6/1 E6/6 D6/1 E6/1 F6/2 E6/2 D6/2 C6/6'},
+  {w:'triangle',v:.16,hold:1,n:'C3/6 G3/2 C3/6 G2/2 F3/6 G3/6 C3/2'}]},
+ evolve:{bpm:120,loop:true,tracks:[
+  {w:'sine',v:.1,n:rep('C5/1 E5/1 G5/1 C6/1',2)+' '+rep('D5/1 F5/1 A5/1 D6/1',2)+' '+rep('E5/1 G5/1 B5/1 E6/1',2)+' '+rep('F5/1 A5/1 C6/1 F6/1',2)},
+  {w:'triangle',v:.14,hold:1,n:'C3/8 D3/8 E3/8 F3/8'}]},
+};
+SONGS.title=SONGS.home;
+const JINGLES={
+ heal:{bpm:200,w:'square',n:'C5/1 E5/1 G5/1 C6/1 G5/1 C6/3'},
+ levelup:{bpm:220,w:'square',n:'G5/1 A5/1 B5/1 D6/1 G6/4'},
+ catch:{bpm:180,w:'square',n:'G4/1 C5/1 E5/1 G5/2 E5/1 G5/1 C6/5'},
+ item:{bpm:200,w:'square',n:'E5/1 G5/1 E6/1 C6/1 D6/1 G6/3'},
+ evolved:{bpm:160,w:'square',n:'C5/1 G5/1 C6/1 E6/1 G6/2 E6/1 G6/5'},
+ result:{bpm:150,w:'square',n:'C5/2 C5/1 C5/1 G5/4 E5/2 G5/2 C6/6'},
+ sad:{bpm:110,w:'triangle',n:'E5/2 D5/2 C5/2 B4/2 A4/6'},
+};
+const SND=(()=>{
+  let ctx=null,master,mus,sfxG,noiseBuf,muted=false,want=null,cur=null,timer=null;
+  try{muted=localStorage.getItem('aspirant-mute')==='1'}catch(e){}
+  const NOTE={C:0,D:2,E:4,F:5,G:7,A:9,B:11};
+  const midi=s=>{const m=/^([A-G])(#|b)?(\d)$/.exec(s);return 12*(+m[3]+1)+NOTE[m[1]]+(m[2]==='#'?1:m[2]==='b'?-1:0)};
+  const hz=m=>440*Math.pow(2,(m-69)/12);
+  const parse=s=>s.trim().split(/\s+/).map(t=>{const [n,d]=t.split('/');return [n,+d]});
+  for(const s of Object.values(SONGS))for(const tr of s.tracks)tr.ev=tr.ev||parse(tr.n);
+  for(const j of Object.values(JINGLES))j.ev=parse(j.n);
+  function init(){
+    if(ctx)return true;const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return false;
+    try{ctx=new AC()}catch(e){return false}
+    master=ctx.createGain();master.gain.value=muted?0:.8;master.connect(ctx.destination);
+    mus=ctx.createGain();mus.gain.value=.5;mus.connect(master);sfxG=ctx.createGain();sfxG.gain.value=.75;sfxG.connect(master);
+    noiseBuf=ctx.createBuffer(1,ctx.sampleRate*.5,ctx.sampleRate);const d=noiseBuf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;
+    timer=setInterval(tick,40);return true;
+  }
+  function tone(w,f,t,dur,v,dest,{slide=0,hold=0}={}){
+    const o=ctx.createOscillator(),g=ctx.createGain();o.type=w;o.frequency.setValueAtTime(f,t);
+    if(slide)o.frequency.exponentialRampToValueAtTime(Math.max(30,f*slide),t+dur);
+    g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(v,t+.006);
+    if(hold){g.gain.setValueAtTime(v*.8,t+dur*.75);g.gain.linearRampToValueAtTime(0,t+dur*.98)}else g.gain.exponentialRampToValueAtTime(.0001,t+dur);
+    o.connect(g);g.connect(dest);o.start(t);o.stop(t+dur+.03);
+  }
+  function noise(t,dur,v,hp,dest){
+    const s=ctx.createBufferSource(),f=ctx.createBiquadFilter(),g=ctx.createGain();s.buffer=noiseBuf;f.type='highpass';f.frequency.value=hp;
+    g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.0001,t+dur);s.connect(f);f.connect(g);g.connect(dest);s.start(t);s.stop(t+dur+.02);
+  }
+  function drum(k,t,dest){if(k==='k')tone('sine',150,t,.14,.5,dest,{slide:.3});else if(k==='s')noise(t,.13,.22,1500,dest);else if(k==='h')noise(t,.035,.07,7000,dest)}
+  function startSong(name){
+    const s=SONGS[name];
+    if(cur){const old=cur.gain;old.gain.setTargetAtTime(0,ctx.currentTime,.08);setTimeout(()=>old.disconnect(),600);cur=null}
+    if(!s)return;
+    const g=ctx.createGain();g.gain.value=1;g.connect(mus);const t0=ctx.currentTime+.08;
+    cur={name,s,gain:g,step:60/s.bpm/2,tr:s.tracks.map(tr=>({tr,i:0,t:t0,done:false}))};
+  }
+  function tick(){
+    if(!ctx)return;
+    if(want!==(cur?cur.name:null)&&ctx.state==='running')startSong(want);
+    if(!cur)return;const ahead=ctx.currentTime+.25;
+    for(const st of cur.tr){
+      while(!st.done&&st.t<ahead){
+        const [n,d]=st.tr.ev[st.i],dur=d*cur.step;
+        if(n!=='-'){if(st.tr.w==='drums')drum(n,st.t,cur.gain);else tone(st.tr.w,hz(midi(n)),st.t,dur,st.tr.v,cur.gain,{hold:st.tr.hold})}
+        st.t+=dur;st.i++;
+        if(st.i>=st.tr.ev.length){if(cur.s.loop)st.i=0;else st.done=true}
+      }
+    }
+  }
+  function sfx(name){
+    if(!ctx||muted)return;const t=ctx.currentTime+.01,o=sfxG;
+    switch(name){
+      case 'blip':tone('square',1320,t,.04,.05,o);break;
+      case 'move':tone('square',880,t,.03,.04,o);break;
+      case 'select':tone('square',988,t,.05,.06,o);tone('square',1319,t+.05,.07,.06,o);break;
+      case 'back':tone('square',660,t,.05,.05,o);tone('square',440,t+.05,.07,.05,o);break;
+      case 'bump':tone('triangle',110,t,.08,.25,o,{slide:.7});break;
+      case 'door':noise(t,.25,.12,400,o);tone('triangle',330,t,.2,.12,o,{slide:.5});break;
+      case 'encounter':for(let i=0;i<6;i++)tone('square',660+i*110,t+i*.06,.06,.05,o);break;
+      case 'hit':noise(t,.12,.3,800,o);tone('square',220,t,.1,.08,o,{slide:.5});break;
+      case 'super':noise(t,.18,.35,500,o);tone('square',440,t,.16,.09,o,{slide:.3});tone('square',660,t+.05,.12,.06,o,{slide:.4});break;
+      case 'weak':noise(t,.08,.15,2000,o);tone('triangle',180,t,.08,.15,o);break;
+      case 'miss':tone('sine',600,t,.15,.08,o,{slide:.5});break;
+      case 'statup':for(let i=0;i<4;i++)tone('square',523*Math.pow(1.19,i),t+i*.05,.06,.05,o);break;
+      case 'statdown':for(let i=0;i<4;i++)tone('square',784/Math.pow(1.19,i),t+i*.05,.06,.05,o);break;
+      case 'faint':tone('square',600,t,.5,.08,o,{slide:.15});break;
+      case 'throw':tone('sine',300,t,.35,.12,o,{slide:3});break;
+      case 'shake':tone('triangle',200,t,.06,.2,o);tone('triangle',170,t+.12,.06,.2,o);break;
+      case 'break':noise(t,.15,.2,1500,o);tone('square',500,t,.15,.07,o,{slide:.5});break;
+      case 'run':for(let i=0;i<3;i++)tone('triangle',300+i*80,t+i*.07,.06,.15,o);break;
+      case 'heal':for(let i=0;i<5;i++)tone('sine',660+i*120,t+i*.05,.08,.08,o);break;
+      case 'coin':tone('square',988,t,.06,.05,o);tone('square',1319,t+.06,.18,.05,o);break;
+      case 'bell':tone('sine',1568,t,.5,.12,o);tone('sine',1175,t+.25,.6,.1,o);break;
+    }
+  }
+  function jingle(name){
+    const j=JINGLES[name];if(!ctx||muted||!j)return 0;const step=60/j.bpm/2;let t=ctx.currentTime+.02,len=0;
+    for(const [n,d] of j.ev){const dur=d*step;if(n!=='-')tone(j.w,hz(midi(n)),t,dur,.07,sfxG,{hold:1});t+=dur;len+=dur}
+    mus.gain.setTargetAtTime(.08,ctx.currentTime,.03);mus.gain.setTargetAtTime(.5,ctx.currentTime+len+.1,.15);
+    return len*1000;
+  }
+  return{
+    unlock(){if(init()&&ctx.state==='suspended')ctx.resume()},
+    music(name){want=name},
+    sfx,jingle,
+    get muted(){return muted},
+    toggle(){muted=!muted;try{localStorage.setItem('aspirant-mute',muted?'1':'0')}catch(e){}
+      if(init()){master.gain.setTargetAtTime(muted?0:.8,ctx.currentTime,.05);if(ctx.state==='suspended')ctx.resume()}return muted},
+  };
+})();
+
+/* ---------------- data: types, moves, concepts ---------------- */
+const TYPES={Basic:'#a8a07a',Physics:'#4f86e0',Chemistry:'#3fae6a',Maths:'#e9742f',Mind:'#9a6fd8',Life:'#d05a7a'};
+const CORE=['Physics','Chemistry','Maths'];
+/* The right subject cracks the problem: same subject = super effective, another subject = weak.
+   Life's distractions shrug off subject moves; only a calm Mind beats them. */
+function eff1(mt,dt){
+  if(mt==='Basic')return 1;
+  if(CORE.includes(mt))return dt===mt?2:(CORE.includes(dt)||dt==='Life')?.5:1;
+  if(mt==='Mind')return dt==='Life'?2:1;
+  if(mt==='Life')return dt==='Mind'?.5:1;
+  return 1;
+}
+const eff=(mt,dts)=>dts.reduce((m,t)=>m*eff1(mt,t),1);
+
+const MV={
+ 'Rough Work':{t:'Basic',p:40,a:100},'Quick Guess':{t:'Basic',p:40,a:100,pri:1},
+ 'Revise':{t:'Basic',fx:['self','def',1]},'Focus Up':{t:'Basic',fx:['self','atk',1]},'Trick Question':{t:'Basic',a:100,fx:['foe','atk',-1]},
+ 'Free Body':{t:'Physics',p:40,a:100},'Vector Split':{t:'Physics',p:65,a:95},'Short Circuit':{t:'Physics',p:60,a:95,fx:['foe','spd',-1]},
+ 'Ray Trace':{t:'Physics',p:70,a:95},'Energy Method':{t:'Physics',p:85,a:90},
+ 'Mole Count':{t:'Chemistry',p:40,a:100},'Balance Eq':{t:'Chemistry',p:65,a:95},'Acid Splash':{t:'Chemistry',p:55,a:100,fx:['foe','def',-1]},
+ 'Resonance':{t:'Chemistry',p:70,a:95},'Reaction Rush':{t:'Chemistry',p:85,a:90},
+ 'Factorize':{t:'Maths',p:40,a:100},'Substitute':{t:'Maths',p:65,a:95},'Sine Wave':{t:'Maths',p:60,a:100},
+ 'Dice Roll':{t:'Maths',p:78,a:80},'Integrate':{t:'Maths',p:85,a:90},
+ 'Deep Breath':{t:'Mind',heal:.4},'Pomodoro':{t:'Mind',p:55,a:100},'Flow State':{t:'Mind',p:85,a:90},
+ 'Reels Scroll':{t:'Life',p:50,a:100,fx:['foe','spd',-1]},'Snooze':{t:'Life',p:45,a:100},'Panic Wave':{t:'Life',p:65,a:95},'Rumour':{t:'Life',a:100,fx:['foe','def',-1]},
+};
+/* b = [hp, atk, def, spd]; cr = catch rate (0 = cannot be caught); a = art spec */
+const SP={
+ Newtlet:{t:['Physics'],b:[44,52,46,58],cr:.45,xp:62,evo:['Newtonaut',14],learn:[[1,'Rough Work'],[1,'Trick Question'],[5,'Free Body'],[9,'Quick Guess'],[13,'Vector Split'],[18,'Focus Up'],[24,'Energy Method']],
+  a:{sh:'blob',c:'#e2574c',c2:'#ffd9c2',top:'stem',sym:'F'},dex:'An apple that fell on a great thinker. It has been curious about gravity ever since.'},
+ Newtonaut:{t:['Physics'],b:[70,84,66,82],cr:.2,xp:142,a:{sh:'tall',c:'#c9443c',c2:'#ffd9c2',top:'crown',sym:'ma',back:'cape'},dex:'It solves a pulley problem before the rope stops swinging.'},
+ Vectoid:{t:['Physics'],b:[40,50,40,72],cr:.55,xp:55,learn:[[1,'Rough Work'],[4,'Free Body'],[10,'Quick Guess'],[15,'Vector Split'],[22,'Energy Method']],
+  a:{sh:'tri',c:'#5aa7e8',c2:'#d9efff',top:'none',sym:'→'},dex:'It always points somewhere. Ask it for a direction and a magnitude.'},
+ Voltick:{t:['Physics'],b:[38,58,40,88],cr:.4,xp:82,learn:[[1,'Quick Guess'],[1,'Trick Question'],[6,'Free Body'],[12,'Short Circuit'],[20,'Energy Method']],
+  a:{sh:'blob',c:'#f2c14b',c2:'#fff3c4',top:'bolt',sym:'V'},dex:'A beetle that hums at exactly fifty hertz.'},
+ Opticat:{t:['Physics'],b:[55,62,56,70],cr:.35,xp:90,learn:[[1,'Rough Work'],[8,'Free Body'],[14,'Ray Trace'],[19,'Focus Up'],[25,'Energy Method']],
+  a:{sh:'blob',c:'#7b6fd0',c2:'#e3defa',top:'cat',sym:'',big:1,back:'tail'},dex:'Its eyes are perfect lenses. It can read the last bench from the first.'},
+ Molekid:{t:['Chemistry'],b:[48,48,58,48],cr:.45,xp:62,evo:['Molemage',14],learn:[[1,'Rough Work'],[1,'Revise'],[5,'Mole Count'],[9,'Trick Question'],[13,'Balance Eq'],[17,'Acid Splash'],[24,'Reaction Rush']],
+  a:{sh:'flask',c:'#4fbf7a',c2:'#d8f6e0',top:'none',sym:'mol'},dex:'A walking flask. It bubbles when it is about to answer.'},
+ Molemage:{t:['Chemistry'],b:[76,76,84,58],cr:.2,xp:142,a:{sh:'flask',c:'#2f9a66',c2:'#d8f6e0',top:'crown',sym:'6e23',big:1},dex:'It can count to Avogadro\'s number. It has, twice.'},
+ Bondbug:{t:['Chemistry'],b:[42,46,52,56],cr:.55,xp:55,learn:[[1,'Rough Work'],[4,'Mole Count'],[9,'Revise'],[14,'Balance Eq'],[22,'Reaction Rush']],
+  a:{sh:'blob',c:'#8fd16a',c2:'#ecf9d8',top:'ant',sym:'='},dex:'Shy alone, but it makes double bonds with anyone it trusts.'},
+ Acidrop:{t:['Chemistry'],b:[45,60,42,66],cr:.45,xp:75,learn:[[1,'Rough Work'],[6,'Mole Count'],[11,'Acid Splash'],[18,'Balance Eq'],[24,'Reaction Rush']],
+  a:{sh:'drop',c:'#b6e04a',c2:'#f1fbc9',top:'none',sym:'H+'},dex:'pH 1 and proud of it. Do not pet it.'},
+ Benzring:{t:['Chemistry'],b:[62,58,72,40],cr:.35,xp:92,learn:[[1,'Revise'],[1,'Mole Count'],[10,'Resonance'],[16,'Balance Eq'],[23,'Reaction Rush']],
+  a:{sh:'hex',c:'#2fb7a4',c2:'#d2f5ef',top:'none',sym:''},dex:'Six carbons holding hands. Very stable, very calm.'},
+ Algebit:{t:['Maths'],b:[42,56,44,62],cr:.45,xp:62,evo:['Calculord',14],learn:[[1,'Rough Work'],[1,'Focus Up'],[5,'Factorize'],[9,'Quick Guess'],[13,'Substitute'],[18,'Sine Wave'],[24,'Integrate']],
+  a:{sh:'box',c:'#f08a3c',c2:'#ffe6c9',top:'horn2',sym:'x'},dex:'Nobody knows its true value. That is rather the point.'},
+ Calculord:{t:['Maths'],b:[68,90,62,86],cr:.2,xp:142,a:{sh:'box',c:'#d96a24',c2:'#ffe6c9',top:'crown',sym:'∫',big:1,back:'cape'},dex:'It finds the area under any curve, including your excuses.'},
+ Trigon:{t:['Maths'],b:[40,52,46,64],cr:.55,xp:55,learn:[[1,'Rough Work'],[4,'Factorize'],[10,'Sine Wave'],[16,'Substitute'],[22,'Integrate']],
+  a:{sh:'tri',c:'#f2a65a',c2:'#fff0d8',top:'none',sym:'θ'},dex:'Three sides, three angles, one hundred and eighty degrees of attitude.'},
+ Probbit:{t:['Maths'],b:[44,48,44,78],cr:.5,xp:68,learn:[[1,'Quick Guess'],[5,'Factorize'],[11,'Dice Roll'],[17,'Substitute'],[24,'Integrate']],
+  a:{sh:'blob',c:'#f6efe2',c2:'#ffffff',top:'bunny',sym:'dice'},dex:'A rabbit that is one sixth lucky.'},
+ Matrixel:{t:['Maths'],b:[58,60,70,38],cr:.35,xp:92,learn:[[1,'Revise'],[1,'Factorize'],[11,'Substitute'],[17,'Sine Wave'],[23,'Integrate']],
+  a:{sh:'box',c:'#c98a5a',c2:'#f6e3d0',top:'none',sym:'[ ]',big:1},dex:'Rows and columns of muscle. Its determinant is never zero.'},
+ Focusprite:{t:['Mind'],b:[52,50,54,60],cr:.4,xp:80,learn:[[1,'Rough Work'],[1,'Deep Breath'],[6,'Pomodoro'],[12,'Focus Up'],[18,'Revise'],[24,'Flow State']],
+  a:{sh:'flame',c:'#a884ea',c2:'#efe6ff',top:'none',sym:''},dex:'A small steady flame. It only appears when the phone is face down.'},
+ Chaiwisp:{t:['Mind'],b:[60,44,60,44],cr:.45,xp:78,learn:[[1,'Rough Work'],[1,'Deep Breath'],[8,'Pomodoro'],[15,'Revise'],[22,'Flow State']],
+  a:{sh:'cup',c:'#c98a4a',c2:'#f3dcb8',top:'steam',sym:''},dex:'The spirit of the 2 a.m. cutting chai. Warm, sweet and wide awake.'},
+ Distracto:{t:['Life'],b:[46,54,40,76],cr:0,xp:70,learn:[[1,'Reels Scroll'],[1,'Trick Question'],[10,'Rumour'],[16,'Panic Wave']],
+  a:{sh:'phone',c:'#3a3a4a',c2:'#7fd0f0',top:'none',sym:''},dex:'Just five more minutes, it says. It has said so for three hours.'},
+ Lazybug:{t:['Life'],b:[64,44,58,22],cr:0,xp:65,learn:[[1,'Snooze'],[1,'Revise'],[12,'Reels Scroll']],
+  a:{sh:'wide',c:'#8d7fb0',c2:'#d9d2ec',top:'zzz',sym:''},dex:'It will start tomorrow. It has promised.'},
+ Panikin:{t:['Life'],b:[48,66,40,84],cr:0,xp:85,learn:[[1,'Panic Wave'],[1,'Quick Guess'],[14,'Rumour'],[18,'Reels Scroll']],
+  a:{sh:'flame',c:'#e0507a',c2:'#ffd3e0',top:'none',sym:'!'},dex:'It shows up the night before every test and whispers the syllabus.'},
+ Deadlion:{t:['Life'],b:[70,78,60,70],cr:0,xp:110,learn:[[1,'Panic Wave'],[1,'Snooze'],[1,'Rumour'],[1,'Reels Scroll']],
+  a:{sh:'blob',c:'#d9a23c',c2:'#fff0c8',top:'mane',sym:'11:59',big:1},dex:'The assignment deadline, in the flesh. It roars at 11:59 p.m.'},
+};
+SP.Newtonaut.learn=SP.Newtlet.learn;SP.Molemage.learn=SP.Molekid.learn;SP.Calculord.learn=SP.Algebit.learn;
+const DEX=Object.keys(SP);
+const STARTERS=['Newtlet','Molekid','Algebit'];
+const ITEMS={'Notebook':{price:60,orb:1,desc:'Catches a wild concept.'},'Smart Notes':{price:180,orb:1.8,desc:'Catches better than a Notebook.'},
+ 'Chai':{price:40,heal:20,desc:'Restores 20 HP.'},'Maggi':{price:110,heal:60,desc:'Restores 60 HP.'}};
+const ZONES={
+ park:{lv:[2,4],mons:[['Vectoid',24],['Bondbug',24],['Trigon',24],['Probbit',12],['Lazybug',16]]},
+ phy:{lv:[7,10],mons:[['Vectoid',34],['Voltick',34],['Opticat',20],['Distracto',12]]},
+ chem:{lv:[7,10],mons:[['Bondbug',34],['Acidrop',34],['Benzring',20],['Lazybug',12]]},
+ math:{lv:[7,10],mons:[['Trigon',32],['Probbit',32],['Matrixel',22],['Panikin',14]]},
+ alley:{lv:[8,11],mons:[['Distracto',40],['Lazybug',25],['Panikin',25],['Focusprite',10]]},
+ garden:{lv:[7,10],mons:[['Focusprite',45],['Chaiwisp',35],['Lazybug',20]]},
+ lawn:{lv:[20,25],mons:[['Deadlion',30],['Panikin',20],['Distracto',20],['Opticat',10],['Benzring',10],['Matrixel',10]]},
+};
+
+/* concepts (the monsters) */
+const st=(b,l)=>Math.floor(b*2*l/100)+5;
+function stats(m){const b=SP[m.sp].b;return{hp:Math.floor(b[0]*2*m.lvl/100)+m.lvl+10,atk:st(b[1],m.lvl),def:st(b[2],m.lvl),spd:st(b[3],m.lvl)}}
+const maxhp=m=>stats(m).hp;
+function makeMon(sp,lvl){const ls=SP[sp].learn.filter(([l])=>l<=lvl).map(x=>x[1]);const moves=[...new Set(ls)].slice(-4);const m={sp,lvl,exp:lvl**3,moves,hp:0};m.hp=maxhp(m);return m}
+
+/* ---------------- concept art: one parametric creature drawer ---------------- */
+const INK='#22202a';
+function shade(hex,k){const n=parseInt(hex.slice(1),16),f=v=>clamp(Math.round(v*k),0,255);return `rgb(${f(n>>16)},${f(n>>8&255)},${f(n&255)})`}
+function drawMon(c,sp,x,y,size,flip,alpha=1){
+  const a=SP[sp].a,dk=shade(a.c,.68);
+  c.save();c.globalAlpha=alpha;c.translate(x+(flip?size:0),y);c.scale((flip?-1:1)*size/32,size/32);
+  c.fillStyle='rgba(0,0,0,.18)';c.beginPath();c.ellipse(16,30.6,11,2,0,0,7);c.fill();
+  c.lineWidth=1.05;c.strokeStyle=INK;c.lineJoin='round';
+  const E=(cx,cy,rx,ry,col,rot=0)=>{c.beginPath();c.ellipse(cx,cy,rx,ry,rot,0,Math.PI*2);c.fillStyle=col;c.fill();c.stroke()};
+  const P=(col,...p)=>{c.beginPath();c.moveTo(p[0],p[1]);for(let i=2;i<p.length;i+=2)c.lineTo(p[i],p[i+1]);c.closePath();c.fillStyle=col;c.fill();c.stroke()};
+  const EY=(ex,ey,r=1.6)=>{E(ex,ey,r,r*1.15,'#fff');c.beginPath();c.ellipse(ex-r*.2,ey+r*.15,r*.6,r*.78,0,0,7);c.fillStyle=INK;c.fill();c.beginPath();c.arc(ex-r*.35,ey-r*.3,r*.26,0,7);c.fillStyle='#fff';c.fill()};
+  const er=a.big?2.1:1.75;let ey=17,bx=16,by=24;
+  if(a.back==='cape')P('#7a4fc0',9,14,3,27,12,24,16,28,20,24,29,27,23,14);
+  if(a.back==='tail'){c.beginPath();c.moveTo(24,24);c.quadraticCurveTo(32,22,29,13);c.lineWidth=2.4;c.strokeStyle=INK;c.stroke();c.lineWidth=1.3;c.strokeStyle=a.c;c.stroke();c.lineWidth=1.05;c.strokeStyle=INK}
+  if(a.sh!=='phone'&&a.sh!=='cup'&&a.sh!=='flame'&&a.sh!=='drop'){E(11,28.5,3,1.9,dk);E(21,28.5,3,1.9,dk)}
+  switch(a.sh){
+   case 'blob':if(a.top==='mane')for(let i=0;i<9;i++){const an=i/9*Math.PI*2;P('#b5651d',16+Math.cos(an)*9,17+Math.sin(an)*8,16+Math.cos(an+.35)*14.5,17+Math.sin(an+.35)*13,16+Math.cos(an+.7)*9,17+Math.sin(an+.7)*8)}
+     E(16,19.5,10.5,8.8,a.c);E(16,23,6.5,4.6,a.c2);break;
+   case 'wide':E(16,22,13,6.5,a.c);E(16,24.5,8,3.4,a.c2);ey=20;by=25;break;
+   case 'tall':E(16,18,8.5,10.5,a.c);E(16,22,5.5,5.5,a.c2);ey=13.5;by=22.5;break;
+   case 'box':c.beginPath();c.roundRect(6,9,20,18,3.5);c.fillStyle=a.c;c.fill();c.stroke();c.beginPath();c.roundRect(10,19,12,7,2);c.fillStyle=a.c2;c.fill();c.stroke();ey=15;by=24.6;break;
+   case 'tri':P(a.c,16,4,28,27,4,27);P(a.c2,16,17,22,26,10,26);ey=15.5;by=25;break;
+   case 'hex':P(a.c,16,5,26,11,26,22,16,28,6,22,6,11);E(16,21.5,4.2,3.6,a.c2);ey=13.5;by=40;break;
+   case 'flask':P(a.c2,13,4,19,4,19,11,26,25,24,28,8,28,6,25,13,11);P(a.c,9.5,19,22.5,19,26,25,24,28,8,28,6,25);P('#fff',12.5,3,19.5,3,19.5,5,12.5,5);
+     E(13,23,1,1,'#fff');E(19,25,.7,.7,'#fff');ey=14.5;by=25.6;break;
+   case 'drop':c.beginPath();c.moveTo(16,3);c.quadraticCurveTo(28,18,24,24);c.quadraticCurveTo(16,31,8,24);c.quadraticCurveTo(4,18,16,3);c.fillStyle=a.c;c.fill();c.stroke();E(16,23,5,3.6,a.c2);ey=17;by=24.6;break;
+   case 'flame':c.beginPath();c.moveTo(16,2);c.quadraticCurveTo(23,10,26,17);c.quadraticCurveTo(28,29,16,29);c.quadraticCurveTo(4,29,6,17);c.quadraticCurveTo(8,12,11,13);c.quadraticCurveTo(12,7,16,2);c.fillStyle=a.c;c.fill();c.stroke();E(16,23,5.5,4,a.c2);ey=17.5;by=24.6;break;
+   case 'phone':c.beginPath();c.roundRect(8,3,16,26,3);c.fillStyle=a.c;c.fill();c.stroke();c.beginPath();c.roundRect(10,6,12,18,1.5);c.fillStyle=a.c2;c.fill();c.stroke();
+     E(16,26.5,1,1,'#888');P('#e0507a',19.5,6,22,6,22,8.5);ey=12;by=40;break;
+   case 'cup':P(a.c2,8,10,24,10,22,29,10,29);P(a.c,8.8,14,23.2,14,22,29,10,29);E(16,10,8,1.8,'#8a5a2a');ey=19;by=40;break;
+  }
+  const tp=a.sh==='tall'?7.5:a.sh==='box'?9:10.8;
+  switch(a.top){
+   case 'stem':P('#6b4a2f',15.4,11,16.6,11,17.4,6,16,6);E(20,7,3.2,1.7,'#5fbf4a',.5);break;
+   case 'crown':P('#f2c14b',10,tp+1,10,tp-5,13,tp-2,16,tp-6.5,19,tp-2,22,tp-5,22,tp+1);break;
+   case 'bolt':P('#fff3a0',17,1,12,8,15.5,8,13,13,20,6,16.5,6,19,1);break;
+   case 'cat':P(a.c,7.5,13,7,5,13,10);P(a.c,24.5,13,25,5,19,10);break;
+   case 'ant':c.beginPath();c.moveTo(13,11);c.lineTo(10,5);c.moveTo(19,11);c.lineTo(22,5);c.stroke();E(10,4.6,1.3,1.3,'#f2c14b');E(22,4.6,1.3,1.3,'#f2c14b');break;
+   case 'horn2':P('#fff',9,9.5,10,4,13,9.5);P('#fff',19,9.5,22,4,23,9.5);break;
+   case 'bunny':E(12,7,2.2,6,a.c,-.15);E(20,7,2.2,6,a.c,.15);E(12,7.5,1,4,'#f6b8c8',-.15);E(20,7.5,1,4,'#f6b8c8',.15);break;
+   case 'steam':c.beginPath();c.moveTo(13,7);c.quadraticCurveTo(11,4.5,13,2);c.moveTo(18.5,7);c.quadraticCurveTo(21,4,18.5,1);c.strokeStyle='#fff';c.stroke();c.strokeStyle=INK;break;
+   case 'zzz':c.fillStyle=INK;c.font='600 6px "Pixelify Sans", monospace';c.save();if(flip){c.translate(32,0);c.scale(-1,1)}c.fillText('z',flip?5:23,9);c.fillText('Z',flip?1:26,5.5);c.restore();break;
+  }
+  if(a.top==='zzz'){c.beginPath();c.moveTo(10.5,ey);c.lineTo(14,ey);c.moveTo(18,ey);c.lineTo(21.5,ey);c.stroke()}
+  else{EY(12.6,ey,er);EY(19.4,ey,er)}
+  if(a.sh==='hex'){c.beginPath();c.arc(16,18,1.6,.2,Math.PI-.2);c.stroke()}
+  if(a.sym==='dice'){c.fillStyle=INK;[[14,22],[18,22],[16,24],[14,26],[18,26]].forEach(([dx,dy])=>c.fillRect(dx-.5,dy-.5,1.1,1.1))}
+  else if(a.sym){c.save();if(flip){c.translate(32,0);c.scale(-1,1)}c.fillStyle=INK;c.textAlign='center';c.textBaseline='middle';c.font=`600 ${a.sym.length>3?4.6:a.sym.length>1?5.6:7}px "Pixelify Sans", monospace`;c.fillText(a.sym,bx,by);c.restore()}
+  c.restore();
+}
+
+/* ---------------- people ---------------- */
+function drawPerson(c,x,y,dir,step,lk){
+  x=Math.round(x);y=Math.round(y);const k=lk.kid?1:0;const R=(col,a,b,w,h)=>{c.fillStyle=col;c.fillRect(x+a,y+b+k*2,w,h)};
+  c.fillStyle='rgba(0,0,0,.2)';c.beginPath();c.ellipse(x+8,y+15,5,1.6,0,0,7);c.fill();
+  const lo=step?1:0;
+  R('#2a2a33',4,12-k,8,3);R(lk.pants,5,12-lo-k,2,3+lo);R(lk.pants,9,12-(1-lo)-k,2,3+(1-lo));
+  R('#2a2a33',3,6,10,7-k);R(lk.shirt,4,7,8,5-k);
+  if(lk.sari){R(lk.sari,4,7,3,5);R(lk.sari,4,11,8,3)}
+  if(dir==='left'||dir==='right'){R(lk.skin,dir==='left'?6:8,8,2,3)}else{R(lk.skin,3,8,1,3);R(lk.skin,12,8,1,3)}
+  R('#2a2a33',3,0,10,8);R(lk.skin,4,1,8,6);
+  if(dir==='up'){R(lk.hair,4,1,8,6)}else{R(lk.hair,4,1,8,2);
+    if(dir==='down'){R('#2a2a33',6,4,1,2);R('#2a2a33',9,4,1,2);if(lk.specs){R('#2a2a33',5,4,3,1);R('#2a2a33',8,4,3,1)}if(lk.tache)R(lk.hair,6,6,4,1)}
+    else if(dir==='left'){R(lk.hair,10,1,2,4);R('#2a2a33',5,4,1,2)}
+    else {R(lk.hair,4,1,2,4);R('#2a2a33',10,4,1,2)}}
+  if(lk.long&&dir!=='up'){R(lk.hair,3,2,1,7);R(lk.hair,12,2,1,7)}
+  if(lk.long&&dir==='up')R(lk.hair,4,7,8,3);
+  if(lk.hat){R(lk.hat,3,0,10,2);R(lk.hat,dir==='left'?1:dir==='right'?11:4,2,dir==='up'?0:4,1)}
+  if(lk.bag&&dir!=='down')R(lk.bag,dir==='left'?10:dir==='right'?4:5,7,dir==='up'?6:2,5);
+}
+function drawSign(c,x,y){const R=(col,a,b,w,h)=>{c.fillStyle=col;c.fillRect(x+a,y+b,w,h)};R('#4a3220',7,8,2,8);R('#4a3220',1,2,14,8);R('#b5884f',2,3,12,6);R('#8a6238',4,5,8,1);R('#8a6238',4,7,6,1)}
+
+/* ---------------- maps ---------------- */
+/* . grass  P path  , tall grass  T tree  ~ water  F flowers  f fence  r rock  g sports ground  letters in bld = buildings */
+const MAPS={
+ home:{name:'Chhota Nagar',pad:'T',bg:'park',song:'home',grass:['#88c76c','#77b85d'],path:['#dcc596','#c7ad7a'],
+  bld:{H:{roof:'#d8574a',roof2:'#b8463b',label:'HOME'},S:{roof:'#4f7fd0',roof2:'#3f68ad',label:'SCHOOL'},K:{roof:'#e0a030',roof2:'#b98222',label:'KIRANA'}},
+  enc:ch=>ch===','?'park':null,
+  raw:[
+"TTTTTTTTTTTTTTTTTTTTTTTTTTTT",
+"T..........TT,,,,,,,,,,,,,,T",
+"T.SSSSSS....T,,,,,,,,,,,,,,T",
+"T.SSSSSS.....,,,,,,rr,,,,,,T",
+"T.SSSSSS.....,,,,,,,,,,,,,,T",
+"T.SSSSSS....T,,,,,,,,,,~~~,T",
+"T...PP......T,,,,,,,,,~~~~,T",
+"T...PP......TTTT..TTTT~~~~TT",
+"T...PPPPPPPPPPPPPPPP.......T",
+"T...PP..F.......F.PP.......T",
+"T...PP............PP..KKKK.T",
+"T...PP...ffffff...PP..KKKK.T",
+"T.HHHH...f.FF.f...PP..KKKK.T",
+"T.HHHH...f.FF.f...PP...PP..T",
+"T.HHHH...ffffff...PPPPPPP..T",
+"T..PP.............PP.......T",
+"T..PPPPPPPPPPPPPPPPP..TT...T",
+"T..........PP.........TT...T",
+"T...F......PP....F.........T",
+"T..........PP..............T",
+"TTTTTTTTTTTPPTTTTTTTTTTTTTTT",
+"TTTTTTTTTTTPPTTTTTTTTTTTTTTT"]},
+ kota:{name:'Kota',pad:'T',bg:'city',song:'kota',grass:['#9cc47c','#8ab56b'],path:['#cfc6b4','#b9ae98'],
+  bld:{G:{roof:'#8a5fc0',roof2:'#6f49a3',label:'PG'},M:{roof:'#e0a030',roof2:'#b98222',label:'MESS'},C:{roof:'#d8574a',roof2:'#b8463b',label:'COACHING'},
+       L:{roof:'#4f7fd0',roof2:'#3f68ad',label:'LIBRARY'},Y:{roof:'#3fae6a',roof2:'#2f8a52',label:'BOOKS'},Z:{roof:'#3a3a4a',roof2:'#55556a',label:'CAFE'},X:{roof:'#f6f2e4',roof2:'#cfc8b4',label:'EXAM CENTRE',dark:1}},
+  enc:(ch,x,y)=>ch!==','?null:y<=5?(x<12?'phy':'chem'):y<=15?'garden':x>=16?'math':'alley',
+  raw:[
+"TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT",
+"T,,,,,,,,T....XXXXXX....T,,,,,,T",
+"T,,,,,,,,T....XXXXXX....T,,,,,,T",
+"T,,,,,,,,.....XXXXXX.....,,,,,,T",
+"T,,,,rr,,T....XXXXXX....T,,,,,,T",
+"T,,,,,,,,T......PP......T,,,rr,T",
+"TTTT..TTTT......PP......TTT..TTT",
+"T.....CCCCCCCC..PP..LLLL.......T",
+"T.....CCCCCCCC..PP..LLLL.......T",
+"T.....CCCCCCCC..PP..LLLL.......T",
+"T.....CCCCCCCC..PP....PP.......T",
+"T........PP.....PP....PP.......T",
+"TPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPT",
+"T..PP......F..~~~~..F....PP....T",
+"T..PP...,,,,,.~~~~.,,,,,.PP....T",
+"T.GGGG..,,,,,......,,,,,.YYYY..T",
+"T.GGGG...................YYYY..T",
+"T.GGGG..MMMM.............YYYY..T",
+"T..PP...MMMM....TTTT......PP...T",
+"T..PP...MMMM..TTT,,,,,,TT.PP...T",
+"TPPPPPPPPPPPPPPPP,,,,,,PPPPPP..T",
+"T.ZZZZ.,,,,,,.TTT,,,,,,TT......T",
+"T.ZZZZ.,,,,,,...TTTTTTTT.......T",
+"T.ZZZZ.,,,,,,..................T",
+"TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT"]},
+ campus:{name:'Campus',pad:'T',bg:'campus',song:'campus',grass:['#7fc673','#6fb864'],path:['#e2d3b0','#cdbb92'],
+  bld:{A:{roof:'#b5533c',roof2:'#96422f',label:'LECTURE HALL'},L:{roof:'#4f7fd0',roof2:'#3f68ad',label:'LIBRARY'},J:{roof:'#3fae9a',roof2:'#2f8a7a',label:'LAB'},
+       H:{roof:'#8a5fc0',roof2:'#6f49a3',label:'HOSTEL'},C:{roof:'#3a3a4a',roof2:'#55556a',label:'CC'},S:{roof:'#e06a9a',roof2:'#b9507a',label:'SAC'},
+       N:{roof:'#e0a030',roof2:'#b98222',label:'CANTEEN'},W:{roof:'#3fae6a',roof2:'#2f8a52',label:'T&P'}},
+  enc:ch=>ch===','?'lawn':null,
+  raw:[
+"TTTTTTTTTTTTTTTTTTTTTTTTTTTTTT",
+"T.AAAAAAA....LLLL....JJJJ....T",
+"T.AAAAAAA....LLLL....JJJJ....T",
+"T.AAAAAAA....LLLL....JJJJ....T",
+"T.AAAAAAA.....PP......PP.....T",
+"T....PP.......PP......PP.....T",
+"TPPPPPPPPPPPPPPPPPPPPPPPPPPPPT",
+"T..PP....,,,,,,..PP...gggggg.T",
+"T..PP....,,,,,,..PP...gggggg.T",
+"T.HHHHH..,,,,,,..PP...gggggg.T",
+"T.HHHHH..........PP...gggggg.T",
+"T.HHHHH..F..~~~..PP..........T",
+"T...PP......~~~..PP..........T",
+"T...PP...........PP..........T",
+"T...PP.CCCC..SSSS..NNNN.WWWW.T",
+"T...PP.CCCC..SSSS..NNNN.WWWW.T",
+"T...PP.CCCC..SSSS..NNNN.WWWW.T",
+"TPPPPPPPPPPPPPPPPPPPPPPPPPPPPT",
+"T......F.......PP.......F....T",
+"T..............PP............T",
+"TTTTTTTTTTTTTTTPPTTTTTTTTTTTTT",
+"TTTTTTTTTTTTTTTPPTTTTTTTTTTTTT"]},
+};
+const SOLID=new Set(['T','~','r','f']);
+for(const [id,m] of Object.entries(MAPS)){m.id=id;m.w=Math.max(...m.raw.map(r=>r.length));m.h=m.raw.length;m.grid=m.raw.map(r=>(r+m.pad.repeat(m.w)).slice(0,m.w));m.npcs=[];m.boxes=[];
+  for(const ch of Object.keys(m.bld)){let x0=99,y0=99,x1=-1,y1=-1;
+    for(let y=0;y<m.h;y++)for(let x=0;x<m.w;x++)if(m.grid[y][x]===ch){x0=Math.min(x0,x);y0=Math.min(y0,y);x1=Math.max(x1,x);y1=Math.max(y1,y)}
+    if(x1>=0)m.boxes.push({ch,x0,y0,x1,y1,...m.bld[ch]})}}
+let CUR=MAPS.home;
+const tile=(x,y)=>(x<0||y<0||x>=CUR.w||y>=CUR.h)?CUR.pad:CUR.grid[y][x];
+const hash=(x,y,k)=>(((x*73856093)^(y*19349663)^(k*83492791))>>>0)%1000/1000;
+function mapCanvas(M){
+  if(M.cv)return M.cv;
+  const cv=document.createElement('canvas');cv.width=M.w*TS;cv.height=M.h*TS;M.cv=cv;
+  const g=cv.getContext('2d'),MAP=M.grid,MW=M.w,MH=M.h,at=(x,y)=>(x<0||y<0||x>=MW||y>=MH)?M.pad:MAP[y][x];
+  const R=(c,x,y,w,h)=>{g.fillStyle=c;g.fillRect(x,y,w,h)};
+  for(let y=0;y<MH;y++)for(let x=0;x<MW;x++){
+    const ch=MAP[y][x], px=x*TS, py=y*TS, r=k=>hash(x,y,k);
+    const sp=(c,n,k0=0,w=1)=>{for(let k=0;k<n;k++)R(c,px+Math.floor(r(k+k0)*15),py+Math.floor(r(k+k0+7)*15),w,1)};
+    R(M.grass[0],px,py,TS,TS);sp(M.grass[1],3);
+    if(ch==='P'){R(M.path[0],px,py,TS,TS);sp(M.path[1],3,3,2)}
+    else if(ch==='g'){R('#a6d98a',px,py,TS,TS);if(at(x-1,y)!=='g')R('#f6f2e4',px+1,py,1,TS);if(at(x+1,y)!=='g')R('#f6f2e4',px+14,py,1,TS);if(at(x,y-1)!=='g')R('#f6f2e4',px,py+1,TS,1);if(at(x,y+1)!=='g')R('#f6f2e4',px,py+14,TS,1)}
+    else if(ch===','){R('#63b158',px,py,TS,TS);
+      for(let i=0;i<4;i++){const bx=px+1+(i%2)*8,by=py+1+(i>>1)*8;R('#3d8d44',bx,by+3,1,4);R('#3d8d44',bx+2,by+1,1,6);R('#3d8d44',bx+4,by+3,1,4);R('#7fc86e',bx+2,by+1,1,2)}}
+    else if(ch==='F'){const cols=['#f6f1e7','#f2b84b','#e8664f','#c6a6f0'];
+      for(let i=0;i<3;i++){const fx=px+2+Math.floor(r(i+20)*11),fy=py+2+Math.floor(r(i+30)*11);R(cols[Math.floor(r(i+40)*4)],fx-1,fy,3,1);R(cols[Math.floor(r(i+40)*4)],fx,fy-1,1,3);R('#f2b84b',fx,fy,1,1)}}
+    else if(ch==='T'){R('#5d9c52',px,py,TS,TS);g.fillStyle='#2f6b3c';g.beginPath();g.arc(px+8,py+7,7,0,7);g.fill();
+      g.fillStyle='#3f8a49';g.beginPath();g.arc(px+6,py+5,3.2,0,7);g.fill();R('#245a31',px+3,py+11,10,2);R('#6b4a2f',px+7,py+12,2,4)}
+    else if(ch==='~'){R('#4f8fd6',px,py,TS,TS);R('#7fb2ea',px+2+Math.floor(r(1)*6),py+4,4,1);R('#7fb2ea',px+8-Math.floor(r(2)*5),py+11,4,1);
+      if(at(x,y-1)!=='~')R('#c9e2f7',px,py,TS,1)}
+    else if(ch==='r'){g.fillStyle='#5d5d55';g.beginPath();g.ellipse(px+8,py+9,7,6,0,0,7);g.fill();g.fillStyle='#9a9a8f';g.beginPath();g.ellipse(px+8,py+9,6,5,0,0,7);g.fill();
+      g.fillStyle='#c1c1b6';g.beginPath();g.ellipse(px+6,py+7,2.5,1.8,0,0,7);g.fill()}
+    else if(ch==='f'){R('#8a5a32',px,py+6,16,2);R('#8a5a32',px,py+11,16,2);R('#6e4526',px+2,py+4,2,11);R('#6e4526',px+12,py+4,2,11)}
+  }
+  for(const b of M.boxes){
+    const px=b.x0*TS,py=b.y0*TS,w=(b.x1-b.x0+1)*TS,h=(b.y1-b.y0+1)*TS;
+    R('#2b2b33',px+1,py+18,w-2,h-18);R('#efe6d2',px+2,py+19,w-4,h-20);
+    R('#2b2b33',px-2,py+2,w+4,20);R(b.roof,px-1,py+3,w+2,18);
+    for(let i=0;i<4;i++)R(b.roof2,px-1,py+6+i*4,w+2,1);
+    R(b.dark?'#22202a':'rgba(0,0,0,.28)',px+3,py+7,w-6,10);
+    const dx=px+w/2-5;R('#2b2b33',dx-1,py+h-15,12,15);R('#7a5434',dx,py+h-14,10,14);R('#f2b84b',dx+7,py+h-7,1,1);
+    for(let wx=px+5;wx+11<dx-2;wx+=15){R('#2b2b33',wx,py+27,11,9);R('#9fd0f0',wx+1,py+28,9,7);R('#2b2b33',px+w-(wx-px)-11,py+27,11,9);R('#9fd0f0',px+w-(wx-px)-10,py+28,9,7)}
+  }
+  return cv;
+}
+
+/* ---------------- state ---------------- */
+let G=null, mode='title', busy=false, B=null, PICK={hi:0}, EVO=null, TRANS=0, FADE=null, AREA=null, SCENE=null, confetti=0;
+const P={x:4,y:16,dir:'up',moving:false,t:0,tx:0,ty:0,step:0};
+const SAVE_KEY='aspirant-save-v1', END_KEY='aspirant-endings-v1';
+let XPMUL=2, SHARE=.4; const MAXLV=40; /* XP speed-up, and the share of XP the rest of the team gets */
+const SKIN='#d9a57b';
+function playerLook(){
+  const girl=G&&G.girl,lk={hair:'#2b2118',skin:SKIN,shirt:girl?'#e0507a':'#f08a3c',pants:girl?'#3a3a6a':'#2f4a6e'};
+  if(girl)lk.long=1;
+  if(!G||G.ch===1)lk.kid=1;else if(G.ch===2)lk.bag='#3a3a4a';else{lk.shirt=girl?'#7a5fc0':'#3fae9a'}
+  return lk;
+}
+function newGame(){
+  G={name:'Arjun',girl:false,ch:1,party:[],box:[],bag:{'Notebook':4,'Chai':2},money:200,flags:{},starter:null,heal:{map:'home',x:4,y:16},map:'home',seen:[],caught:[],
+     daysLeft:60,drops:0,mood:70,age:11,jee:null,college:null,branch:null,col:null};
+  enterMap('home',4,16,'up');
+}
+function serialize(){return{...G,x:P.x,y:P.y,dir:P.dir}}
+function load(d){G=d;delete G.x;delete G.y;delete G.dir;enterMap(G.map,d.x,d.y,d.dir||'down')}
+function saveGame(){try{localStorage.setItem(SAVE_KEY,JSON.stringify(serialize()));return true}catch(e){return false}}
+function readSave(){try{const s=localStorage.getItem(SAVE_KEY);return s?JSON.parse(s):null}catch(e){return null}}
+function clearSave(){try{localStorage.removeItem(SAVE_KEY)}catch(e){}}
+function readEnds(){try{return JSON.parse(localStorage.getItem(END_KEY))||{}}catch(e){return{}}}
+function writeEnds(o){try{localStorage.setItem(END_KEY,JSON.stringify(o))}catch(e){}}
+function healAll(){G.party.forEach(m=>m.hp=maxhp(m))}
+function markSeen(s){if(G&&!G.seen.includes(s))G.seen.push(s)}
+function markCaught(s){markSeen(s);if(G&&!G.caught.includes(s))G.caught.push(s)}
+function giveMon(sp,lvl){const m=makeMon(sp,lvl);markCaught(sp);(G.party.length<6?G.party:G.box).push(m);return m}
+function mood(d){G.mood=clamp(G.mood+d,0,100)}
+function setPlace(s){const el=$('place');if(el)el.textContent=s}
+function enterMap(id,x,y,dir){
+  CUR=MAPS[id];if(id==='campus'&&G&&G.college)CUR.name=G.college.n;
+  mapCanvas(CUR);if(G)G.map=id;Object.assign(P,{x,y,dir,moving:false,t:0});setPlace(CUR.name);
+}
+const visible=n=>!(n.hideIf&&n.hideIf())&&!(n.item&&G.flags[n.id]);
+const npcAt=(x,y)=>CUR.npcs.find(n=>n.x===x&&n.y===y&&visible(n));
+const blocked=(x,y)=>{const t=tile(x,y);return SOLID.has(t)||!!CUR.bld[t]||!!npcAt(x,y)};
+
+/* ---------------- UI: dialog + menus ---------------- */
+const box=$('box'),txt=$('txt'),arrow=$('arrow'),menu=$('menu');
+let handler=null;
+function hideUI(){box.hidden=true;menu.hidden=true;box.classList.remove('withmenu');handler=null}
+function paginate(text){
+  menu.hidden=true;box.classList.remove('withmenu');box.hidden=false;
+  const parts=String(text).split(/(\s+)/),out=[];let cur='';
+  for(const w of parts){txt.textContent=cur+w;
+    if(box.scrollHeight>box.clientHeight+1&&cur.trim()){out.push(cur.trim());cur=w.trim()?w:''}else cur+=w}
+  if(cur.trim())out.push(cur.trim());txt.textContent='';return out.length?out:[''];
+}
+function say1(text){
+  if(DBG&&DBG.fast){DBG.log.push(text);if(DBG.log.length>6000)DBG.log.splice(0,2000);txt.textContent=text;return Promise.resolve()}
+  return new Promise(res=>{
+    menu.hidden=true;box.classList.remove('withmenu');box.hidden=false;arrow.hidden=true;
+    let i=0,done=false;txt.textContent='';
+    const tm=setInterval(()=>{i+=2;txt.textContent=text.slice(0,i);if(i>=text.length){clearInterval(tm);done=true;arrow.hidden=false}},16);
+    const go=()=>{if(!done){clearInterval(tm);txt.textContent=text;done=true;arrow.hidden=false;return}handler=null;box.onclick=null;arrow.hidden=true;SND.sfx('blip');res()};
+    handler=b=>{if(b==='A'||b==='B')go()};box.onclick=go;
+  });
+}
+async function say(text){for(const p of paginate(text))await say1(p)}
+async function sayAll(lines,who){for(const l of lines)await say(who?`${who}: ${l}`:l)}
+function sayNow(text){menu.hidden=true;box.classList.remove('withmenu');box.hidden=false;arrow.hidden=true;txt.textContent=text;box.onclick=null;handler=()=>{}}
+function choose(opts,{prompt=null,cancel=false,grid=false,wide=false,top=false,start=0,onMove=null}={}){
+  if(DBG&&DBG.fast&&DBG.pick){const plain=opts.map(o=>String(o).replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim());
+    const i=DBG.pick(plain,prompt||'',cancel);DBG.log.push(`[${prompt||''}] > ${i<0?'(back)':plain[i]}`);return Promise.resolve(i)}
+  return new Promise(res=>{
+    if(prompt!==null){box.hidden=false;arrow.hidden=true;txt.textContent=prompt;box.onclick=null;box.classList.toggle('withmenu',!wide&&!top)}else box.hidden=true;
+    menu.className=(grid?'grid ':'')+(wide?'wide ':'')+(top?'top wide':'');menu.innerHTML='';
+    let idx=clamp(start,0,opts.length-1);
+    const btns=opts.map((o,i)=>{const b=document.createElement('button');b.innerHTML=o;b.type='button';
+      b.addEventListener('pointerenter',()=>{idx=i;paint()});b.addEventListener('click',e=>{e.stopPropagation();finish(i)});menu.appendChild(b);return b});
+    function paint(){btns.forEach((b,i)=>b.classList.toggle('on',i===idx));btns[idx]&&btns[idx].scrollIntoView({block:'nearest'});onMove&&onMove(idx)}
+    function finish(i){SND.sfx(i<0?'back':'select');handler=null;menu.hidden=true;box.classList.remove('withmenu');res(i)}
+    menu.hidden=false;paint();
+    handler=b=>{const n=opts.length;
+      if(b==='up')idx=grid?(idx-2+n)%n:(idx-1+n)%n;else if(b==='down')idx=grid?(idx+2)%n:(idx+1)%n;
+      else if(b==='left'&&grid)idx=(idx-1+n)%n;else if(b==='right'&&grid)idx=(idx+1)%n;
+      else if(b==='A')return finish(idx);else if(b==='B'&&cancel)return finish(-1);else return;SND.sfx('move');paint()};
+  });
+}
+/* ask: a prompt in the dialog box with the options listed above it (good for long option lists) */
+const ask=(prompt,opts,o={})=>choose(opts,{prompt,top:true,...o});
+const yes=async q=>(await choose(['Yes','No'],{prompt:q}))===0;
+const chip=t=>`<span class="chip" style="--c:${TYPES[t]}">${t}</span>`;
+const tag=(s,c='#6b6480')=>`<span class="chip" style="--c:${c}">${s}</span>`;
+const hpCol=r=>r>.5?'#4fbf5a':r>.2?'#e8b33c':'#e0503c';
+function monRow(m,active){const mx=maxhp(m),r=m.hp/mx;return `<span class="row ${m.hp<=0?'dim':''}"><b>${m.sp}</b><i>Lv${m.lvl}</i><span class="bar"><span style="width:${r*100}%;background:${hpCol(r)}"></span></span><span>${m.hp}/${mx}</span>${active?'<i>(out)</i>':''}</span>`}
+function info(m){const s=stats(m);return `${m.sp}  Lv${m.lvl}  ${SP[m.sp].t.join('/')} type\nHP ${m.hp}/${s.hp}  ATK ${s.atk}  DEF ${s.def}  SPD ${s.spd}\nMoves: ${m.moves.join(', ')}`}
+
+/* ---------------- input ---------------- */
+const KEYS={ArrowUp:'up',w:'up',ArrowDown:'down',s:'down',ArrowLeft:'left',a:'left',ArrowRight:'right',d:'right',z:'A',' ':'A',Enter:'A',x:'B',Escape:'B',Backspace:'B',m:'S'};
+const DIRS={up:[0,-1],down:[0,1],left:[-1,0],right:[1,0]};
+let held=[],lastBump=0;
+function press(b,repeat){
+  if(handler){if(repeat&&!DIRS[b])return;handler(b);return}
+  if(repeat)return;
+  if(mode==='world'&&!busy&&!P.moving){if(b==='A')interact();else if(b==='S')run(pauseMenu);else if(DIRS[b])tryMove(b)}
+}
+function tryMove(d){
+  P.dir=d;const [dx,dy]=DIRS[d];
+  if(!blocked(P.x+dx,P.y+dy)){P.moving=true;P.tx=P.x+dx;P.ty=P.y+dy;P.step^=1}
+  else if(now()-lastBump>280){lastBump=now();SND.sfx('bump')}
+}
+function hold(b,on){held=held.filter(x=>x!==b);if(on)held.push(b)}
+addEventListener('keydown',e=>{SND.unlock();if(e.ctrlKey||e.metaKey||e.altKey)return;if(e.key==='n'||e.key==='N'){if(!e.repeat)toggleSound();return}const b=KEYS[e.key.length===1?e.key.toLowerCase():e.key];if(!b)return;e.preventDefault();if(DIRS[b])hold(b,true);press(b,e.repeat)});
+addEventListener('keyup',e=>{const b=KEYS[e.key.length===1?e.key.toLowerCase():e.key];if(b&&DIRS[b])hold(b,false)});
+addEventListener('blur',()=>held=[]);
+document.querySelectorAll('[data-b]').forEach(el=>{const b=el.dataset.b;
+  el.addEventListener('pointerdown',e=>{e.preventDefault();$('screen').focus({preventScroll:true});if(DIRS[b]){hold(b,true);el.classList.add('held')}press(b,false)});
+  const up=()=>{if(DIRS[b]){hold(b,false);el.classList.remove('held')}};
+  el.addEventListener('pointerup',up);el.addEventListener('pointerleave',up);el.addEventListener('pointercancel',up);
+});
+$('screen').addEventListener('pointerdown',()=>$('screen').focus({preventScroll:true}));
+addEventListener('pointerdown',()=>SND.unlock(),true);
+function toggleSound(){const m=SND.toggle();$('snd').textContent=m?'SOUND OFF':'SOUND ON';$('snd').setAttribute('aria-pressed',String(!m))}
+$('snd').addEventListener('click',e=>{e.preventDefault();toggleSound()});
+$('snd').textContent=SND.muted?'SOUND OFF':'SOUND ON';$('snd').setAttribute('aria-pressed',String(!SND.muted));
+
+/* ---------------- world logic ---------------- */
+async function run(fn){if(busy)return;busy=true;try{await fn()}catch(e){console.error(e)}finally{hideUI();busy=false;held=[]}}
+function updateWorld(dt){
+  if(P.moving){P.t+=dt*7.5;if(P.t>=1){P.moving=false;P.x=P.tx;P.y=P.ty;P.t=0;onStep()}return}
+  if(busy||handler)return;
+  const d=held[held.length-1];if(d)tryMove(d);
+}
+function onStep(){
+  const s=CUR.step&&CUR.step(P.x,P.y);
+  if(s){run(s);return}
+  const z=CUR.enc(tile(P.x,P.y),P.x,P.y);
+  if(z&&G.party.length&&rnd()<.11)run(()=>wildEncounter(z));
+}
+async function fade(fn){FADE={t0:now(),out:true};await wait(260);await fn();FADE={t0:now(),out:false};await wait(260);FADE=null}
+async function travel(id,x,y,dir){SND.sfx('door');await fade(()=>{SCENE=null;mode='world';enterMap(id,x,y,dir)});AREA={name:CUR.name,t0:now()}}
+function pickWeighted(list){let t=list.reduce((s,x)=>s+x[1],0),r=rnd()*t;for(const [k,w] of list){if((r-=w)<0)return k}return list[0][0]}
+async function transition(){SND.sfx('encounter');TRANS=now();await wait(700);TRANS=0}
+const teachersBeaten=()=>['tPhy','tChem','tMath'].filter(k=>G.flags[k]).length;
+function zoneLv(z){const Z=ZONES[z];const boost=G.ch===2?teachersBeaten()*3+(G.drops?2:0):0;return rint(Z.lv[0]+boost,Z.lv[1]+boost)}
+async function wildEncounter(z){
+  const m=makeMon(pickWeighted(ZONES[z].mons),zoneLv(z));
+  await transition();
+  const r=await battle({wild:true,foes:[m]});
+  if(r==='lose')await blackout();
+  else if(r!=='run')await passDays(1); /* in Kota every battle is a day of practice */
+}
+async function blackout(){
+  await say('All your concepts are worn out. Your head is spinning...');
+  healAll();
+  if(G.ch===1){enterMap('home',4,16,'up');await say('Mom found you dozing in the park and walked you home. A glass of haldi doodh later, everyone feels fine.')}
+  else if(G.ch===2){enterMap('kota',4,19,'up');mood(-6);await say('You dragged yourself back to the PG and slept off a fever. Three days gone.');await passDays(3)}
+  else{enterMap('campus',4,12,'up');if(G.col)G.col.health=clamp(G.col.health-6,0,100);await say('You crashed in your hostel room and woke up at noon. Your wingmates covered your attendance.')}
+}
+function interact(){
+  const [dx,dy]=DIRS[P.dir];const n=npcAt(P.x+dx,P.y+dy);
+  if(n){run(async()=>{if(!n.sign&&!n.item)n.dir={up:'down',down:'up',left:'right',right:'left'}[P.dir];
+    if(n.sign)await say(typeof n.text==='function'?n.text():n.text);else if(n.item)await pickUp(n);
+    else if(n.act)await n.act(n);else if(n.team)await trainer(n);
+    else await sayAll(typeof n.lines==='function'?n.lines():n.lines,n.name)});return}
+  const t=tile(P.x+dx,P.y+dy);
+  if(t==='~')run(()=>say('The water is still. A good place to sit and think.'));
+  else if(CUR.bld[t])run(()=>say(`${CUR.bld[t].label}. Someone is standing outside. Talk to them.`));
+}
+async function pickUp(n){
+  G.bag[n.item]=(G.bag[n.item]||0)+n.n;G.flags[n.id]=true;
+  SND.jingle('item');await say(`You found ${n.n>1?n.n+' ':'a '}${n.item}${n.n>1&&!/s$/.test(n.item)?'s':''}!`);
+}
+async function shop(keys,hello,bye){
+  await say(hello);let last=0;
+  for(;;){
+    const c=await choose(keys.map(k=>`${k}<span class="price">${inr(ITEMS[k].price)}</span>`).concat(['Done']),{prompt:`You have ${inr(G.money)}.\n`,cancel:true,start:last});
+    if(c<0||c===keys.length)break;last=c;const k=keys[c],it=ITEMS[k];
+    if(G.money<it.price){await say('You don\'t have enough pocket money for that.');continue}
+    G.money-=it.price;G.bag[k]=(G.bag[k]||0)+1;SND.sfx('coin');await say(`You bought ${k}. ${it.desc} You now have ${G.bag[k]}.`);
+  }
+  await say(bye);
+}
+async function trainer(n){
+  if(G.flags[n.id]){await say(`${n.name}: ${n.post}`);return}
+  await sayAll(n.pre,n.name);
+  await transition();
+  const up=G.ch===2?G.drops*4:0; /* drop years: a tougher batch */
+  const team=(typeof n.team==='function'?n.team():n.team).map(([s,l])=>makeMon(s,l+up));
+  const r=await battle({wild:false,trainer:n,foes:team});
+  if(r==='win'){G.flags[n.id]=true;await say(`${n.name}: ${n.lose}`);if(n.reward){G.money+=n.reward;await say(`You got ${inr(n.reward)} for winning.`)}if(n.onWin)await n.onWin();await passDays(1)}
+  else if(r==='lose')await blackout();
+}
+function statusText(){
+  const top=`${G.name}, age ${G.age}  ·  ${inr(G.money)}`;
+  if(G.ch===1)return `${top}\nSchool kid in Chhota Nagar. Mood ${G.mood}/100\nDex: ${G.caught.length} of ${DEX.length} concepts`;
+  if(G.ch===2)return `${top}\nJEE aspirant in Kota${G.drops?` (drop year ${G.drops})`:''}. Mood ${G.mood}/100\nJEE in ${Math.max(0,G.daysLeft)} days  ·  Teachers beaten: ${teachersBeaten()}/3`;
+  const c=G.col;return `${top}\n${G.branch} at ${G.college.n}, semester ${Math.min(8,c.sem)}/8\nCGPA ${c.cgpa.toFixed(1)}  Skill ${c.skill}  Friends ${c.social}  Health ${c.health}`;
+}
+async function pauseMenu(){
+  let last=0;
+  for(;;){
+    const c=await choose(['Concepts','Bag','Dex','Save','Close'],{prompt:statusText(),cancel:true,start:last});
+    last=c;
+    if(c===0)await teamMenu(false);
+    else if(c===1)await bagMenu(false);
+    else if(c===2)await dexMenu();
+    else if(c===3){await say(saveGame()?'Game saved.':'Saving isn\'t available in this browser.')}
+    else return;
+  }
+}
+async function dexMenu(){
+  let last=0;
+  for(;;){
+    const rows=DEX.map((s,i)=>{const n=String(i+1).padStart(2,'0'),c=G.caught.includes(s),sn=G.seen.includes(s);
+      return `<span class="row ${c?'':'dim'}"><i>#${n}</i><b>${sn?s:'?????'}</b>${sn?SP[s].t.map(chip).join(''):''}${c?'<i>learned</i>':''}</span>`});
+    const c=await choose(rows,{wide:true,cancel:true,start:last});
+    if(c<0)return;last=c;const s=DEX[c];
+    if(G.caught.includes(s))await say(`${s} (${SP[s].t.join('/')})\n${SP[s].dex}`);
+    else if(G.seen.includes(s))await say(SP[s].cr?`${s}: seen, but not in your notebook yet.`:`${s}\n${SP[s].dex}\n(Life's distractions can't be caught, only beaten.)`);
+    else await say('You haven\'t met this one yet.');
+  }
+}
+/* team / bag shared by world + battle */
+async function teamMenu(inBattle,forced=false){
+  let last=0;
+  for(;;){
+    if(!G.party.length){await say('You have no concepts yet.');return null}
+    const c=await choose(G.party.map(m=>monRow(m,inBattle&&B&&m===B.me)),{wide:true,cancel:!forced,start:last});
+    if(c<0)return null;last=c;const m=G.party[c];
+    if(inBattle){
+      const s=await choose(['Switch in','Info','Back'],{prompt:`${m.sp} - what to do?`,cancel:true});
+      if(s===0){if(m.hp<=0){await say(`${m.sp} has no energy left.`);continue}
+        if(m===B.me){await say(`${m.sp} is already out!`);continue}
+        return {type:'switch',mon:m}}
+      if(s===1)await say(info(m));
+    }else{
+      const s=await choose(['Info','Make lead','Back'],{prompt:`${m.sp} - what to do?`,cancel:true});
+      if(s===0){await say(info(m));await say(SP[m.sp].dex)}
+      if(s===1){G.party.splice(c,1);G.party.unshift(m);await say(`${m.sp} will go out first now.`);last=0}
+    }
+  }
+}
+async function bagMenu(inBattle){
+  for(;;){
+    const keys=Object.keys(G.bag).filter(k=>G.bag[k]>0);
+    if(!keys.length){await say('Your bag is empty.');return null}
+    const c=await choose(keys.map(k=>`${k}<span class="price">x${G.bag[k]}</span>`),{prompt:'Use which item?',cancel:true});
+    if(c<0)return null;const k=keys[c],it=ITEMS[k];
+    if(it.orb){
+      if(!inBattle){await say('Notebooks are for writing down a wild concept during battle.');continue}
+      if(!B.wild){await say(B.exam?'No notebooks allowed in the exam hall!':'You can\'t take notes from someone else\'s concept!');continue}
+      return {type:'orb',item:k};
+    }
+    if(inBattle&&B.exam){await say('The invigilator glares at you. No snacks in the exam hall!');continue}
+    if(!G.party.length){await say('Nobody to give it to.');continue}
+    const t=await choose(G.party.map(m=>monRow(m)),{wide:true,cancel:true});
+    if(t<0)continue;const m=G.party[t],mx=maxhp(m);
+    if(m.hp<=0||m.hp>=mx){await say('It won\'t have any effect.');continue}
+    const h=Math.min(it.heal,mx-m.hp);m.hp+=h;G.bag[k]--;SND.sfx('heal');if(B&&m===B.me)B.dhp.me=m.hp;
+    await say(`${m.sp} recovered ${h} HP.`);
+    if(inBattle)return {type:'used'};
+  }
+}
+
+/* ---------------- battle ---------------- */
+const stg=()=>({atk:0,def:0,spd:0});
+const mul=s=>s>=0?(2+s)/2:2/(2-s);
+const other=s=>s==='me'?'foe':'me';
+const monOf=s=>s==='me'?B.me:B.foe;
+const lbl=s=>s==='me'?B.me.sp:(B.exam?`The ${B.foe.sp} problem`:B.wild?`The wild ${B.foe.sp}`:`Foe ${B.foe.sp}`);
+function tween(ms,f){if(DBG&&DBG.fast){f(1);return Promise.resolve()}return new Promise(res=>{const t0=now();const step=()=>{const k=Math.min(1,(now()-t0)/ms);f(k);k<1?requestAnimationFrame(step):res()};step()})}
+async function waitHp(){if(DBG&&DBG.fast){B.dhp.me=B.me.hp;B.dhp.foe=B.foe.hp;return}while(Math.abs(B.dhp.me-B.me.hp)>.01||Math.abs(B.dhp.foe-B.foe.hp)>.01)await wait(30)}
+
+/* o = {wild, trainer, foes, exam:{name,turns,per,neg}, bg}. Exams are timed: every round costs one turn on the clock. */
+async function battle(o){
+  B={wild:!!o.wild,trainer:o.trainer,exam:o.exam||null,foes:o.foes,fi:0,foe:o.foes[0],me:G.party.find(m=>m.hp>0),
+     music:(o.exam||(o.trainer&&o.trainer.boss))?'boss':'battle',st:{me:stg(),foe:stg()},dhp:{},show:{me:false,foe:true},flash:{me:0,foe:0},shake:{me:0,foe:0},
+     orb:null,runs:0,part:new Set(),enter:now(),bg:o.bg||CUR.bg,marks:0,left:o.exam?o.exam.turns:0};
+  if(!B.me){B=null;return o.exam?{r:'blank',marks:0}:'lose'}
+  B.dhp.foe=B.foe.hp;B.dhp.me=B.me.hp;mode='battle';markSeen(B.foe.sp);
+  if(B.exam){await say(`${B.exam.name}. ${B.foes.length} questions, ${B.left} turns on the clock.`);await say(`Question 1: a ${B.foe.sp} problem!`)}
+  else if(B.wild)await say(`A wild ${B.foe.sp} appeared!`);
+  else{await say(`${B.trainer.name} ${B.trainer.verb||'wants to battle'}!`);await say(`${B.trainer.name} sent out ${B.foe.sp}!`)}
+  B.show.me=true;B.part.add(B.me);await say(`Go, ${B.me.sp}!`);
+  for(;;){
+    const act=await playerAction();let myMove=null;
+    if(act.type==='run'){
+      if(B.exam){await say('You can\'t walk out of the exam hall!');continue}
+      if(!B.wild){await say('You can\'t walk away from this one!');continue}
+      B.runs++;const ms=stats(B.me).spd,fs=stats(B.foe).spd;
+      if(ms>=fs||rnd()<.4+B.runs*.2){SND.sfx('run');await say('Got away safely!');return endBattle('run')}
+      await say('Couldn\'t get away!');
+    }else if(act.type==='orb'){
+      if(!SP[B.foe.sp].cr){await say(`You can't write ${B.foe.sp} down in a notebook. Distractions can only be beaten!`);continue}
+      G.bag[act.item]--;if(await throwOrb(act.item))return endBattle('caught')}
+    else if(act.type==='switch'){await say(`Come back, ${B.me.sp}!`);B.show.me=false;await wait(200);
+      B.me=act.mon;B.st.me=stg();B.dhp.me=B.me.hp;B.part.add(B.me);B.show.me=true;await say(`Go, ${B.me.sp}!`)}
+    else if(act.type==='move')myMove=act.m;
+    await doTurn(myMove);
+    const r=await resolveFaints();if(r)return endBattle(r);
+    if(B.exam){B.left--;if(B.left<=0){SND.sfx('bell');await say('The bell rings. "Pens down, everyone!"');return endBattle('time')}
+      if(B.left===3)await say('Invigilator: "Last few minutes!"')}
+  }
+}
+async function playerAction(){
+  for(;;){
+    const c=await choose(['Fight','Bag','Team','Run'],{grid:true,prompt:`What will ${B.me.sp} do?`});
+    if(c===0){const mv=await choose(B.me.moves.map(n=>`${n}${chip(MV[n].t)}`),{grid:true,wide:true,cancel:true});if(mv<0)continue;return{type:'move',m:B.me.moves[mv]}}
+    if(c===1){const r=await bagMenu(true);if(r)return r;continue}
+    if(c===2){const r=await teamMenu(true);if(r)return r;continue}
+    if(c===3)return{type:'run'};
+  }
+}
+function foeMove(){
+  const f=B.foe,m=B.me;
+  const scored=f.moves.map(n=>{const mv=MV[n];let s;
+    if(mv.heal)s=f.hp<maxhp(f)*.45?40:2;
+    else if(!mv.p){const [who,k,d]=mv.fx;const cur=B.st[who==='self'?'foe':'me'][k];s=(Math.abs(cur+d)>3)?1:18}
+    else s=mv.p*eff(mv.t,SP[m.sp].t)*(SP[f.sp].t.includes(mv.t)?1.25:1)*(mv.a||100)/100;
+    return [n,s]});
+  scored.sort((a,b)=>b[1]-a[1]);
+  return rnd()<.7?scored[0][0]:scored[rint(0,scored.length-1)][0];
+}
+async function doTurn(myMove){
+  const fm=foeMove();
+  if(!myMove){await useMove('foe',fm);return}
+  const pa=MV[myMove].pri||0,pb=MV[fm].pri||0;
+  const sa=stats(B.me).spd*mul(B.st.me.spd),sb=stats(B.foe).spd*mul(B.st.foe.spd);
+  const meFirst=pa!==pb?pa>pb:(sa!==sb?sa>sb:rnd()<.5);
+  const order=meFirst?[['me',myMove],['foe',fm]]:[['foe',fm],['me',myMove]];
+  for(const [s,m] of order){if(B.me.hp<=0||B.foe.hp<=0)break;await useMove(s,m)}
+}
+async function useMove(side,name){
+  const a=monOf(side),d=monOf(other(side)),mv=MV[name],ts=other(side);
+  await say(`${lbl(side)} used ${name}!`);
+  if(mv.a&&rnd()*100>=mv.a){SND.sfx('miss');await say('But it missed!');return}
+  if(mv.heal){const h=Math.min(Math.floor(maxhp(a)*mv.heal),maxhp(a)-a.hp);
+    if(h<=0)await say('But its energy is already full.');else{a.hp+=h;SND.sfx('heal');await waitHp();await say(`${lbl(side)} calmed down and recovered ${h} HP.`)}return}
+  if(mv.p){
+    const sa=stats(a),sd=stats(d);
+    const A=sa.atk*mul(B.st[side].atk),D=sd.def*mul(B.st[ts].def);
+    const e=eff(mv.t,SP[d.sp].t),stab=SP[a.sp].t.includes(mv.t)?1.25:1,crit=rnd()<1/16?1.5:1;
+    const base=Math.floor(Math.floor(Math.floor(2*a.lvl/5+2)*mv.p*A/D)/50)+2;
+    const dmg=Math.max(1,Math.floor(base*stab*e*crit*(.85+rnd()*.15)));
+    B.flash[ts]=now();B.shake[ts]=now();SND.sfx(e>1?'super':e<1?'weak':'hit');await wait(380);
+    d.hp=Math.max(0,d.hp-dmg);await waitHp();
+    if(crit>1)await say('A brilliant insight! Critical hit!');
+    if(e>1)await say(mv.t==='Mind'?'A calm mind cuts right through it!':'Right concept for the problem! It\'s super effective!');
+    else if(e<1)await say(mv.t==='Life'?'A steady mind barely notices...':'Wrong subject for this one... not very effective.');
+  }
+  if(mv.fx&&d.hp>0){
+    const [who,k,dl]=mv.fx;const s=who==='self'?side:ts;const tgt=who==='self'?lbl(side):lbl(ts);
+    const nm={atk:'Attack',def:'Defense',spd:'Speed'}[k];const cur=B.st[s][k];
+    if(Math.abs(cur+dl)>6)await say(`${tgt}'s ${nm} won't go any ${dl>0?'higher':'lower'}!`);
+    else{B.st[s][k]=cur+dl;SND.sfx(dl>0?'statup':'statdown');await say(`${tgt}'s ${nm} ${dl>0?'rose':'fell'}!`)}
+  }
+}
+async function resolveFaints(){
+  if(B.foe.hp<=0){
+    SND.sfx('faint');await tween(350,k=>B.drop={side:'foe',k});B.show.foe=false;B.drop=null;
+    const last=B.wild||B.fi>=B.foes.length-1;
+    if(B.exam){B.marks+=B.exam.per;B.solved=(B.solved||0)+1;await say(`Solved it! +${B.exam.per} marks.`)}
+    else{await say(`${lbl('foe')} ${B.wild?'gave up':'is out'}!`);if(last)B.music='victory';await giveExp()}
+    if(!last){
+      B.fi++;B.foe=B.foes[B.fi];B.st.foe=stg();B.dhp.foe=B.foe.hp;
+      B.part=new Set([B.me].filter(m=>m.hp>0));
+      markSeen(B.foe.sp);await say(B.exam?`Question ${B.fi+1}: a ${B.foe.sp} problem!`:`${B.trainer.name} sent out ${B.foe.sp}!`);B.show.foe=true;
+    }else{if(B.exam){await say('You finished the whole paper with time to spare!');return 'done'}
+      if(!B.wild)await say(`You beat ${B.trainer.name}!`);return 'win'}
+  }
+  if(B.me.hp<=0){
+    SND.sfx('faint');await tween(350,k=>B.drop={side:'me',k});B.show.me=false;B.drop=null;
+    if(B.exam){B.marks-=B.exam.neg;await say(`${B.me.sp} blanked out. A silly mistake! -${B.exam.neg} marks.`)}
+    else await say(`${B.me.sp} is exhausted!`);
+    if(!G.party.some(m=>m.hp>0)){if(B.exam){await say('Your mind has gone completely blank. You stare at the paper until the bell.');return 'blank'}return 'lose'}
+    await say('Choose your next concept.');
+    let r=null;while(!r)r=await teamMenu(true,true);
+    B.me=r.mon;B.st.me=stg();B.dhp.me=B.me.hp;B.part.add(B.me);B.show.me=true;await say(`Go, ${B.me.sp}!`);
+  }
+  return null;
+}
+async function giveExp(){
+  const ps=[...B.part].filter(m=>m.hp>0&&G.party.includes(m));if(!ps.length)return;
+  const total=Math.floor(SP[B.foe.sp].xp*B.foe.lvl/7*(B.wild?1:1.5)*XPMUL);
+  const each=Math.max(1,Math.floor(total/ps.length));
+  for(const m of ps){await say(`${m.sp} gained ${each} XP!`);await addExp(m,each)}
+  const rest=G.party.filter(m=>!ps.includes(m)&&m.hp>0);
+  if(rest.length){const sh=Math.max(1,Math.floor(each*SHARE));for(const m of rest)await addExp(m,sh)}
+}
+async function addExp(m,g){
+  m.exp+=g;
+  while(m.lvl<MAXLV&&m.exp>=(m.lvl+1)**3){
+    const old=maxhp(m);m.lvl++;m.hp+=maxhp(m)-old;if(B&&m===B.me)B.dhp.me=m.hp;
+    SND.jingle('levelup');await say(`${m.sp} grew to level ${m.lvl}!`);
+    for(const [l,mv] of SP[m.sp].learn)if(l===m.lvl)await learnMove(m,mv);
+  }
+}
+async function learnMove(m,mv){
+  if(m.moves.includes(mv))return;
+  if(m.moves.length<4){m.moves.push(mv);await say(`${m.sp} learned ${mv}!`);return}
+  await say(`${m.sp} wants to learn ${mv}, but it already knows four moves.`);
+  const c=await choose(m.moves.map(n=>`${n}${chip(MV[n].t)}`).concat([`Skip ${mv}`]),{prompt:`Forget which move for ${mv}?`});
+  if(c>=0&&c<4){const old=m.moves[c];m.moves[c]=mv;await say(`${m.sp} forgot ${old} and learned ${mv}!`)}
+  else await say(`${m.sp} did not learn ${mv}.`);
+}
+async function throwOrb(item){
+  const it=ITEMS[item],f=B.foe;
+  sayNow(`You opened your ${item}!`);
+  B.orb={x:40,y:120,rot:0,item};SND.sfx('throw');
+  await tween(520,k=>{B.orb.x=40+(172-40)*k;B.orb.y=120+(50-120)*k-Math.sin(k*Math.PI)*50});
+  B.absorb=now();await wait(300);B.show.foe=false;B.absorb=0;
+  await tween(250,k=>{B.orb.y=50+(66-50)*k});
+  const mx=maxhp(f);const p=Math.min(.98,((3*mx-2*f.hp)/(3*mx))*SP[f.sp].cr*it.orb*1.35);
+  const ok=rnd()<p;const shakes=ok?3:(rnd()<p*1.4?2:rnd()<.6?1:0);
+  for(let i=0;i<shakes;i++){await wait(250);SND.sfx('shake');await tween(420,k=>B.orb.rot=Math.sin(k*Math.PI*2)*.55);B.orb.rot=0}
+  await wait(300);
+  if(ok){
+    B.orb.caught=true;B.music=null;await wait(SND.jingle('catch'));const isNew=!G.caught.includes(f.sp);markCaught(f.sp);await say(`Got it! You understood ${f.sp}!`);if(isNew)await say(`${f.sp} was added to your Dex.`);
+    if(G.party.length<6){G.party.push(f);await say(`${f.sp} joined your team.`)}
+    else{G.box.push(f);await say(`Your head is full, so ${f.sp} was filed away in your old notes.`)}
+    return true;
+  }
+  B.orb=null;B.show.foe=true;SND.sfx('break');
+  await say(['It slipped right out of your head!','Argh! You almost had it!','So close. It just needs one more revision!'][Math.min(shakes,2)]);
+  return false;
+}
+async function endBattle(r){
+  const ex=B.exam;let out=r;
+  if(ex){
+    if((r==='time'||r==='blank')&&B.foe.hp>0)B.marks+=Math.floor(ex.per*(1-B.foe.hp/maxhp(B.foe))*.5);
+    out={r,marks:clamp(B.marks,0,ex.per*B.foes.length),solved:B.solved||0};
+  }else if(r!=='lose')for(const m of G.party){const e=SP[m.sp].evo;if(e&&m.lvl>=e[1]&&m.hp>0)await evolve(m,e[0])}
+  B=null;mode=SCENE?'scene':'world';hideUI();held=[];return out;
+}
+async function evolve(m,to){
+  const from=m.sp;mode='evolve';EVO={from,to,t0:now(),done:false};
+  await say(`What? ${from} is having a breakthrough!`);
+  EVO.t0=now();await wait(2600);
+  const old=maxhp(m);m.sp=to;m.hp+=maxhp(m)-old;EVO.done=true;SND.music(null);SND.jingle('evolved');markCaught(to);
+  await say(`It clicked! ${from} evolved into ${to}!`);
+  for(const [l,mv] of SP[to].learn)if(l===m.lvl)await learnMove(m,mv);
+  EVO=null;mode=B?'battle':'world';
+}
+
+/* ---------------- chapter 1: Chhota Nagar (school years) ---------------- */
+const L=(hair,shirt,pants,x={})=>({hair,shirt,pants,skin:SKIN,...x});
+const RIVAL_PICK={Newtlet:'Molekid',Molekid:'Algebit',Algebit:'Newtlet'};
+const RIVAL_EVO={Newtlet:'Newtonaut',Molekid:'Molemage',Algebit:'Calculord'};
+const RIVAL_LOOK=L('#1d1d26','#f6f2e4','#2c2c5a',{specs:1});
+async function momTalk(){
+  if(!G.starter){await sayAll(['Beta, finish your breakfast and go to school. Verma Sir wants to see you.','It\'s the building with the blue roof, up the road.'],'Mom');return}
+  await say('Mom: You look tired, beta. Eat something and rest.');
+  healAll();G.heal={map:'home',x:4,y:16};mood(3);const ok=saveGame();await wait(SND.jingle('heal'));
+  await say('Dal chawal, a nap, and your whole team is fresh again.'+(ok?'\n(Your progress was saved.)':''));
+  if(G.flags.boards)await say('Mom: The Kota bus leaves from the stand at the south end of town. I have packed your bag...');
+}
+async function teacherTalk(){
+  const T='Verma Sir';
+  if(!G.starter){
+    await sayAll(['Ah, there you are. I have been watching you in class.','You ask "why" more than anyone. That is the whole secret of science.',
+      'Physics, Chemistry and Maths are full of living ideas. We call them concepts. Understand one and it stays with you for life.','Which one do you like best? Pick your first concept.'],T);
+    mode='pick';
+    for(;;){
+      const i=await choose(STARTERS.map(s=>`${s}${chip(SP[s].t[0])}`),{prompt:'Your first concept?',onMove:k=>PICK.hi=k,start:PICK.hi});
+      const s=STARTERS[i];await say(SP[s].dex);
+      if(await yes(`Choose ${s}, the ${SP[s].t[0]} concept?`)){G.starter=s;giveMon(s,5);break}
+    }
+    mode='world';SND.jingle('item');
+    await say(`${G.starter} is your first concept! It will grow as you solve problems with it.`);
+    await sayAll(['Wild concepts hide in the tall grass of Nehru Park, east of here. Weaken one, then open a Notebook to learn it.',
+      'The right subject cracks the problem: a Physics move is super effective on a Physics concept, and weak on the others.',
+      'When your team is around level 8, come back to me for your Class 10 board exam.'],T);
+    return;
+  }
+  if(G.flags.boards){await say(`${T}: Kota is a hard city, ${G.name}. Remember why you started. The bus stand is at the south end of town.`);return}
+  await say(`${T}: Four years have flown by. Are you ready for your Class 10 board exam?`);
+  if(!(await yes('Sit for the board exam now?'))){await say(`${T}: Good. Never walk into an exam unprepared. Train in the park first.`);return}
+  await transition();
+  const r=await battle({trainer:{name:'The Board Exam',verb:'begins',boss:1},foes:[['Vectoid',6],['Bondbug',6],['Trigon',7]].map(([s,l])=>makeMon(s,l))});
+  if(r==='lose'){await blackout();return}
+  if(r!=='win')return;
+  G.flags.boards=true;G.age=15;G.money+=500;mood(10);confetti=now();
+  await sayAll(['96 percent! You topped the school!','The whole mohalla came home with mithai. Dadi slipped ₹500 into your pocket.']);
+  await sayAll(['Now listen. You have a real gift, and there is an exam that can change your family\'s life: the JEE.','Clear it and you enter an IIT. The best coaching is in Kota. Talk to your parents, then take the bus from the south end of town.'],T);
+}
+async function busTalk(){
+  if(!G.flags.boards){await say('Conductor: Kota? That bus is for big kids, chhotu. Come back after your board exams.');return}
+  await say('Conductor: Kota! Kota! Last seat! Coming?');
+  if(await yes('Leave Chhota Nagar for Kota?'))await goKota();
+}
+async function goKota(){
+  await sayAll(['Dad: Two years, beta. One exam. We believe in you.','Mom: I can\'t let you go empty handed. Take one thing with you.']);
+  const c=await ask('What do you take from home?',['Mom\'s laddoo box (3 Maggi, 3 Chai)','Dad\'s old IIT notes (3 Smart Notes)','Dadi\'s blessing (a calm Focusprite joins you)']);
+  if(c===0){G.bag.Maggi=(G.bag.Maggi||0)+3;G.bag.Chai=(G.bag.Chai||0)+3}
+  else if(c===1)G.bag['Smart Notes']=(G.bag['Smart Notes']||0)+3;
+  else giveMon('Focusprite',8);
+  SND.jingle('item');
+  G.ch=2;G.age=16;G.daysLeft=60;G.heal={map:'kota',x:4,y:19};healAll();
+  await travel('kota',1,12,'right');
+  await sayAll(['Kota. Two lakh students, one dream each.','Hoardings of toppers stare down from every wall. Your PG room is the purple roof, to the south-west.',
+    'JEE is in 60 days. Every battle is a full day of practice, and a night at the PG to restore your team costs a day too. Spend them well.','Beat the three teachers at the coaching institute, train in the subject lanes, and walk to the exam centre up north when you are ready.']);
+  saveGame();
+}
+MAPS.home.step=(x,y)=>y>=20?async()=>{if(G.flags.boards){await say('The highway out of town.');if(await yes('Take the bus to Kota?')){await goKota();return}}
+  else await say('The road out of town. You\'re too young to go alone!');P.y=19;P.dir='up'}:null;
+MAPS.home.npcs=[
+ {id:'mom',x:4,y:15,dir:'down',name:'Mom',look:L('#2b2118','#e0507a','#b8463b',{sari:'#f2c14b',long:1}),act:momTalk},
+ {id:'dad',x:7,y:15,dir:'down',name:'Dad',look:L('#2b2118','#8fb7e8','#3a3a48',{tache:1}),
+  lines:()=>G.flags.boards?['Kota will not be easy. But neither was anything worth doing.','Whatever rank you get, you are my child first. Remember that.']
+   :G.starter?['Sharma ji\'s son studies four hours a day, they say. I say: study well, play well, sleep well.','I wanted to be an engineer once. Life had other plans. You do it for yourself, not for me.']
+   :['Good morning, champ. Verma Sir was asking about you at the school.']},
+ {id:'teacher',x:4,y:6,dir:'down',name:'Verma Sir',look:L('#d9d9d9','#f6f2e4','#4a3a2a',{specs:1,tache:1}),act:teacherTalk},
+ {id:'shop',x:23,y:13,dir:'down',name:'Kirana Uncle',look:L('#6b4a2f','#3fae6a','#3a3a48',{tache:1}),act:()=>shop(['Notebook','Chai'],'Kirana Uncle: Aao beta! Notebooks, chai, everything a student needs.','Kirana Uncle: Study hard! Say namaste to your mummy.')},
+ {id:'rival',x:10,y:9,dir:'down',name:'Rohan Sharma',look:RIVAL_LOOK,hideIf:()=>!G.starter||G.ch>1,
+  team:()=>[[RIVAL_PICK[G.starter]||'Molekid',5],['Lazybug',3]],reward:150,
+  pre:['So Verma Sir gave you a concept too?','Papa says I must come first in everything. That includes beating you!'],lose:'What? I revised this all night...',post:'Next time I\'ll win. Papa has already booked my seat in Kota.'},
+ {id:'chintu',x:21,y:8,dir:'left',name:'Chintu',look:L('#2b2118','#8fb7e8','#2f4a6e',{kid:1}),team:[['Lazybug',3]],reward:60,
+  pre:['I didn\'t do my homework. AGAIN. Want to see why?'],lose:'Okay, okay, I\'ll do it tonight.',post:'Lazybug says we\'ll start tomorrow. Tomorrow for sure.'},
+ {id:'pinky',x:20,y:2,dir:'down',name:'Pinky Didi',look:L('#2b2118','#c6a6f0','#3a3a6a',{long:1}),team:[['Bondbug',4],['Trigon',4]],reward:100,
+  pre:['I\'m in Class 9! Let me test how much you really know.'],lose:'You\'re sharp. Sharper than me at your age.',post:'Mix your subjects. A team with only one subject gets stuck fast.'},
+ {id:'uncle',x:15,y:17,dir:'down',name:'Mishra Uncle',look:L('#d9d9d9','#f6f2e4','#6b4a2f'),lines:['Sharma ji\'s son this, Sharma ji\'s son that. In my day we only compared marks with ourselves.','Beta, engineer bano ya kuch aur, pehle achhe insaan bano.']},
+ {id:'conductor',x:13,y:19,dir:'left',name:'Conductor',look:L('#2b2118','#9a7e4c','#4a3a2a',{hat:'#3a3a48'}),act:busTalk},
+ {id:'hs1',x:6,y:7,sign:1,text:'SARASWATI VIDYA MANDIR\nClasses 6 to 10. "Vidya dadati vinayam."'},
+ {id:'hs2',x:17,y:9,sign:1,text:'NEHRU PARK, north of here.\nWild concepts hide in the tall grass.'},
+ {id:'hs3',x:10,y:19,sign:1,text:'BUS STAND\nDaily bus to Kota, the coaching capital.'},
+ {id:'hi1',x:26,y:1,item:'Smart Notes',n:1},
+ {id:'hi2',x:25,y:9,item:'Chai',n:2},
+];
+
+/* ---------------- chapter 2: Kota (coaching years) ---------------- */
+async function passDays(n){
+  if(G.ch!==2||G.flags.jeeDone)return;
+  G.daysLeft-=n;
+  if(G.daysLeft<=0){G.daysLeft=0;await say('You look at the calendar. No more days left to cross out.');await say('Tomorrow is JEE Main.');await jeeFlow()}
+  else if(G.daysLeft<=15&&!G.flags.warn15){G.flags.warn15=true;await say(`Only ${G.daysLeft} days to JEE. The whole city has gone quiet.`)}
+}
+const leadMon=()=>G.party.find(m=>m.hp>0)||G.party[0];
+const NIGHTS=[
+ async()=>{await say('Mom calls at 10 p.m. sharp. "Khana khaya? Sweater pehna?" You smile for the first time today.');mood(6)},
+ async()=>{const c=await ask('Your roommate has two tickets for a late movie.',['Go. You need a break','Stay and revise']);
+   if(c===0){mood(10);await say('Three hours of popcorn and bad dialogue. You come back lighter.');await passDays(1)}
+   else{const m=leadMon();await say(`You revise until 2 a.m. ${m.sp} gets sharper.`);await addExp(m,60*XPMUL)}},
+ async()=>{const c=await ask('It is Diwali. The PG is empty and home is 400 km away.',['Video-call the family','Bury yourself in problems']);
+   if(c===0){mood(8);await say('Dadi shows you every single diya on the phone. It helps.')}
+   else{mood(-5);const m=leadMon();await say(`You solve forty problems in a row. ${m.sp} grows, but the room feels very quiet.`);await addExp(m,90*XPMUL)}},
+ async()=>{await say('The weekly test ranks are pinned on the notice board. Rohan Sharma is eleven places above you.');
+   const c=await ask('How do you take it?',['Use it as fuel','Compare yourself all night']);
+   if(c===0){mood(2);await say('You note your mistakes and move on. Ranks change every week.')}else{mood(-8);await say('You barely sleep. Comparison is a thief.')}},
+ async()=>{await say('It rains in Kota. Your wingmates drag you out for chai and pakoras.');mood(7);G.bag.Chai=(G.bag.Chai||0)+1;await say('Someone slips an extra Chai into your bag.')},
+ async()=>{await say('A senior from last year visits the PG. He got IIT Roorkee. "Bas consistent raho," he says. "Daily thoda thoda."');mood(4)},
+];
+async function pgSleep(){
+  await say(`PG Aunty: Back so late? Dinner is on the table. (JEE is in ${G.daysLeft} days.)`);
+  if(!(await yes('Rest and restore your team? A day will pass.'))){await say('PG Aunty: Don\'t study on an empty stomach!');return}
+  healAll();G.heal={map:'kota',x:4,y:19};await wait(SND.jingle('heal'));
+  await say('You sleep, attend classes, and wake up with a fresh team.');
+  await passDays(1);if(G.ch!==2||G.flags.jeeDone)return;
+  if(G.mood<=12&&!G.flags.breakTaken){
+    await say('Mom, on the phone: "Your voice sounds so tired, beta. Nothing is bigger than your health. Come home for a few days."');
+    const c=await ask('You are running on empty.',['Go home for five days','Keep pushing']);
+    if(c===0){G.flags.breakTaken=true;mood(40);await say('Five days of home food, sleep and no formulas. You return to Kota a different person.');await passDays(5)}
+    else{mood(4);await say('You promise to at least sleep properly. One day at a time.')}
+  }else if(rnd()<.45)await pick(NIGHTS)();
+  if(G.ch===2&&!G.flags.jeeDone)saveGame();
+}
+function predictText(){
+  const top=[...G.party].sort((a,b)=>b.lvl-a.lvl).slice(0,4);const avg=top.reduce((s,m)=>s+m.lvl,0)/4;
+  const subs=CORE.filter(t=>G.party.some(m=>SP[m.sp].t[0]===t)).length;
+  const band=avg>=21?'a top 500 rank. IIT Bombay is not a dream':avg>=18?'somewhere in the top 3,000. A good IIT branch':avg>=15?'around rank 10,000. A newer IIT or a top NIT':avg>=12?'NIT range, with luck':'far from ready. Keep training';
+  return `Predicted: ${band}.`+(subs<3?' But you are missing a whole subject on your team!':'');
+}
+async function mockTest(){
+  await say('Librarian: Silence please. ...Oh, you want the weekend mock test? Fee is ₹50 and it takes the whole day.');
+  if(G.money<50){await say('You don\'t have ₹50 on you.');return}
+  if(!(await yes('Take a mock test?')))return;
+  G.money-=50;
+  const top=[...G.party].sort((a,b)=>b.lvl-a.lvl).slice(0,3);const lv=Math.max(8,Math.round(top.reduce((s,m)=>s+m.lvl,0)/top.length));
+  const pool=['Vectoid','Voltick','Opticat','Bondbug','Acidrop','Benzring','Trigon','Probbit','Matrixel'].sort(()=>rnd()-.5).slice(0,3);
+  await transition();
+  const r=await battle({trainer:{name:'The Mock Test',verb:'begins'},foes:pool.map(s=>makeMon(s,lv))});
+  if(r==='lose'){await blackout();return}
+  if(r==='win'){mood(3);await say('You cleared the mock test. '+predictText())}
+  await passDays(1);
+}
+async function examGate(){
+  if(!teachersBeaten()){await say('Guard: JEE registration is for serious students. Clear at least one teacher\'s test at the coaching institute first.');return}
+  await say(`Guard: The JEE exam centre. The paper is in ${G.daysLeft} days, but there is an early session too.`);
+  await say(predictText());
+  if(await yes('Write JEE now? There is no coming back to this year.'))await jeeFlow();
+  else await say('Guard: Theek hai. Prepare well and come back.');
+}
+async function cafe(){
+  await say('Cafe Bhaiya: New games installed, AC on full, ₹30 an hour. Everyone needs a break, no?');
+  if(G.money<30){await say('You don\'t have ₹30.');return}
+  if(!(await yes('Play for a while? A day will slip by.')))return;
+  G.money-=30;mood(12);await say('One hour becomes five. It was fun, honestly.');
+  if(rnd()<.4){await say('But on the way out, something follows you...');await transition();const r=await battle({wild:true,foes:[makeMon('Distracto',zoneLv('alley')+1)]});if(r==='lose'){await blackout();return}}
+  await passDays(1);
+}
+async function chaiwala(){
+  if(G.flags.chaiDay===G.daysLeft){await say('Chai Bhaiya: One free cutting per customer per day, boss. Come tomorrow!');return}
+  G.flags.chaiDay=G.daysLeft;G.bag.Chai=(G.bag.Chai||0)+1;SND.sfx('coin');
+  await say('Chai Bhaiya: Topper banoge tum. Yeh lo, ek cutting on the house.');await say('You got a Chai!');
+  await say(pick(['Chai Bhaiya: Physics Lane is north-west, Chemistry Lane north-east, Maths Maidan south-east. I have seen every topper walk them.',
+    'Chai Bhaiya: The kids who make it are not the ones who never fall. They are the ones who sleep, eat and come back the next day.',
+    'Chai Bhaiya: That alley by the cyber cafe? Full of Distractos. Only a Mind concept like Focusprite handles them well. They live in the garden by the pond.']));
+}
+const teacher=(id,x,name,look,team,reward,subj)=>({id,x,y:11,dir:'down',name,look,team,reward,boss:1,verb:'starts a surprise test',
+  pre:[`I teach ${subj}. In my class, marks are earned.`,'Let us see what you have understood.'],lose:`Shabash. You have understood ${subj}, not just memorised it.`,
+  post:`Keep revising ${subj}. The other teachers are waiting for you too.`,
+  onWin:async()=>{G.bag['Smart Notes']=(G.bag['Smart Notes']||0)+2;mood(5);SND.jingle('item');await say(`${name} gave you 2 Smart Notes. Wild concepts in the lanes will be tougher now.`);
+    if(teachersBeaten()===3)await say('You have beaten all three teachers! The whole batch is talking about you. Keep training until JEE.')}});
+MAPS.kota.npcs=[
+ {id:'aunty',x:4,y:18,dir:'down',name:'PG Aunty',look:L('#6b6b6b','#7a5bb5','#4a3a60',{sari:'#c6a6f0',long:1}),act:pgSleep},
+ {id:'mess',x:12,y:19,dir:'down',name:'Mess Bhaiya',look:L('#2b2118','#f6f2e4','#3a3a48',{hat:'#f6f2e4'}),act:()=>shop(['Chai','Maggi'],'Mess Bhaiya: Aaj paneer hai! ...Okay, it is aloo again. But the Maggi is real.','Mess Bhaiya: Khao piyo, rank lao!')},
+ {id:'books',x:27,y:18,dir:'down',name:'Book Uncle',look:L('#d9d9d9','#3fae6a','#3a3a48',{specs:1}),act:()=>shop(['Notebook','Smart Notes'],'Book Uncle: Every topper since 1995 bought notebooks from this shop.','Book Uncle: Come again. All the best, beta.')},
+ teacher('tPhy',6,'Pandey Sir',L('#2b2118','#4f86e0','#2c2c5a',{tache:1}),[['Vectoid',11],['Voltick',11],['Opticat',12]],400,'Physics'),
+ teacher('tChem',8,'Iyer Ma\'am',L('#2b2118','#3fae6a','#2b4a30',{long:1,specs:1}),[['Bondbug',13],['Acidrop',14],['Benzring',15]],500,'Chemistry'),
+ teacher('tMath',12,'Gupta Sir',L('#d9d9d9','#e9742f','#4a3a2a',{specs:1}),[['Trigon',16],['Probbit',17],['Matrixel',18]],600,'Maths'),
+ {id:'lib',x:23,y:10,dir:'down',name:'Librarian',look:L('#6b4a2f','#f6f2e4','#4f7fd0',{long:1,specs:1}),act:mockTest},
+ {id:'guard',x:17,y:5,dir:'down',name:'Guard',look:L('#2b2118','#9a7e4c','#4a3a2a',{hat:'#4a3a2a',tache:1}),act:examGate},
+ {id:'cafe',x:7,y:22,dir:'left',name:'Cafe Bhaiya',look:L('#e8664f','#3a3a4a','#22202a'),act:cafe},
+ {id:'chai',x:13,y:16,dir:'down',name:'Chai Bhaiya',look:L('#2b2118','#c98a4a','#6b4a2f'),act:chaiwala},
+ {id:'k1',x:12,y:3,dir:'left',name:'Topper Riya',look:L('#2b2118','#f6f2e4','#3a3a6a',{long:1,specs:1,bag:'#e0507a'}),team:[['Voltick',9],['Vectoid',9]],reward:180,
+  pre:['I finished the Physics module twice already. You?'],lose:'Hmm. I need to revise rotation again.',post:'Physics moves crush Physics concepts. Send the right subject to the right fight.'},
+ {id:'k2',x:22,y:3,dir:'right',name:'Imran',look:L('#2b2118','#3fae9a','#2f4a6e',{bag:'#3a3a4a'}),team:[['Acidrop',9],['Bondbug',10]],reward:200,
+  pre:['Organic chemistry is just a story about electrons. Want to hear it?'],lose:'Good story. Yours was better.',post:'A wrong-subject concept takes half damage. Use that when you need to survive.'},
+ {id:'k3',x:16,y:16,dir:'down',name:'Dropper Vikram',look:L('#2b2118','#8d7fb0','#3a3a48',{tache:1,bag:'#6b4a2f'}),team:[['Matrixel',12],['Opticat',12]],reward:260,
+  pre:['Second year in Kota. I know every trick this city has.','Don\'t make my mistakes. Show me you won\'t.'],lose:'You\'ll make it in one go. I can tell.',post:'I missed by 40 ranks last year. This year I sleep eight hours and it\'s going better.'},
+ {id:'k4',x:24,y:20,dir:'left',name:'Sneha',look:L('#6b4a2f','#f2c14b','#3a3a6a',{long:1,bag:'#4f7fd0'}),team:[['Probbit',11],['Trigon',11],['Focusprite',11]],reward:240,
+  pre:['Maths is the only subject where I\'m never bored. Battle?'],lose:'Elegant. Truly elegant.',post:'Catch a Focusprite in the garden. Mind moves are the only thing that hurts distractions.'},
+ {id:'k5',x:13,y:22,dir:'left',name:'Gamer Bunty',look:L('#e8664f','#3a3a4a','#22202a'),team:[['Distracto',12],['Lazybug',12]],reward:220,
+  pre:['Bro. BRO. One match. Just one.'],lose:'...maybe I should open a book this week.',post:'My parents think I\'m at the library. Don\'t tell anyone.'},
+ {id:'rival2',x:20,y:11,dir:'down',name:'Rohan Sharma',look:RIVAL_LOOK,hideIf:()=>teachersBeaten()<2,boss:1,
+  team:()=>[[RIVAL_EVO[RIVAL_PICK[G.starter]]||'Molemage',16],['Opticat',15],['Matrixel',15]],reward:500,
+  pre:['You. From Chhota Nagar. I heard you\'re topping the batch tests.','Papa calls every night to ask my rank. I can\'t lose to you. I can\'t.'],lose:'...I studied sixteen hours a day. How?',
+  post:'Maybe I\'ll call Papa and tell him I\'m tired. Maybe that\'s allowed.',onWin:async()=>{mood(6);await say('Rohan sits down on the kerb. For the first time, he looks like a kid, not a rank.')}},
+ {id:'ks1',x:5,y:7,sign:1,text:'PHYSICS LANE: north-west.\nCHEMISTRY LANE: north-east.'},
+ {id:'ks2',x:13,y:5,sign:1,text:()=>`JEE EXAM CENTRE\nJEE Main in ${G.daysLeft} days. "All the best" is painted on the wall.`},
+ {id:'ks3',x:13,y:19,sign:1,text:'MATHS MAIDAN: east along the road.\nCyber cafe alley: south-west. Enter at your own risk.'},
+ {id:'ks4',x:11,y:13,sign:1,text:'KISHORE SAGAR GARDEN\nSit. Breathe. The syllabus will still be there in ten minutes.'},
+ {id:'ki1',x:1,y:1,item:'Smart Notes',n:2},{id:'ki2',x:30,y:1,item:'Maggi',n:2},{id:'ki3',x:30,y:22,item:'Smart Notes',n:2},{id:'ki4',x:30,y:8,item:'Chai',n:3},
+];
+
+/* ---------------- story scenes (full-screen vignettes) ---------------- */
+function setScene(kind,cap,extra){SCENE={kind,cap:cap||'',t0:now(),...(extra||{})};mode='scene';setPlace(cap||'')}
+function endScene(){SCENE=null;mode='world';setPlace(CUR.name)}
+function gameOver(){SCENE=null;B=null;mode='title';setPlace('A JEE life story');setTimeout(titleFlow,120)}
+
+/* ---------------- JEE: the exam, the rank, the counselling ---------------- */
+const BRANCHES={CSE:{n:'Computer Science',fam:'cs'},MNC:{n:'Maths & Computing',fam:'cs'},IT:{n:'Information Technology',fam:'cs'},
+ ECE:{n:'Electronics & Communication',fam:'elec'},EE:{n:'Electrical',fam:'elec'},
+ ME:{n:'Mechanical',fam:'core'},CE:{n:'Civil',fam:'core'},CHE:{n:'Chemical',fam:'core'},MME:{n:'Metallurgy',fam:'core'},MIN:{n:'Mining',fam:'core'},AE:{n:'Aerospace',fam:'core'},TT:{n:'Textile',fam:'core'},
+ EP:{n:'Engineering Physics',fam:'sci'},BT:{n:'Biotechnology',fam:'sci'}};
+/* Closing ranks are made-up approximations for the game: IITs close on JEE Advanced rank, everything else on JEE Main rank. */
+const COLLEGES=[
+ {n:'IIT Bombay',kind:'IIT',tier:1,br:{CSE:68,EE:480,ME:1650,EP:1800,AE:2300,CHE:2500,CE:3900,MME:4800}},
+ {n:'IIT Delhi',kind:'IIT',tier:1,br:{CSE:118,MNC:350,EE:620,ME:1850,CHE:2650,CE:4100,BT:5600,TT:6200}},
+ {n:'IIT Madras',kind:'IIT',tier:1,br:{CSE:160,EE:850,ME:2300,EP:2600,AE:3000,CHE:3600,CE:5100,MME:6000}},
+ {n:'IIT Kanpur',kind:'IIT',tier:1,br:{CSE:240,MNC:900,EE:1250,ME:2750,AE:3500,CHE:4000,CE:5600,MME:6700}},
+ {n:'IIT Kharagpur',kind:'IIT',tier:1,br:{CSE:300,ECE:900,MNC:1100,EE:1700,ME:3300,AE:4300,CHE:4600,CE:6100,MME:7600,MIN:9000}},
+ {n:'IIT Roorkee',kind:'IIT',tier:2,br:{CSE:480,ECE:1400,EE:2200,ME:3900,CHE:5200,CE:6300,MME:8000,BT:8800}},
+ {n:'IIT Guwahati',kind:'IIT',tier:2,br:{CSE:640,MNC:1000,ECE:1800,EE:2600,ME:4600,CHE:6400,CE:7600,BT:9600}},
+ {n:'IIT Hyderabad',kind:'IIT',tier:2,br:{CSE:680,MNC:1200,EE:2500,ME:5000,EP:6000,CHE:7200,CE:8300}},
+ {n:'IIT (BHU) Varanasi',kind:'IIT',tier:2,br:{CSE:1100,MNC:1500,ECE:2300,EE:3100,ME:5300,CHE:7000,CE:8000,MME:9600,MIN:11000}},
+ {n:'IIT Indore',kind:'IIT',tier:3,br:{CSE:1500,EE:4200,ME:6600,CE:9200,MME:10800}},
+ {n:'IIT (ISM) Dhanbad',kind:'IIT',tier:3,br:{CSE:3200,MNC:3900,ECE:5200,EE:6600,ME:8200,CE:11000,MIN:12500}},
+ {n:'IIT Jodhpur',kind:'IIT',tier:3,br:{CSE:3300,EE:6900,ME:9800,CHE:11500}},
+ {n:'IIT Mandi',kind:'IIT',tier:3,br:{CSE:3400,EE:7000,ME:9500,CE:12000}},
+ {n:'IIT Patna',kind:'IIT',tier:3,br:{CSE:3600,EE:7400,ME:10200,CE:12600}},
+ {n:'IIT Goa',kind:'IIT',tier:3,br:{CSE:5800,EE:10000,ME:12800}},
+ {n:'IIT Bhilai',kind:'IIT',tier:3,br:{CSE:6000,EE:10500,ME:13200}},
+ {n:'IIT Jammu',kind:'IIT',tier:3,br:{CSE:6200,EE:10800,ME:13500,CE:15000}},
+ {n:'IIT Dharwad',kind:'IIT',tier:3,br:{CSE:6600,EE:11200,ME:14000}},
+ {n:'NIT Trichy',kind:'NIT',tier:3,br:{CSE:1200,ECE:3000,EE:5500,ME:8000,CHE:12000,CE:14000,MME:19000}},
+ {n:'NIT Surathkal',kind:'NIT',tier:3,br:{CSE:1700,IT:2800,ECE:3800,EE:6200,ME:9500,CHE:13500,CE:16000,MIN:28000}},
+ {n:'NIT Warangal',kind:'NIT',tier:3,br:{CSE:2300,ECE:4500,EE:7500,ME:11000,CHE:15000,CE:18000,MME:24000,BT:26000}},
+ {n:'IIIT Allahabad',kind:'IIIT',tier:3,br:{IT:5200,ECE:8800}},
+ {n:'MNNIT Allahabad',kind:'NIT',tier:4,br:{CSE:4500,ECE:8500,EE:12000,ME:15500,CE:21000,CHE:23000}},
+ {n:'NIT Calicut',kind:'NIT',tier:4,br:{CSE:5000,ECE:9000,EE:13000,ME:17000,CE:24000,CHE:25000}},
+ {n:'NIT Rourkela',kind:'NIT',tier:4,br:{CSE:6000,ECE:9500,EE:14000,ME:17500,CHE:22000,CE:25000,MME:30000,MIN:32000}},
+ {n:'MNIT Jaipur',kind:'NIT',tier:4,br:{CSE:7000,ECE:11000,EE:15000,ME:19500,CE:26000,CHE:28000,MME:33000}},
+ {n:'VNIT Nagpur',kind:'NIT',tier:4,br:{CSE:8500,ECE:12500,EE:16500,ME:21000,CE:27500,CHE:29000,MIN:36000}},
+ {n:'NIT Kurukshetra',kind:'NIT',tier:4,br:{CSE:9000,IT:11500,ECE:14000,EE:18500,ME:23000,CE:30000}},
+ {n:'NIT Durgapur',kind:'NIT',tier:4,br:{CSE:11000,ECE:16000,EE:20000,ME:25000,CHE:31000,CE:32000,MME:37000}},
+ {n:'NIT Silchar',kind:'NIT',tier:4,br:{CSE:16000,ECE:23000,EE:28000,ME:34000,CE:42000}},
+ {n:'NIT Hamirpur',kind:'NIT',tier:4,br:{CSE:18000,ECE:25000,EE:30000,ME:36000,CHE:43000,CE:45000}},
+ {n:'NIT Goa',kind:'NIT',tier:4,br:{CSE:22000,ECE:30000,EE:36000,ME:42000,CE:50000}},
+ {n:'NIT Srinagar',kind:'NIT',tier:4,br:{CSE:24000,IT:27000,ECE:32000,EE:38000,ME:44000,CHE:50000,CE:52000,MME:56000}},
+ {n:'NIT Mizoram',kind:'NIT',tier:4,br:{CSE:38000,ECE:50000,EE:58000,ME:66000,CE:75000}},
+ {n:'Government Engineering College',kind:'State',tier:5,br:{CSE:80000,IT:100000,ECE:120000,EE:150000,ME:190000,CE:240000,CHE:280000}},
+ {n:'Shri Balaji Institute of Technology',kind:'Private',tier:6,br:{CSE:9e9,IT:9e9,ECE:9e9,ME:9e9,CE:9e9}},
+];
+const JEE={main:{lv:[15,16,17],turns:12,per:33,neg:4},adv:{lv:[19,20,22],turns:12,per:40,neg:6},rest:.3,advCut:250000,advMin:70,
+ mainRank:m=>Math.max(1,Math.round(10**(6.0-4.7*(clamp(m,30,290)-30)/260))),
+ advRank:m=>Math.max(1,Math.round(10**(4.6-4.6*(clamp(m,60,330)-60)/270)))};
+const PAPER_POOL={Physics:['Vectoid','Voltick','Opticat','Newtonaut'],Chemistry:['Bondbug','Acidrop','Benzring','Molemage'],Maths:['Trigon','Probbit','Matrixel','Calculord']};
+const rk=n=>n.toLocaleString('en-IN');
+async function paper(exam,subj,cfg,hard){
+  const pool=PAPER_POOL[subj],base=pool.slice(0,3).sort(()=>rnd()-.5);
+  const sps=hard?[base[0],base[1],pool[3]]:base;
+  return battle({exam:{name:`${exam}: ${subj}`,turns:cfg.turns,per:cfg.per,neg:cfg.neg},foes:sps.map((s,i)=>makeMon(s,cfg.lv[i])),bg:'exam'});
+}
+async function sitting(exam,cfg,hard,outOf){
+  let sum=0;
+  for(let i=0;i<3;i++){
+    if(i){G.party.forEach(m=>{m.hp=Math.min(maxhp(m),m.hp+Math.ceil(maxhp(m)*JEE.rest))});await say('You sip some water, roll your shoulders and turn to the next section.')}
+    const r=await paper(exam,CORE[i],cfg,hard);sum+=r.marks;
+    await say(`${CORE[i]}: ${r.solved} of 3 questions solved.`);
+  }
+  return clamp(Math.round(sum/(cfg.per*9)*outOf*(.92+G.mood/600)),0,outOf);
+}
+async function jeeFlow(){
+  G.flags.jeeDone=true;
+  setScene('train','The night before');
+  await sayAll(['Mom and Dad have come all the way to Kota. Mom has brought dahi-shakkar in a steel dabba.','Dad checks your admit card for the fourth time. "Pen? Two pens. Take three."']);
+  setScene('exam','JEE Main');SND.sfx('bell');
+  await sayAll(['The exam hall. Six hundred students and not a single sound.','Three sections: Physics, Chemistry, Maths. Every round costs a turn on the clock. A blanked-out concept costs marks.']);
+  healAll();
+  const mm=await sitting('JEE Main',JEE.main,false,300),mrank=JEE.mainRank(mm);
+  setScene('result','JEE Main result');await say('Weeks later. The result website keeps crashing. Then, suddenly, it loads.');
+  SND.jingle('result');await say(`JEE MAIN: ${mm} / 300\nAll India Rank ${rk(mrank)}`);
+  let adv=null;
+  if(mrank<=JEE.advCut){
+    await say('You are in the top 2.5 lakh. That means you can write JEE Advanced, the gateway to the IITs!');
+    setScene('exam','JEE Advanced');SND.sfx('bell');
+    await say('JEE Advanced. The hardest paper in the country. Evolved concepts guard the last question of each section.');
+    healAll();
+    const am=await sitting('JEE Advanced',JEE.adv,true,360);
+    setScene('result','JEE Advanced result');await say('Result day. Your hands are shaking too much to type the roll number. Mom types it.');
+    if(am>=JEE.advMin){adv={marks:am,rank:JEE.advRank(am)};SND.jingle('result');await say(`JEE ADVANCED: ${am} / 360\nAll India Rank ${rk(adv.rank)}`)}
+    else{adv={marks:am,rank:0};SND.jingle('sad');await say(`JEE ADVANCED: ${am} / 360\nBelow the qualifying cutoff. No IIT rank this year.`)}
+  }else await say('JEE Advanced is only for the top 2.5 lakh ranks. You did not make that list this year.');
+  G.jee={main:{marks:mm,rank:mrank},adv};
+  const ar=adv&&adv.rank;
+  if(ar&&ar<=100){mood(25);confetti=now();setScene('news','Next morning',{head:`${G.name.toUpperCase()} OF CHHOTA NAGAR GETS AIR ${ar}`});
+    await sayAll(['The coaching institute has already printed your face on a hoarding. It is forty feet tall.','Mishra Uncle tells everyone he taught you maths. He did not.'])}
+  else if(ar&&ar<=2500){mood(18);confetti=now();await sayAll(['Mom is crying. Dad says he has dust in his eye. There is no dust.','The whole mohalla is at your door with mithai. You are going to an IIT.'])}
+  else if(ar&&ar<=15000){mood(12);confetti=now();await sayAll(['An IIT rank! Dad calls every relative he has, in alphabetical order.','It may not be the top branch, but the gate of an IIT is open.'])}
+  else if(mrank<=40000){mood(3);await sayAll(['Not the IIT rank you dreamed of. But a good NIT is within reach.','Dad: "NIT is no small thing, beta. I am proud of you." He means it.'])}
+  else{mood(-10);await sayAll(['The rank is far from what you hoped. The room is quiet for a long time.','Mom: "One exam does not decide my child." Dad puts a hand on your shoulder. "We will figure it out. Together."'])}
+  await counselling();
+}
+function seatsFor(kind){
+  const out=[];
+  for(const c of COLLEGES){
+    const iit=c.kind==='IIT';if((kind==='IIT')!==iit)continue;if(kind==='NIT'&&c.tier>4)continue;if(kind==='Other'&&c.tier<5)continue;
+    const r=iit?(G.jee.adv&&G.jee.adv.rank)||0:G.jee.main.rank;if(!r)continue;
+    const brs=Object.keys(c.br).filter(b=>c.br[b]>=r);if(brs.length)out.push({c,brs});
+  }
+  return out;
+}
+async function counselling(){
+  setScene('result','Seat counselling');
+  await say('JoSAA counselling. One form, hundreds of choices. Better college or better branch? Everyone has an opinion. The choice is yours.');
+  for(;;){
+    const iit=seatsFor('IIT'),nit=seatsFor('NIT'),oth=seatsFor('Other');
+    const opts=[],act=[];
+    if(iit.length){opts.push(`IIT seats ${tag(iit.length+' colleges','#d8574a')}`);act.push(iit)}
+    if(nit.length){opts.push(`NIT / IIIT seats ${tag(nit.length+' colleges','#4f7fd0')}`);act.push(nit)}
+    opts.push('State / private colleges');act.push(oth);
+    if(G.drops<2){opts.push('Drop a year and try again');act.push('drop')}
+    opts.push('Walk away from engineering');act.push('quit');
+    const ar=G.jee.adv&&G.jee.adv.rank;
+    const c=await ask(`Main rank ${rk(G.jee.main.rank)}${ar?`  ·  Advanced rank ${rk(ar)}`:''}\nWhat will you do?`,opts);
+    const a=act[c];
+    if(a==='drop'){
+      await sayAll(['A drop year. Twelve more months in Kota while your friends leave for college.','It works for some. It breaks others. Nobody can promise which.']);
+      if(await yes('Drop a year and write JEE again?')){await dropYear();return}
+      continue;
+    }
+    if(a==='quit'){
+      await say('No engineering seat at all. Relatives will talk. But it is your life, not theirs.');
+      if(await yes('Walk away from engineering for good?')){G.college=null;G.branch=null;G.col=null;await lifeAfter('nocollege');return}
+      continue;
+    }
+    if(!a.length){await say('No seats open for your rank here.');continue}
+    const ci=await ask('Which college?',a.map(s=>`${s.c.n} ${tag(s.brs.length+(s.brs.length>1?' branches':' branch'))}`).concat(['Back']));
+    if(ci>=a.length)continue;const s=a[ci];
+    const bi=await ask(`${s.c.n}. Which branch?`,s.brs.map(b=>`${BRANCHES[b].n}${s.c.br[b]<9e8?`<span class="price">closes at ${rk(s.c.br[b])}</span>`:''}`).concat(['Back']));
+    if(bi>=s.brs.length)continue;const b=s.brs[bi];
+    if(s.c.tier===6)await say('A private college. The fee is heavy. Dad says nothing, and quietly signs an education loan.');
+    if(!(await yes(`Lock ${BRANCHES[b].n} at ${s.c.n}?`)))continue;
+    G.college={n:s.c.n,kind:s.c.kind,tier:s.c.tier};G.branch=b;
+    SND.jingle('item');await say(`Seat allotted: ${BRANCHES[b].n}, ${s.c.n}.`);
+    await startCollege();return;
+  }
+}
+async function dropYear(){
+  G.drops++;G.age++;G.daysLeft=45;mood(-8);
+  for(const k of ['jeeDone','warn15','breakTaken','k1','k2','k3','k4','k5','rival2'])delete G.flags[k];
+  healAll();G.heal={map:'kota',x:4,y:19};
+  await travel('kota',4,19,'up');
+  await sayAll([`Drop year ${G.drops}. The same PG room, a new batch of faces, and you know every wall of this city.`,'JEE is in 45 days. The other aspirants are tougher this year. So are you.']);
+  saveGame();
+}
+
+/*__PARTS__*/
+
+/* ---------------- render ---------------- */
+function T(s,x,y,size,col,align='left'){X.font=`600 ${size}px "Pixelify Sans", monospace`;if('letterSpacing' in X)X.letterSpacing='0.01px';X.fillStyle=col;X.textAlign=align;X.textBaseline='alphabetic';X.fillText(s,x,y)}
+function rr(x,y,w,h,r,fill,stroke){X.beginPath();X.roundRect?X.roundRect(x,y,w,h,r):X.rect(x,y,w,h);X.fillStyle=fill;X.fill();if(stroke){X.lineWidth=1;X.strokeStyle=stroke;X.stroke()}}
+function pill(s,x,y,right){X.font='600 8px "Pixelify Sans", monospace';const w=Math.ceil(X.measureText(s).width)+12;const px=right?x-w:x;rr(px,y,w,15,3,'#f7f1e1','#22202a');T(s,px+6,y+10.5,8,'#22202a')}
+const BGS={
+ park:{sky:['#bfe3ef','#eef0d6'],ground:['#a9d38a','#86c06a'],pf:['#7db35f','#93c774','#6ea654','#86bd68'],clouds:'rgba(255,255,255,.7)'},
+ city:{sky:['#f1d9b0','#f6ead0'],ground:['#d6ccb8','#bdb29c'],pf:['#a89c84','#cfc6b4','#9c9078','#c6bca6'],clouds:'rgba(255,255,255,.6)'},
+ campus:{sky:['#a8dcf0','#dff1f5'],ground:['#9fd68a','#7fc673'],pf:['#6fb864','#8fd07c','#62a858','#84c672'],clouds:'rgba(255,255,255,.8)'},
+ exam:{sky:['#efe7d2','#e4d9bd'],ground:['#b99262','#a37c4e'],pf:['#86643a','#caa671','#86643a','#caa671'],clouds:null},
+};
+function drawConfetti(){
+  if(!confetti)return;const k=(now()-confetti)/4000;if(k>=1){confetti=0;return}
+  for(let i=0;i<40;i++){const a=i*2.4+k*6;X.fillStyle=['#f2c14b','#f08a3c','#8fb7e8','#f7f1e1','#e0507a'][i%5];X.fillRect(120+Math.cos(a)*k*150,80+Math.sin(a)*k*110-k*24+k*k*60,2,2)}
+}
+function renderWorld(){
+  const ppx=(P.moving?P.x+(P.tx-P.x)*P.t:P.x)*TS, ppy=(P.moving?P.y+(P.ty-P.y)*P.t:P.y)*TS;
+  const cx=Math.round(clamp(ppx+8-SW/2,0,Math.max(0,CUR.w*TS-SW))), cy=Math.round(clamp(ppy+8-SH/2,0,Math.max(0,CUR.h*TS-SH)));
+  X.drawImage(mapCanvas(CUR),-cx,-cy);
+  const t=now()/600;
+  for(let y=Math.floor(cy/TS);y<=Math.floor((cy+SH)/TS);y++)for(let x=Math.floor(cx/TS);x<=Math.floor((cx+SW)/TS);x++)
+    if(tile(x,y)==='~'&&tile(x,y-1)==='~'){const o=Math.floor((Math.sin(t+x*1.7+y)+1)*3);X.fillStyle='#a9cdf2';X.fillRect(x*TS-cx+4+o,y*TS-cy+8,3,1)}
+  for(const b of CUR.boxes){const bx=(b.x0+b.x1+1)*TS/2-cx,by=b.y0*TS-cy;if(bx>-60&&bx<SW+60&&by>-20&&by<SH)T(b.label,bx,by+14.5,7,b.dark?'#f7f1e1':'#fff','center')}
+  const lk=playerLook();
+  const ents=CUR.npcs.filter(visible).map(n=>({y:n.y*TS,draw:()=>{const sx=n.x*TS-cx,sy=n.y*TS-cy;
+    if(n.sign)drawSign(X,sx,sy);
+    else if(n.item)drawItemBook(sx,sy);
+    else drawPerson(X,sx,sy-2,n.dir,0,n.look)}}));
+  ents.push({y:ppy,draw:()=>{
+    const px=ppx-cx,py=ppy-cy;drawPerson(X,px,py-2,P.dir,P.moving&&P.t>.25&&P.t<.75?P.step:0,lk);
+    const gx=Math.round(P.moving&&P.t<.5?P.x:P.moving?P.tx:P.x),gy=Math.round(P.moving&&P.t<.5?P.y:P.moving?P.ty:P.y);
+    if(tile(gx,gy)===','){X.fillStyle='#63b158';X.fillRect(Math.round(px)+2,Math.round(py)+10,12,4);X.fillStyle='#3d8d44';for(let i=0;i<4;i++)X.fillRect(Math.round(px)+3+i*3,Math.round(py)+9,1,5)}
+  }});
+  ents.sort((a,b)=>a.y-b.y).forEach(e=>e.draw());
+  if(G.ch===2&&!G.flags.jeeDone)pill(`JEE in ${G.daysLeft} days`,SW-6,6,true);
+  else if(G.ch===3&&G.col)pill(`Sem ${Math.min(8,G.col.sem)}/8  ·  ${G.col.slots} free slot${G.col.slots===1?'':'s'}`,SW-6,6,true);
+  if(AREA){const a=(now()-AREA.t0);if(a>2200)AREA=null;else{const o=a<200?a/200:a>1900?(2200-a)/300:1;X.globalAlpha=o;pill(AREA.name,6,6);X.globalAlpha=1}}
+}
+function drawItemBook(x,y,col='#f08a3c'){X.fillStyle='rgba(0,0,0,.2)';X.beginPath();X.ellipse(x+8,y+13,5,1.4,0,0,7);X.fill();
+  X.fillStyle=INK;X.fillRect(x+3,y+5,10,8);X.fillStyle=col;X.fillRect(x+4,y+6,8,6);X.fillStyle='#f7f1e1';X.fillRect(x+6,y+7,5,1);X.fillRect(x+6,y+9,4,1);X.fillStyle=INK;X.fillRect(x+4,y+6,1,6)}
+function hpBar(x,y,w,m,disp){const r=Math.max(0,disp/maxhp(m));X.fillStyle='#2b2b33';X.fillRect(x,y,w,4);X.fillStyle='#e9e4d4';X.fillRect(x+1,y+1,w-2,2);X.fillStyle=hpCol(r);X.fillRect(x+1,y+1,Math.round((w-2)*r),2)}
+function renderBattle(){
+  const bg=BGS[B.bg]||BGS.park;
+  const g=X.createLinearGradient(0,0,0,SH);g.addColorStop(0,bg.sky[0]);g.addColorStop(.55,bg.sky[1]);g.addColorStop(.56,bg.ground[0]);g.addColorStop(1,bg.ground[1]);
+  X.fillStyle=g;X.fillRect(0,0,SW,SH);
+  if(B.bg==='exam'){X.fillStyle='#2f5d47';X.fillRect(20,26,92,40);X.strokeStyle='#6b4a2f';X.lineWidth=2;X.strokeRect(20,26,92,40);T('JEE',66,50,12,'rgba(255,255,255,.55)','center');
+    X.fillStyle='#f7f1e1';X.beginPath();X.arc(130,24,9,0,7);X.fill();X.strokeStyle=INK;X.lineWidth=1;X.stroke();const a=now()/1500;X.beginPath();X.moveTo(130,24);X.lineTo(130+Math.sin(a)*6,24-Math.cos(a)*6);X.stroke();
+    X.fillStyle='rgba(0,0,0,.08)';for(let i=0;i<6;i++)X.fillRect(i*44-8,98,30,3)}
+  else if(B.bg==='city'){X.fillStyle='rgba(120,100,80,.25)';[[10,60,26,37],[40,48,22,49],[66,66,30,31],[100,54,20,43],[205,62,28,35]].forEach(([x,y,w,h])=>X.fillRect(x,y,w,h))}
+  if(bg.clouds){X.fillStyle=bg.clouds;[[30,20,18],[60,14,12],[200,28,14]].forEach(([x,y,r])=>{X.beginPath();X.ellipse(x,y,r,r*.45,0,0,7);X.fill()})}
+  X.fillStyle=bg.pf[0];X.beginPath();X.ellipse(176,74,42,9,0,0,7);X.fill();X.fillStyle=bg.pf[1];X.beginPath();X.ellipse(176,72,38,7,0,0,7);X.fill();
+  X.fillStyle=bg.pf[2];X.beginPath();X.ellipse(64,124,52,11,0,0,7);X.fill();X.fillStyle=bg.pf[3];X.beginPath();X.ellipse(64,122,48,9,0,0,7);X.fill();
+  const t=now(),ent=Math.min(1,(t-B.enter)/450);
+  const blink=s=>B.flash[s]&&t-B.flash[s]<420&&Math.floor((t-B.flash[s])/70)%2===0;
+  const shk=s=>B.shake[s]&&t-B.shake[s]<300?Math.sin((t-B.shake[s])/22)*3:0;
+  const drop=s=>B.drop&&B.drop.side===s?B.drop.k:0;
+  if(B.show.foe&&!blink('foe')){const dk=drop('foe');X.save();X.beginPath();X.rect(0,0,SW,74);X.clip();
+    drawMon(X,B.foe.sp,148+shk('foe')+(1-ent)*90,22+dk*56,56,false,B.absorb?.4+.6*Math.abs(Math.sin(t/60)):1);X.restore()}
+  if(B.show.me&&!blink('me')){const dk=drop('me');X.save();X.beginPath();X.rect(0,0,SW,124);X.clip();
+    drawMon(X,B.me.sp,28+shk('me')-(1-ent)*90,58+dk*70,70,true);X.restore()}
+  if(B.orb){const o=B.orb;X.save();X.translate(o.x,o.y);X.rotate(o.rot);
+    X.fillStyle=INK;X.fillRect(-6,-5,12,10);X.fillStyle=o.item==='Smart Notes'?'#4f7fd0':'#f08a3c';X.fillRect(-5,-4,10,8);X.fillStyle='#f7f1e1';X.fillRect(-2,-2,6,1);X.fillRect(-2,0,5,1);X.fillStyle=INK;X.fillRect(-5,-4,1,8);
+    if(o.caught){X.fillStyle='#f2c14b';for(let i=0;i<3;i++)X.fillRect(-8+i*7,-11-Math.sin(t/120+i)*2,2,2)}X.restore()}
+  for(const s of ['me','foe']){const m=monOf(s),d=B.dhp[s],step=Math.max(.25,maxhp(m)/60);B.dhp[s]=Math.abs(d-m.hp)<=step?m.hp:d+Math.sign(m.hp-d)*step}
+  if(B.show.foe||B.drop){const f=B.foe;rr(8,10,104,26,4,'#f7f1e1','#22202a');T(f.sp,14,21,9,'#22202a');T('Lv'+f.lvl,106,21,8,'#22202a','right');
+    T('HP',14,31,6,'#f08a3c');hpBar(26,27,80,f,B.dhp.foe);
+    if(!B.wild){for(let i=0;i<B.foes.length;i++){X.fillStyle=B.foes[i].hp>0?'#f08a3c':'#9b9b9b';X.beginPath();X.arc(16+i*7,42,2.4,0,7);X.fill()}}}
+  if(B.show.me||B.drop){const m=B.me;rr(128,84,104,36,4,'#f7f1e1','#22202a');T(m.sp,134,95,9,'#22202a');T('Lv'+m.lvl,226,95,8,'#22202a','right');
+    T('HP',134,105,6,'#f08a3c');hpBar(146,101,80,m,B.dhp.me);T(`${Math.round(B.dhp.me)}/${maxhp(m)}`,226,114,8,'#22202a','right');
+    const lo=m.lvl**3,hi=(m.lvl+1)**3,er=clamp((m.exp-lo)/(hi-lo),0,1);X.fillStyle='#2b2b33';X.fillRect(134,116,52,2);X.fillStyle='#4f86e0';X.fillRect(134,116,52*er,2)}
+  if(B.exam)pill(`Q${B.fi+1}/${B.foes.length}  ·  ${B.left} turns left  ·  ${Math.max(0,B.marks)} marks`,SW-4,3,true);
+}
+function scenery(){
+  const g=X.createLinearGradient(0,0,0,SH);g.addColorStop(0,'#f6b26b');g.addColorStop(.45,'#f9dca0');g.addColorStop(1,'#f2c88a');X.fillStyle=g;X.fillRect(0,0,SW,SH);
+  X.fillStyle='#fff3c4';X.beginPath();X.arc(190,58,16,0,7);X.fill();
+  X.fillStyle='#8a6fb8';X.beginPath();X.moveTo(0,112);X.quadraticCurveTo(60,84,130,108);X.quadraticCurveTo(190,90,240,104);X.lineTo(240,176);X.lineTo(0,176);X.fill();
+  X.fillStyle='#5b4a8a';X.fillRect(96,70,48,40);X.beginPath();X.moveTo(92,70);X.lineTo(120,52);X.lineTo(148,70);X.fill();X.fillRect(116,40,8,14);
+  X.fillStyle='#f9dca0';for(let i=0;i<4;i++){X.fillRect(102+i*11,78,5,7);X.fillRect(102+i*11,92,5,7)}
+  X.fillStyle='#4a8a56';X.beginPath();X.moveTo(0,134);X.quadraticCurveTo(90,110,170,132);X.quadraticCurveTo(210,124,240,130);X.lineTo(240,176);X.lineTo(0,176);X.fill();
+}
+function renderTitle(){
+  scenery();const t=now()/500;
+  X.font='18px "Press Start 2P", monospace';X.textAlign='center';X.fillStyle='#22202a';X.fillText('ASPIRANT',121,27);X.fillStyle='#f7f1e1';X.fillText('ASPIRANT',120,26);
+  T('one exam. a thousand lives.',120,39,8,'#22202a','center');
+  STARTERS.forEach((s,i)=>drawMon(X,s,36+i*62,86+Math.sin(t+i*1.3)*2,40,i===0));
+}
+function renderPick(){
+  scenery();X.fillStyle='rgba(34,32,46,.35)';X.fillRect(0,0,SW,SH);T('Pick your starter concept',120,22,10,'#f7f1e1','center');
+  STARTERS.forEach((s,i)=>{const on=i===PICK.hi,x=14+i*74;
+    rr(x,32,64,76,6,on?'#f7f1e1':'rgba(247,241,225,.6)',on?'#f08a3c':'#22202a');
+    drawMon(X,s,x+8,38+(on?Math.sin(now()/180)*2:0),48,false);T(s,x+32,96,9,'#22202a','center');
+    rr(x+12,99,40,8,2,TYPES[SP[s].t[0]]);T(SP[s].t[0],x+32,105.5,6,'#fff','center')});
+}
+function renderEvolve(){
+  X.fillStyle='#1d1a2e';X.fillRect(0,0,SW,SH);const t=now()-EVO.t0;
+  for(let i=0;i<24;i++){const a=i/24*Math.PI*2+t/900;X.fillStyle=i%2?'#f2c14b':'#a884ea';X.fillRect(120+Math.cos(a)*(50+Math.sin(t/300+i)*8),62+Math.sin(a)*40,2,2)}
+  const show=EVO.done?EVO.to:(t<2600&&Math.floor(t/Math.max(60,260-t/12))%2?EVO.to:EVO.from);
+  drawMon(X,show,84,24,72,false,EVO.done?1:.92);
+}
+function renderScene(){
+  const f=(typeof SCENES!=='undefined'&&SCENES[SCENE.kind]);
+  if(f){X.save();try{f(X,now()-SCENE.t0,SCENE)}catch(e){if(!SCENE.err){SCENE.err=1;console.error(e)}}X.restore();X.globalAlpha=1}else scenery();
+  if(SCENE.cap)pill(SCENE.cap,6,6);
+}
+let last=now();
+function frame(){
+  const t=now(),dt=Math.min(.05,(t-last)/1000);last=t;
+  X.setTransform(2,0,0,2,0,0);X.imageSmoothingEnabled=false;X.globalAlpha=1;
+  SND.music(mode==='title'||mode==='pick'?'home':mode==='evolve'?(EVO&&EVO.done?null:'evolve'):mode==='battle'&&B?B.music:mode==='scene'?(SCENE&&SCENE.kind==='exam'?'kota':'life'):CUR.song);
+  if(mode==='world'&&G){updateWorld(dt);renderWorld()}
+  else if(mode==='battle'&&B)renderBattle();
+  else if(mode==='evolve'&&EVO)renderEvolve();
+  else if(mode==='pick')renderPick();
+  else if(mode==='scene'&&SCENE)renderScene();
+  else renderTitle();
+  drawConfetti();
+  if(FADE){const k=Math.min(1,(t-FADE.t0)/250);X.fillStyle=`rgba(18,16,28,${FADE.out?k:1-k})`;X.fillRect(0,0,SW,SH)}
+  if(TRANS){const k=Math.min(1,(t-TRANS)/650);X.fillStyle='#12101c';for(let i=0;i<11;i++){const w=SW*Math.min(1,k*1.4-(i%3)*.12);i%2?X.fillRect(SW-w,i*16,w,16):X.fillRect(0,i*16,w,16)}}
+  requestAnimationFrame(frame);
+}
+
+/* ---------------- boot ---------------- */
+const HEROES=[['Arjun',false],['Kabir',false],['Ananya',true],['Meera',true]];
+async function titleFlow(){
+  mode='title';busy=true;SCENE=null;B=null;hideUI();
+  for(;;){
+    const sv=readSave(),ends=Object.keys(readEnds()).length;
+    const opts=[];if(sv)opts.push('Continue');opts.push('New Game');if(ends)opts.push(`Endings <span class="price">${ends} found</span>`);
+    const c=await choose(opts,{prompt:sv?`Saved: ${sv.name}, age ${sv.age}, ${sv.ch===1?'Chhota Nagar':sv.ch===2?'Kota':(sv.college&&sv.college.n)||'college'}.`:'Press A to begin your story.'});
+    if(sv&&c===0){load(sv);mode='world';hideUI();busy=false;AREA={name:CUR.name,t0:now()};await run(()=>say(`Welcome back, ${G.name}. You are in ${CUR.name}.`));return}
+    if(opts[c].startsWith('Endings')){await endingsGallery();continue}
+    if(sv&&!(await yes('Start a new life? Your saved game will be replaced.')))continue;
+    break;
+  }
+  newGame();
+  await say('Chhota Nagar. One school, one park, one bus stand, and more dreams than people.');
+  const h=await ask('Who are you?',HEROES.map(x=>x[0]));G.name=HEROES[h][0];G.girl=HEROES[h][1];
+  await sayAll([`You are ${G.name}, 11 years old. You take radios apart to see where the voices live.`,
+    'Papa says engineers build the world. Mummy says finish your milk first.','This is the story of one exam, and of everything that comes after it.']);
+  mode='world';P.dir='up';AREA={name:CUR.name,t0:now()};
+  await say('Talk to Mom with A. Then head to the school with the blue roof, north of home.');
+  hideUI();busy=false;
+}
+function boot(data){
+  if(data&&data.save){try{load(JSON.parse(data.save));mode='world';busy=false;hideUI();return}catch(e){}}
+  titleFlow();
+}
+if(DBG)window.ASP={dbg:DBG,get G(){return G},say,ask,battle,run,jeeFlow,counselling,travel,setScene,ev:s=>eval(s),
+  team(l,sps=['Newtonaut','Voltick','Molemage','Benzring','Calculord','Matrixel']){G.party=sps.map(s=>makeMon(s,l));G.starter=G.starter||'Newtlet';sps.forEach(markCaught)},
+  kota(){G.flags.boards=true;G.ch=2;G.age=16;enterMap('kota',16,11,'up');mode='world'},
+  college(n='IIT Bombay',b='CSE'){const c=COLLEGES.find(x=>x.n===n);G.jee=G.jee||{main:{marks:250,rank:120},adv:{marks:250,rank:60}};G.college={n:c.n,kind:c.kind,tier:c.tier};G.branch=b;return run(startCollege)},
+  life(start='grad'){return run(()=>lifeAfter(start))}};
+window.claude?.hot?.snapshot?.(()=>({save:G&&mode==='world'&&!busy?JSON.stringify(serialize()):null}));
+requestAnimationFrame(frame);
+const start=d=>boot(d||{});
+(document.fonts?document.fonts.ready:Promise.resolve()).then(()=>{window.claude?.hot?.ready?window.claude.hot.ready(start):start(window.claude?.hot?.data??{})});
+})();
+</script>
